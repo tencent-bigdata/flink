@@ -38,19 +38,52 @@ under the License.
 			<useTransitiveFiltering>true</useTransitiveFiltering>
 
 			<includes>
+				<include>org.apache.flink:flink-core</include>
+				<include>org.apache.flink:flink-java</include>
+				<include>org.apache.flink:flink-scala_${scala.binary.version}</include>
+				<include>org.apache.flink:flink-runtime_${scala.binary.version}</include>
+				<include>org.apache.flink:flink-runtime-web_${scala.binary.version}</include>
+				<include>org.apache.flink:flink-optimizer_${scala.binary.version}</include>
+				<include>org.apache.flink:flink-clients_${scala.binary.version}</include>
+
+				<include>org.apache.flink:flink-streaming-java_${scala.binary.version}</include>
+				<include>org.apache.flink:flink-streaming-scala_${scala.binary.version}</include>
+				<include>org.apache.flink:flink-streaming-python_${scala.binary.version}</include>
+				<include>org.apache.flink:flink-scala-shell_${scala.binary.version}</include>
+				<include>org.apache.flink:flink-metrics-core</include>
+				<include>org.apache.flink:flink-metrics-jmx</include>
+				<include>org.apache.flink:flink-mesos_${scala.binary.version}</include>
+				<include>org.apache.flink:flink-statebackend-rocksdb_${scala.binary.version}</include>
+				<include>org.apache.flink:flink-yarn_${scala.binary.version}</include>
+				<include>org.apache.flink:flink-hadoop-fs</include>
+				<include>org.apache.flink:flink-shaded-hadoop2-uber</include>
+				<include>org.apache.flink:flink-metrics-dropwizard</include>
+				<include>org.apache.flink:flink-metrics-ganglia</include>
+				<include>org.apache.flink:flink-metrics-graphite</include>
+				<include>org.apache.flink:flink-metrics-prometheus</include>
+				<include>org.apache.flink:flink-metrics-statsd</include>
+				<include>org.apache.flink:flink-metrics-datadog</include>
+				<include>org.apache.flink:flink-metrics-slf4j</include>
+				<include>org.apache.flink:flink-python_${scala.binary.version}</include>
+
 				<include>org.slf4j:slf4j-log4j12</include>
 				<include>log4j:log4j</include>
+
+				<!-- come from parent -->
+				<include>org.apache.flink:force-shading</include>
+				<include>org.slf4j:slf4j-api</include>
+				<include>com.google.code.findbugs:jsr305</include>
 			</includes>
 		</dependencySet>
 	</dependencySets>
 
 	<files>
 		<!-- copy flink-dist fat jar -->
-		<file>
-			<source>target/flink-dist_${scala.binary.version}-${project.version}.jar</source>
-			<outputDirectory>lib/</outputDirectory>
-			<fileMode>0644</fileMode>
-		</file>
+		<!--<file>-->
+			<!--<source>target/flink-dist_${scala.binary.version}-${project.version}.jar</source>-->
+			<!--<outputDirectory>lib/</outputDirectory>-->
+			<!--<fileMode>0644</fileMode>-->
+		<!--</file>-->
 
 		<!-- copy the config file -->
 		<file>

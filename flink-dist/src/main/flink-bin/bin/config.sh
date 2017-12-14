@@ -22,7 +22,7 @@ constructFlinkClassPath() {
     local FLINK_CLASSPATH
 
     while read -d '' -r jarfile ; do
-        if [[ "$jarfile" =~ .*flink-dist.*.jar ]]; then
+        if [[ "$jarfile" =~ .*flink-runtime.*.jar ]]; then
             FLINK_DIST="$FLINK_DIST":"$jarfile"
         elif [[ "$FLINK_CLASSPATH" == "" ]]; then
             FLINK_CLASSPATH="$jarfile";
