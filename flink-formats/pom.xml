@@ -38,7 +38,7 @@ under the License.
 	<modules>
 		<module>flink-avro</module>
 		<module>flink-json</module>
-		<module>flink-avro-confluent-registry</module>
+		<!--<module>flink-avro-confluent-registry</module>-->
 		<module>flink-parquet</module>
 	</modules>
 
