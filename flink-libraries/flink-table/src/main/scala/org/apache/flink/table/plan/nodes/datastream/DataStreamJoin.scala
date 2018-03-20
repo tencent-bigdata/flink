@@ -27,6 +27,7 @@ import org.apache.flink.streaming.api.datastream.DataStream
 import org.apache.flink.table.api.{StreamQueryConfig, StreamTableEnvironment, TableException}
 import org.apache.flink.table.plan.nodes.CommonJoin
 import org.apache.flink.table.plan.schema.RowSchema
+import org.apache.flink.table.plan.util.DimTableJoinUtil
 import org.apache.flink.table.runtime.types.{CRow, CRowTypeInfo}
 
 import scala.collection.JavaConversions._
@@ -101,6 +102,13 @@ class DataStreamJoin(
 
     val leftDataStream =
       left.asInstanceOf[DataStreamRel].translateToPlan(tableEnv, queryConfig)
+
+    DimTableJoinUtil.join(
+      leftDataStream, right, joinInfo, joinType, leftSchema, rightSchema) match {
+      case Some(dataStream) => return dataStream.returns(CRowTypeInfo(schema.typeInfo))
+      case None =>
+    }
+
     val rightDataStream =
       right.asInstanceOf[DataStreamRel].translateToPlan(tableEnv, queryConfig)
 

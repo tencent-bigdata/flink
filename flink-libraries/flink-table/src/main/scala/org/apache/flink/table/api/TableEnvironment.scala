@@ -59,7 +59,7 @@ import org.apache.flink.table.plan.nodes.FlinkConventions
 import org.apache.flink.table.plan.rules.FlinkRuleSets
 import org.apache.flink.table.plan.schema.{RelTable, RowSchema, TableSourceSinkTable}
 import org.apache.flink.table.sinks.TableSink
-import org.apache.flink.table.sources.TableSource
+import org.apache.flink.table.sources.{DimTableSource, TableSource}
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo
 import org.apache.flink.table.validate.FunctionCatalog
 import org.apache.flink.types.Row
@@ -539,6 +539,17 @@ abstract class TableEnvironment(val config: TableConfig) {
   def registerTableSource(name: String, tableSource: TableSource[_]): Unit = {
     checkValidTableName(name)
     registerTableSourceInternal(name, tableSource)
+  }
+
+  /**
+   * Registers an external [[DimTableSource]] in this [[TableEnvironment]]'s catalog.
+   * Registered tables can be referenced in SQL queries.
+   *
+   * @param name        The name under which the [[DimTableSource]] is registered.
+   * @param tableSource The [[DimTableSource]] to register.
+   */
+  def registerDimTableSource(name: String, tableSource: DimTableSource): Unit = {
+    registerTableSource(name, tableSource)
   }
 
   /**

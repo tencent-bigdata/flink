@@ -24,7 +24,9 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.table.plan.TreeNode
 import org.apache.flink.table.validate.{ValidationResult, ValidationSuccess}
 
-abstract class Expression extends TreeNode[Expression] {
+abstract class Expression extends TreeNode[Expression]
+    with Serializable {
+
   /**
     * Returns the [[TypeInformation]] for evaluating this expression.
     * It is sometimes not available until the expression is valid.

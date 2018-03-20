@@ -18,21 +18,40 @@
 package org.apache.flink.table.expressions
 
 import org.apache.calcite.rex.RexNode
-import org.apache.calcite.sql.SqlOperator
 import org.apache.calcite.sql.fun.SqlStdOperatorTable
 import org.apache.calcite.tools.RelBuilder
+
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo._
 import org.apache.flink.api.common.typeinfo.{BasicTypeInfo, TypeInformation}
+import org.apache.flink.table.expressions.BinaryComparison._
 import org.apache.flink.table.typeutils.TypeCheckUtils.{isArray, isComparable, isNumeric}
 import org.apache.flink.table.validate._
 
 import scala.collection.JavaConversions._
 
+object BinaryComparison {
+  private[flink] val equalTo            = "EqualTo"
+  private[flink] val notEqualTo         = "NotEqualTo"
+  private[flink] val lessThan           = "LessThan"
+  private[flink] val lessThanOrEqual    = "LessThanOrEqual"
+  private[flink] val greaterThan        = "GreaterThan"
+  private[flink] val greaterThanOrEqual = "GreaterThanOrEqual"
+
+  private[flink] val opMap = Map(
+    equalTo            -> SqlStdOperatorTable.EQUALS,
+    notEqualTo         -> SqlStdOperatorTable.NOT_EQUALS,
+    lessThan           -> SqlStdOperatorTable.LESS_THAN,
+    lessThanOrEqual    -> SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+    greaterThan        -> SqlStdOperatorTable.GREATER_THAN,
+    greaterThanOrEqual -> SqlStdOperatorTable.GREATER_THAN_OR_EQUAL
+  )
+}
+
 abstract class BinaryComparison extends BinaryExpression {
-  private[flink] def sqlOperator: SqlOperator
+  private[flink] def sqlOp: String
 
   override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
-    relBuilder.call(sqlOperator, children.map(_.toRexNode))
+    relBuilder.call(opMap(sqlOp), children.map(_.toRexNode))
   }
 
   override private[flink] def resultType = BOOLEAN_TYPE_INFO
@@ -51,7 +70,7 @@ abstract class BinaryComparison extends BinaryExpression {
 case class EqualTo(left: Expression, right: Expression) extends BinaryComparison {
   override def toString = s"$left === $right"
 
-  private[flink] val sqlOperator: SqlOperator = SqlStdOperatorTable.EQUALS
+  private[flink] val sqlOp = equalTo
 
   override private[flink] def validateInput(): ValidationResult =
     (left.resultType, right.resultType) match {
@@ -67,7 +86,7 @@ case class EqualTo(left: Expression, right: Expression) extends BinaryComparison
 case class NotEqualTo(left: Expression, right: Expression) extends BinaryComparison {
   override def toString = s"$left !== $right"
 
-  private[flink] val sqlOperator: SqlOperator = SqlStdOperatorTable.NOT_EQUALS
+  private[flink] val sqlOp = notEqualTo
 
   override private[flink] def validateInput(): ValidationResult =
     (left.resultType, right.resultType) match {
@@ -83,25 +102,25 @@ case class NotEqualTo(left: Expression, right: Expression) extends BinaryCompari
 case class GreaterThan(left: Expression, right: Expression) extends BinaryComparison {
   override def toString = s"$left > $right"
 
-  private[flink] val sqlOperator: SqlOperator = SqlStdOperatorTable.GREATER_THAN
+  private[flink] val sqlOp = greaterThan
 }
 
 case class GreaterThanOrEqual(left: Expression, right: Expression) extends BinaryComparison {
   override def toString = s"$left >= $right"
 
-  private[flink] val sqlOperator: SqlOperator = SqlStdOperatorTable.GREATER_THAN_OR_EQUAL
+  private[flink] val sqlOp = greaterThanOrEqual
 }
 
 case class LessThan(left: Expression, right: Expression) extends BinaryComparison {
   override def toString = s"$left < $right"
 
-  private[flink] val sqlOperator: SqlOperator = SqlStdOperatorTable.LESS_THAN
+  private[flink] val sqlOp = lessThan
 }
 
 case class LessThanOrEqual(left: Expression, right: Expression) extends BinaryComparison {
   override def toString = s"$left <= $right"
 
-  private[flink] val sqlOperator: SqlOperator = SqlStdOperatorTable.LESS_THAN_OR_EQUAL
+  private[flink] val sqlOp = lessThanOrEqual
 }
 
 case class IsNull(child: Expression) extends UnaryExpression {
