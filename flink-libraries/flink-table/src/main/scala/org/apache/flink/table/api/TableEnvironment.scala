@@ -28,10 +28,12 @@ import org.apache.calcite.plan.RelOptPlanner.CannotPlanException
 import org.apache.calcite.plan.hep.{HepMatchOrder, HepPlanner, HepProgram, HepProgramBuilder}
 import org.apache.calcite.plan.{Convention, RelOptPlanner, RelOptUtil, RelTraitSet}
 import org.apache.calcite.rel.RelNode
+import org.apache.calcite.rel.`type`.RelDataType
+import org.apache.calcite.runtime.CalciteContextException
 import org.apache.calcite.schema.SchemaPlus
 import org.apache.calcite.schema.impl.AbstractTable
 import org.apache.calcite.sql._
-import org.apache.calcite.sql.parser.SqlParser
+import org.apache.calcite.sql.parser.{SqlParseException, SqlParser}
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable
 import org.apache.calcite.sql2rel.SqlToRelConverter
 import org.apache.calcite.tools._
@@ -764,6 +766,37 @@ abstract class TableEnvironment(val config: TableConfig) {
           "SELECT, UNION, INTERSECT, EXCEPT, VALUES, and ORDER_BY.")
     }
   }
+
+  /**
+   * Check if there is a syntax error in the input SQL.
+   *
+   * @param sql The SQL to check.
+   */
+  def checkSQLSyntax(sql: String): Option[SQLSyntaxError] = {
+    try {
+      val planner = new FlinkPlannerImpl(getFrameworkConfig, getPlanner, getTypeFactory)
+      // parse the sql query
+      val parsed = planner.parse(sql)
+      // validate the sql query
+      planner.validate(parsed)
+      None
+    } catch {
+      case e: SqlParserException =>
+        e.getCause match {
+          case pe: SqlParseException =>
+            Some(SQLSyntaxError(pe.getPos.getLineNum, pe.getPos.getColumnNum, e.getMessage))
+          case _ => throw e
+        }
+      case e: ValidationException =>
+        e.getCause match {
+          case ce: CalciteContextException =>
+            Some(SQLSyntaxError(ce.getPosLine, ce.getPosColumn, e.getMessage))
+          case _ => throw e
+        }
+      case e: Exception => throw e
+    }
+  }
+
 
   /**
     * Evaluates a SQL statement such as INSERT, UPDATE or DELETE; or a DDL statement;

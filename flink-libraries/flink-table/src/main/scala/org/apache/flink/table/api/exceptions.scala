@@ -211,3 +211,5 @@ case class ExternalCatalogAlreadyExistException(
 
   def this(catalogName: String) = this(catalogName, null)
 }
+
+case class SQLSyntaxError(lineNum: Int, columnNum: Int, message: String)
