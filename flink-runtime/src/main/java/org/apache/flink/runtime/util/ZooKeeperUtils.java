@@ -221,8 +221,9 @@ public class ZooKeeperUtils {
 			HighAvailabilityOptions.HA_ZOOKEEPER_LATCH_PATH) + pathSuffix;
 		final String leaderPath = configuration.getString(
 			HighAvailabilityOptions.HA_ZOOKEEPER_LEADER_PATH) + pathSuffix;
+		final boolean isRevoke = configuration.getBoolean(HighAvailabilityOptions.HA_ZOOKEEPER_REVOKE_MODE);
 
-		return new ZooKeeperLeaderElectionService(client, latchPath, leaderPath);
+		return new ZooKeeperLeaderElectionService(client, latchPath, leaderPath, isRevoke);
 	}
 
 	/**

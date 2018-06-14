@@ -162,6 +162,12 @@ public class HighAvailabilityOptions {
 				.text("The ZooKeeper root path for persisting the Mesos worker information.")
 				.build());
 
+	@PublicEvolving
+	public static final ConfigOption<Boolean> HA_ZOOKEEPER_REVOKE_MODE =
+		key("high-availability.zookeeper.revoke.mode")
+			.defaultValue(true)
+			.withDescription("this paramter is use for yarn & zk HA, in yarn, zk not need revoke");
+
 	// ------------------------------------------------------------------------
 	//  ZooKeeper Client Settings
 	// ------------------------------------------------------------------------

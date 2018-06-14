@@ -426,7 +426,7 @@ public class ZooKeeperLeaderElectionTest extends TestLogger {
 				.withMode(Matchers.any(CreateMode.class))
 				.forPath(anyString(), any(byte[].class))).thenThrow(testException);
 
-			leaderElectionService = new ZooKeeperLeaderElectionService(client, "/latch", "/leader");
+			leaderElectionService = new ZooKeeperLeaderElectionService(client, "/latch", "/leader", true);
 			leaderRetrievalService = ZooKeeperUtils.createLeaderRetrievalService(client, configuration);
 
 			testingContender = new TestingContender(TEST_URL, leaderElectionService);

@@ -68,7 +68,9 @@ public class ZooKeeperLeaderElectionService implements LeaderElectionService, Le
 	/** ZooKeeper path of the node which stores the current leader information. */
 	private final String leaderPath;
 
-	private volatile UUID issuedLeaderSessionID;
+	private final boolean isRevoke;
+
+	private UUID issuedLeaderSessionID;
 
 	private volatile UUID confirmedLeaderSessionID;
 
@@ -91,10 +93,11 @@ public class ZooKeeperLeaderElectionService implements LeaderElectionService, Le
 	 * @param latchPath ZooKeeper node path for the leader election latch
 	 * @param leaderPath ZooKeeper node path for the node which stores the current leader information
 	 */
-	public ZooKeeperLeaderElectionService(CuratorFramework client, String latchPath, String leaderPath) {
+	public ZooKeeperLeaderElectionService(CuratorFramework client, String latchPath, String leaderPath, boolean isRevoke) {
 		this.client = Preconditions.checkNotNull(client, "CuratorFramework client");
 		this.leaderPath = Preconditions.checkNotNull(leaderPath, "leaderPath");
 
+		this.isRevoke = isRevoke;
 		leaderLatch = new LeaderLatch(client, latchPath);
 		cache = new NodeCache(client, leaderPath);
 
@@ -215,17 +218,20 @@ public class ZooKeeperLeaderElectionService implements LeaderElectionService, Le
 	public void isLeader() {
 		synchronized (lock) {
 			if (running) {
-				issuedLeaderSessionID = UUID.randomUUID();
-				confirmedLeaderSessionID = null;
+				if(confirmedLeaderSessionID == null || this.isRevoke){
+					issuedLeaderSessionID = UUID.randomUUID();
+					confirmedLeaderSessionID = null;
 
-				if (LOG.isDebugEnabled()) {
-					LOG.debug(
-						"Grant leadership to contender {} with session ID {}.",
-						leaderContender.getAddress(),
-						issuedLeaderSessionID);
+					if (LOG.isDebugEnabled()) {
+						LOG.debug(
+							"Grant leadership to contender {} with session ID {}.",
+							leaderContender.getAddress(),
+							issuedLeaderSessionID);
+					}
+
+					leaderContender.grantLeadership(issuedLeaderSessionID);
 				}
 
-				leaderContender.grantLeadership(issuedLeaderSessionID);
 			} else {
 				LOG.debug("Ignoring the grant leadership notification since the service has " +
 					"already been stopped.");
@@ -235,20 +241,24 @@ public class ZooKeeperLeaderElectionService implements LeaderElectionService, Le
 
 	@Override
 	public void notLeader() {
-		synchronized (lock) {
-			if (running) {
-				issuedLeaderSessionID = null;
-				confirmedLeaderSessionID = null;
+		if(this.isRevoke) {
+			synchronized (lock) {
+				if (running) {
+					issuedLeaderSessionID = null;
+					confirmedLeaderSessionID = null;
 
-				if (LOG.isDebugEnabled()) {
-					LOG.debug("Revoke leadership of {}.", leaderContender.getAddress());
+					if (LOG.isDebugEnabled()) {
+						LOG.debug("Revoke leadership of {}.", leaderContender.getAddress());
+					}
+
+					leaderContender.revokeLeadership();
+				} else {
+					LOG.debug("Ignoring the revoke leadership notification since the service " +
+						"has already been stopped.");
 				}
-
-				leaderContender.revokeLeadership();
-			} else {
-				LOG.debug("Ignoring the revoke leadership notification since the service " +
-					"has already been stopped.");
 			}
+		} else {
+			LOG.info("Ignoring the revoke leadership in yarn mode!");
 		}
 	}
 
