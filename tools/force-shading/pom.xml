@@ -105,5 +105,18 @@ under the License.
 			</build>
 		</profile>
 	</profiles>
-
+	<distributionManagement>
+		<repository>
+			<id>tdwmirror</id>
+			<name>tdw mirror</name>
+			<url>http://maven.data.oa.com/nexus/content/repositories/releases
+			</url>
+		</repository>
+		<snapshotRepository>
+			<id>tdwmirror-snapshots</id>
+			<name>tdw mirror snapshots</name>
+			<url>http://maven.data.oa.com/nexus/content/repositories/snapshots
+			</url>
+		</snapshotRepository>
+	</distributionManagement>
 </project>
