@@ -115,6 +115,11 @@ class FlinkPlannerImpl(
       assert(validatedSqlNode != null)
       val rexBuilder: RexBuilder = createRexBuilder
       val cluster: RelOptCluster = FlinkRelOptClusterFactory.create(planner, rexBuilder)
+      val config = SqlToRelConverter.configBuilder()
+        .withTrimUnusedFields(false)
+        .withConvertTableAccess(false)
+        .withInSubQueryThreshold(1000)
+        .build()
       val sqlToRelConverter: SqlToRelConverter = new SqlToRelConverter(
         new ViewExpanderImpl,
         validator,
@@ -164,6 +169,11 @@ class FlinkPlannerImpl(
       val validatedSqlNode: SqlNode = validator.validate(sqlNode)
       val rexBuilder: RexBuilder = createRexBuilder
       val cluster: RelOptCluster = FlinkRelOptClusterFactory.create(planner, rexBuilder)
+      val config: SqlToRelConverter.Config = SqlToRelConverter.configBuilder
+        .withTrimUnusedFields(false)
+        .withConvertTableAccess(false)
+        .withInSubQueryThreshold(1000)
+        .build
       val sqlToRelConverter: SqlToRelConverter = new SqlToRelConverter(
         new ViewExpanderImpl,
         validator,
