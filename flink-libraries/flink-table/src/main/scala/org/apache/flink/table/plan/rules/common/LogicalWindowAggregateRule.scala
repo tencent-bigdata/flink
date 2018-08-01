@@ -114,7 +114,8 @@ abstract class LogicalWindowAggregateRule(ruleName: String)
               if (call.getOperands.size() == 2) {
                 true
               } else {
-                throw new TableException("ENHANCED TUMBLE window with alignment is not supported yet.")
+                throw new
+                    TableException("ENHANCED TUMBLE window with alignment is not supported yet.")
               }
             case BasicOperatorTable.TUMBLE =>
               if (call.getOperands.size() == 2) {

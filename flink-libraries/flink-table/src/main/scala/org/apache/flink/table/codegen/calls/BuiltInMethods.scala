@@ -23,7 +23,7 @@ import java.math.{BigDecimal => JBigDecimal}
 
 import org.apache.calcite.linq4j.tree.Types
 import org.apache.calcite.runtime.SqlFunctions
-import org.apache.flink.table.runtime.functions.ScalarFunctions
+import org.apache.flink.table.runtime.functions.{ScalarFunctions,DateTimeFunctions}
 
 /**
   * Contains references to built-in functions.
@@ -34,6 +34,13 @@ import org.apache.flink.table.runtime.functions.ScalarFunctions
   * special handling.
   */
 object BuiltInMethods {
+
+  val IS_DECIMAL = Types.lookupMethod(classOf[ScalarFunctions], "isDecimal", classOf[String])
+
+  val IS_ALPHA = Types.lookupMethod(classOf[ScalarFunctions], "isAlpha", classOf[String])
+
+  val IF = Types.lookupMethod(classOf[ScalarFunctions], "_IF",
+    classOf[Boolean], classOf[String], classOf[String])
 
   val LOG = Types.lookupMethod(classOf[ScalarFunctions], "log", classOf[Double])
 
@@ -126,6 +133,32 @@ object BuiltInMethods {
   val CONCAT_WS =
     Types.lookupMethod(
       classOf[ScalarFunctions], "concat_ws", classOf[String], classOf[Array[String]])
+  val KEY_VALUE = Types.lookupMethod(classOf[ScalarFunctions], "keyvalue", classOf[String],
+    classOf[String], classOf[String], classOf[String])
+
+  val SPLIT_INDEX =Types.lookupMethod(
+    classOf[ScalarFunctions],
+    "splitIndex",
+    classOf[String],
+    classOf[String],
+    classOf[Integer])
+
+  val REVERSE =Types.lookupMethod(
+    classOf[ScalarFunctions],
+    "reverse",
+    classOf[String])
+
+  val DATE_ADD =Types.lookupMethod(
+    classOf[DateTimeFunctions],
+    "dateAdd",
+    classOf[String],
+    classOf[Integer])
+
+  val DATE_SUB =Types.lookupMethod(
+    classOf[DateTimeFunctions],
+    "dateSub",
+    classOf[String],
+    classOf[Integer])
 
   val LPAD = Types.lookupMethod(
     classOf[ScalarFunctions],
@@ -176,4 +209,43 @@ object BuiltInMethods {
     "repeat",
     classOf[String],
     classOf[Int])
+
+  val BIT_AND = Types.lookupMethod(classOf[ScalarFunctions],"bitAnd",classOf[Int], classOf[Int])
+  val BIT_NOT = Types.lookupMethod(classOf[ScalarFunctions],"bitNot",classOf[Int])
+  val BIT_OR = Types.lookupMethod(classOf[ScalarFunctions],"bitOr",classOf[Int], classOf[Int])
+  val BIT_XOR = Types.lookupMethod(classOf[ScalarFunctions],"bitXor",classOf[Int], classOf[Int])
+
+  val DATE_DIFF_S_S = Types.lookupMethod(classOf[DateTimeFunctions],"dateDiffSS",
+    classOf[String], classOf[String])
+  val DATE_DIFF_T_S = Types.lookupMethod(classOf[DateTimeFunctions],"dateDiffTS",
+    classOf[Long], classOf[String])
+  val DATE_DIFF_S_T = Types.lookupMethod(classOf[DateTimeFunctions],"dateDiffST",
+    classOf[String], classOf[Long])
+  val DATE_DIFF_T_T = Types.lookupMethod(classOf[DateTimeFunctions],"dateDiffTT",
+    classOf[Long], classOf[Long])
+
+  val HASH_CODE = Types.lookupMethod(classOf[ScalarFunctions], "hash_code", classOf[String])
+
+  val JSON_VALUE = Types.lookupMethod(classOf[ScalarFunctions], "json_value", classOf[String],
+    classOf[String])
+
+  val PARSE_URL = Types.lookupMethod(classOf[ScalarFunctions], "parse_url", classOf[String],
+    classOf[Array[String]])
+
+  val UNIX_TIMESTAMP = Types.lookupMethod(
+    classOf[ScalarFunctions], "unix_timestamp", classOf[Array[String]])
+
+  val FROM_UNIXTIME = Types.lookupMethod(classOf[ScalarFunctions], "from_unixtime",
+    classOf[Long], classOf[Array[String]])
+
+  val NOW = Types.lookupMethod(classOf[ScalarFunctions], "now", classOf[Array[Int]])
+
+  val STR_TO_MAP =
+    Types.lookupMethod(classOf[ScalarFunctions], "strToMap", classOf[Array[String]])
+
+  val URL_ENCODE =
+    Types.lookupMethod(classOf[ScalarFunctions], "urlEncode", classOf[String], classOf[String])
+
+  val URL_DECODE =
+    Types.lookupMethod(classOf[ScalarFunctions], "urlDecode", classOf[String], classOf[String])
 }

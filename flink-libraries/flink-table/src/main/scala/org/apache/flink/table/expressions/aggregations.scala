@@ -18,7 +18,7 @@
 package org.apache.flink.table.expressions
 
 import org.apache.calcite.rex.RexNode
-import org.apache.calcite.sql.SqlAggFunction
+import org.apache.calcite.sql.{SqlAggFunction, SqlKind}
 import org.apache.calcite.sql.fun._
 import org.apache.calcite.tools.RelBuilder
 import org.apache.calcite.tools.RelBuilder.AggCall
@@ -82,6 +82,44 @@ case class DistinctAgg(child: Expression) extends Aggregation {
   }
 
   override private[flink] def children = Seq(child)
+}
+
+case class FirstValue(args: Expression) extends Aggregation {
+
+  override private[flink] def children: Seq[Expression] = Seq(args)
+
+  override def toString = s"FirstValue($args)"
+
+  override private[flink] def toAggCall(name: String, isDistinct: Boolean)
+                                       (implicit relBuilder: RelBuilder): AggCall = {
+    relBuilder.aggregateCall(SqlStdOperatorTable.FIRST_VALUE, false, false,
+      null, name, args.toRexNode)
+  }
+
+  override private[flink] def resultType = args.resultType
+
+  override private[flink] def getSqlAggFunction()(implicit relBuilder: RelBuilder) = {
+    new SqlFirstLastValueAggFunction(SqlKind.FIRST_VALUE)
+  }
+}
+
+case class LastValue(args: Expression) extends Aggregation {
+
+  override private[flink] def children: Seq[Expression] = Seq(args)
+
+  override def toString = s"LastValue($args)"
+
+  override private[flink] def toAggCall(name: String, isDistinct: Boolean)
+                                       (implicit relBuilder: RelBuilder): AggCall = {
+    relBuilder.aggregateCall(SqlStdOperatorTable.LAST_VALUE, false, false,
+      null, name, args.toRexNode)
+  }
+
+  override private[flink] def resultType = args.resultType
+
+  override private[flink] def getSqlAggFunction()(implicit relBuilder: RelBuilder) = {
+    new SqlFirstLastValueAggFunction(SqlKind.LAST_VALUE)
+  }
 }
 
 case class Sum(child: Expression) extends Aggregation {

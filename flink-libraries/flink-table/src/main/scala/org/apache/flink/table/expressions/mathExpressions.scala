@@ -493,3 +493,55 @@ case class UUID() extends LeafExpression {
     relBuilder.call(ScalarSqlFunctions.UUID)
   }
 }
+
+case class BitAnd(left: Expression, right: Expression) extends BinaryExpression with InputTypeSpec {
+  override private[flink] def resultType: TypeInformation[_] = INT_TYPE_INFO
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] =
+    INT_TYPE_INFO :: INT_TYPE_INFO :: Nil
+
+  override def toString: String = s"bitand($left, $right)"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.BIT_AND, left.toRexNode, right.toRexNode)
+  }
+}
+
+case class BitNot(child: Expression) extends UnaryExpression {
+  override private[flink] def resultType: TypeInformation[_] = INT_TYPE_INFO
+
+  override private[flink] def validateInput(): ValidationResult =
+    TypeCheckUtils.assertNumericExpr(child.resultType, "BITNOT")
+
+  override def toString: String = s"bitnot($child)"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.BIT_NOT, child.toRexNode)
+  }
+}
+
+case class BitOr(left: Expression, right: Expression) extends BinaryExpression with InputTypeSpec {
+  override private[flink] def resultType: TypeInformation[_] = INT_TYPE_INFO
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] =
+    INT_TYPE_INFO :: INT_TYPE_INFO :: Nil
+
+  override def toString: String = s"bitor($left, $right)"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.BIT_OR, left.toRexNode, right.toRexNode)
+  }
+}
+
+case class BitXor(left: Expression, right: Expression) extends BinaryExpression with InputTypeSpec {
+  override private[flink] def resultType: TypeInformation[_] = INT_TYPE_INFO
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] =
+    INT_TYPE_INFO :: INT_TYPE_INFO :: Nil
+
+  override def toString: String = s"bitxor($left, $right)"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.BIT_XOR, left.toRexNode, right.toRexNode)
+  }
+}

@@ -30,6 +30,30 @@ class ScalarFunctionsTest extends ScalarTypesTestBase {
   // ----------------------------------------------------------------------------------------------
 
   @Test
+  def testSplitIndex(): Unit = {
+    testAllApis(
+      'f44.splitIndex(".",0),
+      "f44.splitIndex('.',0)",
+      "SPLIT_INDEX(f44,'.',0)",
+      "2018-08-08")
+
+    testAllApis(
+      'f44.splitIndex(".",1),
+      "f44.splitIndex('.',1)",
+      "SPLIT_INDEX(f44,'.',1)",
+      "null")
+  }
+
+  @Test
+  def testReverse(): Unit = {
+    testAllApis(
+      'f44.reverse(),
+      "f44.reverse()",
+      "reverse(f44)",
+      "80-80-8102")
+  }
+
+  @Test
   def testOverlay(): Unit = {
     testAllApis(
       "xxxxxtest".overlay("xxxx", 6),
@@ -58,6 +82,66 @@ class ScalarFunctionsTest extends ScalarTypesTestBase {
       "POSITION('testx' IN 'xxxtest')",
       "0")
   }
+
+  @Test
+  def testIF(): Unit = {
+    testAllApis(
+      _IF(false, "1", "2"),
+      "_IF(false,'1','2')",
+      "_IF(false,'1','2')",
+      "2")
+
+    testAllApis(
+       _IF(true,"1","2"),
+      "_IF(true,'1','2')",
+      "_IF(true,'1','2')",
+      "1")
+  }
+
+  @Test
+  def testIsDecimal(): Unit = {
+    testAllApis(
+      'f0.isDecimal(),
+      "f0.isDecimal()",
+      "IS_DECIMAL(f0)",
+      "false")
+
+    testAllApis(
+      'f54.isDecimal(),
+      "f54.isDecimal()",
+      "IS_DECIMAL(f54)",
+      "true")
+
+    testAllApis(
+      "".isDecimal(),
+      "''.isDecimal()",
+      "IS_DECIMAL('')",
+      "false"
+    )
+  }
+
+  @Test
+  def testIsAlpha(): Unit = {
+    testAllApis(
+      'f0.isAlpha(),
+      "f0.isAlpha()",
+      "IS_ALPHA(f0)",
+      "false")
+
+    testAllApis(
+      'f53.isAlpha(),
+      "f53.isAlpha()",
+      "IS_ALPHA(f53)",
+      "true")
+
+    testAllApis(
+      "".isAlpha(),
+      "''.isAlpha()",
+      "IS_ALPHA('')",
+      "false"
+    )
+  }
+
 
   @Test
   def testSubstring(): Unit = {
@@ -1005,7 +1089,7 @@ class ScalarFunctionsTest extends ScalarTypesTestBase {
       'f6.log2(),
       "f6.log2",
       "LOG2(f6)",
-     "2.2016338611696504")
+      "2.2016338611696504")
 
     testAllApis(
       ('f6 - 'f6 + 100).log2(),
@@ -1024,6 +1108,165 @@ class ScalarFunctionsTest extends ScalarTypesTestBase {
       "10.log2",
       "LOG2(10)",
       "3.3219280948873626")
+  }
+
+  @Test
+  def testBitAnd: Unit = {
+    testAllApis(
+      'f36.bitAnd('f7),
+      "f36.bitAnd(f7)",
+      "BIT_AND(f36, f7)",
+      String.valueOf(2&3))
+
+    testAllApis(
+      'f7.bitAnd('f37),
+      "f37.bitAnd(f7)",
+      "BIT_AND(f37, f7)",
+      String.valueOf((Int.MaxValue + 1)&3))
+
+    testAllApis(
+      'f7.bitAnd('f38),
+      "f38.bitAnd(f7)",
+      "BIT_AND(f38, f7)",
+      String.valueOf((Int.MinValue - 1)&3))
+  }
+
+  @Test
+  def testBitOr: Unit = {
+    testAllApis(
+      'f36.bitOr('f7),
+      "f36.bitOr(f7)",
+      "BIT_OR(f36, f7)",
+      String.valueOf(2|3))
+
+    testAllApis(
+      'f7.bitOr('f37),
+      "f37.bitOr(f7)",
+      "BIT_OR(f37, f7)",
+      String.valueOf((Int.MaxValue + 1) | 3))
+
+    testAllApis(
+      'f7.bitOr('f38),
+      "f38.bitOr(f7)",
+      "BIT_OR(f38, f7)",
+      String.valueOf((Int.MinValue - 1) | 3))
+  }
+
+  @Test
+  def testBitXor: Unit = {
+    testAllApis(
+      'f36.bitXor('f7),
+      "f36.bitXor(f7)",
+      "BIT_XOR(f36, f7)",
+      String.valueOf(2^3))
+
+    testAllApis(
+      'f7.bitXor('f37),
+      "f37.bitXor(f7)",
+      "BIT_XOR(f37, f7)",
+      String.valueOf((Int.MaxValue + 1) ^ 3))
+
+    testAllApis(
+      'f7.bitXor('f38),
+      "f38.bitXor(f7)",
+      "BIT_XOR(f38, f7)",
+      String.valueOf((Int.MinValue - 1) ^ 3))
+  }
+
+  @Test
+  def testBitNot: Unit = {
+    testAllApis(
+      'f7.bitNot,
+      "f7.bitNot",
+      "BIT_NOT( f7)",
+      String.valueOf(~3))
+
+    testAllApis(
+      'f37.bitNot,
+      "f37.bitNot",
+      "BIT_NOT(f37)",
+      String.valueOf(~(Int.MaxValue + 1)))
+
+    testAllApis(
+      'f38.bitNot,
+      "f38.bitNot",
+      "BIT_NOT(f38)",
+      String.valueOf(~(Int.MinValue - 1)))
+  }
+
+  @Test
+  def testDateDiff: Unit = {
+    testAllApis(
+      'f39.dateDiff( 'f40),
+      "f39.datediff(f40)",
+      "DATE_DIFF(f39, f40)",
+      String.valueOf(1096))
+
+    testAllApis(
+      'f41.dateDiff( 'f42),
+      "f41.datediff(f42)",
+      "DATE_DIFF(f41, f42)",
+      String.valueOf(1096))
+
+    testAllApis(
+      'f41.dateDiff( 'f40),
+      "f41.datediff(f40)",
+      "DATE_DIFF(f41, f40)",
+      String.valueOf(1096))
+
+    testAllApis(
+      'f39.dateDiff( 'f42),
+      "f39.datediff(f42)",
+      "DATE_DIFF(f39, f42)",
+      String.valueOf(1096))
+
+    testAllApis(
+      'f40.dateDiff( 'f39),
+      "f40.datediff(f39)",
+      "DATE_DIFF(f40, f39)",
+      String.valueOf(-1096))
+
+    testAllApis(
+      'f42.dateDiff( 'f41),
+      "f42.datediff(f41)",
+      "DATE_DIFF(f42, f41)",
+      String.valueOf(-1096))
+
+    testAllApis(
+      'f40.dateDiff( 'f41),
+      "f40.datediff(f41)",
+      "DATE_DIFF(f40, f41)",
+      String.valueOf(-1096))
+
+    testAllApis(
+      'f42.dateDiff( 'f39),
+      "f42.datediff(f39)",
+      "DATE_DIFF(f42, f39)",
+      String.valueOf(-1096))
+
+    testAllApis(
+      'f43.dateDiff( 'f39),
+      "f43.datediff(f39)",
+      "DATE_DIFF(f43, f39)",
+      "null")
+
+    testAllApis(
+      'f43.dateDiff( 'f41),
+      "f43.datediff(f41)",
+      "DATE_DIFF(f43, f41)",
+      "null")
+
+    testAllApis(
+      'f39.dateDiff( 'f43),
+      "f39.datediff(f43)",
+      "DATE_DIFF(f39, f43)",
+      "null")
+
+    testAllApis(
+      'f41.dateDiff( 'f43),
+      "f41.datediff(f43)",
+      "DATE_DIFF(f41, f43)",
+      "null")
   }
 
   @Test
@@ -2959,5 +3202,346 @@ class ScalarFunctionsTest extends ScalarTypesTestBase {
       "f21.isNotFalse",
       "f21 IS NOT FALSE",
       "true")
+  }
+
+  @Test
+  def testHashCode(): Unit = {
+    testAllApis(
+      'f0.hash_code(),
+      "f0.hash_code()",
+      "HASH_CODE(f0)",
+      "1512354498"
+    )
+
+    testAllApis(
+      'f8.hash_code(),
+      "f8.hash_code()",
+      "HASH_CODE(f8)",
+      "1789100414"
+    )
+
+    testAllApis(
+      'f33.hash_code(),
+      "f33.hash_code()",
+      "HASH_CODE(f33)",
+      "null"
+    )
+
+    testAllApis(
+      "".hash_code(),
+      "''.hash_code()",
+      "hash_code('')",
+      "0"
+    )
+  }
+
+  @Test
+  def testJsonValue(): Unit = {
+    testAllApis(
+      'f45.json_value("$[2][*]"),
+      "f45.json_value(\"$[2][*]\")",
+      "JSON_VALUE(f45,'$[2][*]' )",
+      "[30,40]"
+    )
+
+    testAllApis(
+      'f46.json_value("$.ccc.hhh[*]"),
+      "f46.json_value(\"$.ccc.hhh[*]\")",
+      "JSON_VALUE(f46, '$.ccc.hhh[*]')",
+      "[\"h0\",\"h1\",\"h2\"]"
+    )
+
+    testAllApis(
+      'f46.json_value("$.ccc.hhh[1]"),
+      "f46.json_value(\"$.ccc.hhh[1]\")",
+      "JSON_VALUE(f46, '$.ccc.hhh[1]')",
+      "h1"
+    )
+
+    testAllApis(
+      'f45.json_value(""),
+      "f45.json_value(\"\")",
+      "JSON_VALUE(f45, '')",
+      "null"
+    )
+
+    testAllApis(
+      'f44.json_value("$[2][*]"),
+      "f44.json_value(\"$[2][*]\")",
+      "JSON_VALUE(f44, '$[2][*]')",
+      "null"
+    )
+
+    testAllApis(
+      'f47.json_value("$[2][*]"),
+      "f47.json_value(\"$[2][*]\")",
+      "JSON_VALUE(f47, '$[2][*]')",
+      "null"
+    )
+
+    testAllApis(
+      'f44.json_value('f44),
+      "f44.json_value(f44)",
+      "JSON_VALUE(f44, f44)",
+      "null"
+    )
+
+    testAllApis(
+      "".json_value(""),
+      "\"\".json_value(\"\")",
+      "JSON_VALUE('', '')",
+      "null")
+  }
+
+  @Test
+  def testKeyValue(): Unit = {
+    testAllApis(
+      'f48.key_value(";", "=", "k2"),
+      "f48.key_value(\";\", \"=\", \"k2\")",
+      "KEY_VALUE(f48, ';', '=', 'k2')",
+      "v2"
+    )
+
+    testAllApis(
+      'f48.key_value(";", "=", "k3"),
+      "f48.key_value(\";\", \"=\", \"k3\")",
+      "KEY_VALUE(f48, ';', '=', 'k3')",
+      "null"
+    )
+
+    testAllApis(
+      'f44.key_value(";", "|", ":"),
+      "f44.key_value(\";\", \"|\", \":\")",
+      "KEY_VALUE(f44, ';', '|', ':')",
+      "null")
+
+    testAllApis(
+      'f49.key_value('f44, "=", ":"),
+      "f49.key_value(f44, \"=\", \":\")",
+      "KEY_VALUE(f49, f44, '=', ':')",
+      "null"
+    )
+
+    testAllApis(
+      'f49.key_value("|", "=", 'f44),
+      "f49.key_value(\"|\", \"=\", f44)",
+      "KEY_VALUE(f49, '|', '=', f44)",
+      "null"
+    )
+
+    testAllApis(
+      'f49.key_value("|", "=", ":"),
+      "f49.key_value(\"|\", \"=\", \":\")",
+      "KEY_VALUE(f49, '|', '=', ':')",
+      "null"
+    )
+
+    testAllApis(
+      'f49.key_value("|", "=", "k2"),
+      "f49.key_value(\"|\", \"=\", \"k2\")",
+      "KEY_VALUE(f49, '|', '=', 'k2')",
+      "null"
+    )
+
+    testAllApis(
+      'f49.key_value("|", ":", "k1"),
+      "f49.key_value(\"|\", \":\", \"k1\")",
+      "KEY_VALUE(f49, '|', ':', 'k1')",
+      "v1"
+    )
+
+    testAllApis(
+      "k1*v1|&k2*v2".key_value("|&", "*", "k1"),
+      "\"k1*v1|&k2*v2\".key_value(\"|&\", \"*\", \"k1\")",
+      "KEY_VALUE('k1*v1|&k2*v2', '|&', '*', 'k1')",
+      "v1"
+    )
+
+    testAllApis(
+      "".key_value("|", ":", "k1"),
+      "\"\".key_value(\"|\", \":\", \"k1\")",
+      "KEY_VALUE('', '|', ':', 'k1')",
+      "null"
+    )
+  }
+
+  @Test
+  def testParseUrl(): Unit = {
+    testAllApis(
+      parse_url('f50, "QUERY", "query"),
+      "f50.parse_url(\"QUERY\", \"query\")",
+      "PARSE_URL(f50, 'QUERY', 'query')",
+      "1"
+    )
+
+    testAllApis(
+      parse_url('f50/*, "QUERY"*/),
+      "f50.parse_url()",/*"QUERY"*/
+      "PARSE_URL(f48)",/*, 'QUERY'*/
+      "null"/*query=1*/
+    )
+
+    testAllApis(
+      parse_url('f50, "HOST"),
+      "parse_url(f50, \"HOST\")",
+      "PARSE_URL(f50, 'HOST')",
+      "facebook.com"
+    )
+
+    testAllApis(
+      parse_url('f50, "PATH"),
+      "parse_url(f50, \"PATH\")",
+      "PARSE_URL(f50, 'PATH')",
+      "/path/p1.php"
+    )
+
+    testAllApis(
+      parse_url('f50, "REF"),
+      "parse_url(f50, \"REF\")",
+      "PARSE_URL(f50, 'REF')",
+      "null"
+    )
+
+    testAllApis(
+      parse_url('f50, "PROTOCOL"),
+      "parse_url(f50, \"PROTOCOL\")",
+      "PARSE_URL(f50, 'PROTOCOL')",
+      "http"
+    )
+
+    testAllApis(
+      parse_url('f50, "FILE"),
+      "parse_url(f50, \"FILE\")",
+      "PARSE_URL(f50, 'FILE')",
+      "/path/p1.php?query=1"
+    )
+
+    testAllApis(
+      parse_url('f50, "AUTHORITY"),
+      "parse_url(f50, \"AUTHORITY\")",
+      "PARSE_URL(f50, 'AUTHORITY')",
+      "facebook.com"
+    )
+
+    testAllApis(
+      parse_url('f44, "QUERY"),
+      "f44.parse_url(\"QUERY\")",
+      "PARSE_URL(f44, 'QUERY')",
+      "null"
+    )
+
+    testAllApis(
+      parse_url('f50, "USERINFO"),
+      "parse_url(f50, \"USERINFO\")",
+      "PARSE_URL(f50, 'USERINFO')",
+      "null"
+    )
+
+    testAllApis(
+      parse_url('f44, "QUERY", "query"),
+      "f44.parse_url(\"QUERY\", \"query\")",
+      "PARSE_URL(f44, 'QUERY', 'query')",
+      "null"
+    )
+
+    testAllApis(
+      parse_url("", "QUERY"),
+      "''.parse_url(\"QUERY\")",
+      "PARSE_URL('', 'QUERY')",
+      "null"
+    )
+
+    testAllApis(
+      parse_url("https://www.instagram.com/", "QUERY"),
+      "parse_url(\"https://www.instagram.com/\", " +
+        "\"QUERY\")",
+      "PARSE_URL('https://www.instagram.com/', 'QUERY')",
+      "null"
+    )
+
+    testAllApis(
+      parse_url("http://www.rzzx.com.cn/webs/OuterViews/ShowInfo.aspx?releaseId=741", "QUERY"),
+      "parse_url(\"http://www.rzzx.com.cn/webs/OuterViews/ShowInfo.aspx?releaseId=741\", " +
+        "\"QUERY\")",
+      "PARSE_URL('http://www.rzzx.com.cn/webs/OuterViews/ShowInfo.aspx?releaseId=741', 'QUERY')",
+      "releaseId=741")
+  }
+
+  @Test
+  def testStrToMap(): Unit = {
+    testAllApis(
+      strToMap("K1=V1,K2=V2"),
+      "strToMap('K1=V1,K2=V2')",
+      "STR_TO_MAP('K1=V1,K2=V2')",
+      "{K1=V1, K2=V2}"
+    )
+
+    testAllApis(
+      strToMap("k1:v1;k2:v2", ";",":"),
+      "strToMap('k1:v1;k2:v2', ';',':')",
+      "STR_TO_MAP('k1:v1;k2:v2', ';',':')",
+      "{k1=v1, k2=v2}"
+    )
+
+    testSqlApi("STR_TO_MAP('K1=V1,K2=V2')['K1']", "V1")
+  }
+
+  @Test
+  def testURLEncode(): Unit = {
+
+    testAllApis(
+      'f50.urlEncode("UTF-8"),
+      "f50.urlEncode('UTF-8')",
+      "URL_ENCODE(f50, 'UTF-8')",
+      "http%3A%2F%2Ffacebook.com%2Fpath%2Fp1.php%3Fquery%3D1"
+    )
+
+    testAllApis(
+      'f33.urlEncode("UTF-8"),
+      "f33.urlEncode('UTF-8')",
+      "URL_ENCODE(f33, 'UTF-8')",
+      "null"
+    )
+
+    testAllApis(
+      "".urlEncode("UTF-8"),
+      "''.urlEncode('UTF-8')",
+      "URL_ENCODE('', 'UTF-8')",
+      ""
+    )
+  }
+
+  @Test
+  def testURLDecode(): Unit = {
+    testAllApis(
+      "http%3A%2F%2Ffacebook.com%2Fpath%2Fp1.php%3Fquery%3D1".urlDecode("UTF-8"),
+      "'http%3A%2F%2Ffacebook.com%2Fpath%2Fp1.php%3Fquery%3D1'.urlDecode('UTF-8')",
+      "URL_DECODE('http%3A%2F%2Ffacebook.com%2Fpath%2Fp1.php%3Fquery%3D1', 'UTF-8')",
+      "http://facebook.com/path/p1.php?query=1"
+    )
+
+    testAllApis(
+      "https%3a%2f%2fleanote.com%2f".urlDecode("UTF-8"),
+      "'https%3a%2f%2fleanote.com%2f'.urlDecode('UTF-8')",
+      "URL_DECODE('https%3a%2f%2fleanote.com%2f', 'UTF-8')",
+      "https://leanote.com/"
+    )
+
+    testAllApis(
+      "".urlDecode("UTF-8"),
+      "''.urlDecode('UTF-8')",
+      "URL_DECODE('', 'UTF-8')",
+      ""
+    )
+
+    testAllApis(
+      'f33.urlDecode("UTF-8"),
+      "f33.urlDecode('UTF-8')",
+      "URL_DECODE(f33, 'UTF-8')",
+      "null"
+    )
+
+    testSqlApi("URL_DECODE(URL_ENCODE(URL_ENCODE(f50, 'UTF-8'), 'UTF-8'), 'UTF-8')",
+      "http://facebook.com/path/p1.php?query=1")
   }
 }

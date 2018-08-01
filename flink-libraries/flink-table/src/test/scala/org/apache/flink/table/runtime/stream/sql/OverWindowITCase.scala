@@ -168,6 +168,60 @@ class OverWindowITCase extends StreamingWithStateTestBase {
   }
 
   @Test
+  def testFirstValue(): Unit = {
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    env.setStateBackend(getStateBackend)
+    val tEnv = TableEnvironment.getTableEnvironment(env)
+    StreamITCase.clear
+
+    env.setParallelism(1)
+
+    val t1 = env.fromCollection(data).toTable(tEnv, 'a, 'b, 'c, 'proctime.proctime)
+
+    tEnv.registerTable("T1", t1)
+
+    val sqlQuery = "SELECT c, FIRST_VALUE(b) OVER (PARTITION BY c ORDER BY proctime RANGE " +
+      "UNBOUNDED preceding) as var1 from T1"
+
+    val result = tEnv.sqlQuery(sqlQuery).toAppendStream[Row]
+    result.addSink(new StreamITCase.StringSink[Row])
+    env.execute()
+
+    val expected = List(
+      "Hello,1", "Hello,1", "Hello,1", "Hello,1", "Hello,1", "Hello,1",
+      "Hello World,7", "Hello World,7", "Hello World,7")
+
+    assertEquals(expected.sorted, StreamITCase.testResults.sorted)
+  }
+
+  @Test
+  def testLastValue(): Unit = {
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    env.setStateBackend(getStateBackend)
+    val tEnv = TableEnvironment.getTableEnvironment(env)
+    StreamITCase.clear
+
+    env.setParallelism(1)
+
+    val t1 = env.fromCollection(data).toTable(tEnv, 'a, 'b, 'c, 'proctime.proctime)
+
+    tEnv.registerTable("T1", t1)
+
+    val sqlQuery = "SELECT c, LAST_VALUE(b) OVER (PARTITION BY c ORDER BY proctime RANGE " +
+      "UNBOUNDED preceding) as var1 from T1"
+
+    val result = tEnv.sqlQuery(sqlQuery).toAppendStream[Row]
+    result.addSink(new StreamITCase.StringSink[Row])
+    env.execute()
+
+    val expected = List(
+      "Hello,1", "Hello,2", "Hello,3", "Hello,4", "Hello,5", "Hello,6",
+      "Hello World,7", "Hello World,8", "Hello World,20")
+
+    assertEquals(expected.sorted, StreamITCase.testResults.sorted)
+  }
+
+  @Test
   def testProcTimeUnboundedPartitionedRowsOver(): Unit = {
     val env = StreamExecutionEnvironment.getExecutionEnvironment
     env.setStateBackend(getStateBackend)

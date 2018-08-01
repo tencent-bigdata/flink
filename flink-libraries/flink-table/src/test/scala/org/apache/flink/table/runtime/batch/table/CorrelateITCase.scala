@@ -284,6 +284,54 @@ class CorrelateITCase(
   }
 
   @Test
+  def testGenerateSeries(): Unit = {
+    val env = ExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env)
+    val result = testDataForGenerateSeries(env)
+      .toTable(tEnv, 'a, 'b)
+      .join(generateSeries('a, 'b) as 'c)
+      .select('a, 'b, 'c)
+
+    val expected = "-2,0,-2\n" + "-2,0,-1\n" + "2,4,2\n" + "2,4,3"
+    val results = result.toDataSet[Row].collect()
+    TestBaseUtils.compareResultAsText(results.asJava, expected)
+  }
+
+  @Test
+  def testJsonTuple(): Unit = {
+    val env = ExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env)
+    val result = testDataForJsonTuple(env)
+      .toTable(tEnv, 'a, 'b)
+      .join(jsonTuple('a, "name", 'b) as 'c)
+      .select('a, 'c)
+
+    val expected = "{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"},anna\n" +
+    "{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"},no.1\n" +
+    "{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"},mark\n" +
+    "{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"},30"
+    val results = result.toDataSet[Row].collect()
+    TestBaseUtils.compareResultAsText(results.asJava, expected)
+  }
+
+  @Test
+  def testStringSplit(): Unit = {
+    val env = ExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env)
+    val result = testDataForStringSplit(env)
+      .toTable(tEnv, 'a, 'b)
+      .join(stringSplit('a, 'b) as 'c)
+      .select('a, 'c)
+
+    val expected = "global-internet-company,global\n" +
+    "global-internet-company,internet\n" +
+    "global-internet-company,company\n" +
+    "facebook,facebook"
+    val results = result.toDataSet[Row].collect()
+    TestBaseUtils.compareResultAsText(results.asJava, expected)
+  }
+
+  @Test
   def testUserDefinedTableFunctionWithScalarFunctionWithParameters(): Unit = {
     val env = ExecutionEnvironment.getExecutionEnvironment
     val tEnv = TableEnvironment.getTableEnvironment(env)
@@ -403,6 +451,28 @@ class CorrelateITCase(
     data.+=((2, 2L, "John#19"))
     data.+=((3, 2L, "Anna#44"))
     data.+=((4, 3L, "nosharp"))
+    env.fromCollection(data)
+  }
+
+  private def testDataForGenerateSeries(env: ExecutionEnvironment): DataSet[(Integer, Integer)] = {
+
+    val data = new mutable.MutableList[(Integer, Integer)]
+    data.+=((-2.asInstanceOf[Integer], 0.asInstanceOf[Integer]))
+    data.+=((2.asInstanceOf[Integer], 4.asInstanceOf[Integer]))
+    env.fromCollection(data)
+  }
+
+  private def testDataForJsonTuple(env: ExecutionEnvironment): DataSet[(String, String)] = {
+    val data = new mutable.MutableList[(String, String)]
+    data.+=(("{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"}", "school"))
+    data.+=(("{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"}", "age"))
+    env.fromCollection(data)
+  }
+
+  private def testDataForStringSplit(env: ExecutionEnvironment): DataSet[(String, String)] = {
+    val data = new mutable.MutableList[(String, String)]
+    data.+=(("global-internet-company", "-"))
+    data.+=(("facebook", "-"))
     env.fromCollection(data)
   }
 }

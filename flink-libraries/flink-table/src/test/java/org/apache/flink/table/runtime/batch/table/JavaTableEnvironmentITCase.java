@@ -23,6 +23,7 @@ import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.api.java.tuple.Tuple5;
@@ -241,6 +242,73 @@ public class JavaTableEnvironmentITCase extends TableProgramsCollectionTestBase 
 			"(14,5,Comment#8)\n" + "(15,5,Comment#9)\n" + "(16,6,Comment#10)\n" +
 			"(17,6,Comment#11)\n" + "(18,6,Comment#12)\n" + "(19,6,Comment#13)\n" +
 			"(20,6,Comment#14)\n" + "(21,6,Comment#15)\n";
+		compareResultAsText(results, expected);
+	}
+
+	@Test
+	public void testGenerateSeries() throws Exception {
+		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+		BatchTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env, config());
+
+		Table table = tableEnv
+			.fromDataSet(CollectionDataSets.getDataForGenerateSeries(env), "a, b")
+			.join(new Table(tableEnv, "GENERATE_SERIES(a, b)").as("c"))
+			.select("a, b, c");
+
+		TypeInformation<?> ti = new TupleTypeInfo<Tuple3<Integer, Integer, Integer>>(
+			BasicTypeInfo.INT_TYPE_INFO,
+			BasicTypeInfo.INT_TYPE_INFO,
+			BasicTypeInfo.INT_TYPE_INFO);
+
+		DataSet<?> ds = tableEnv.toDataSet(table, ti);
+		List<?> results = ds.collect();
+		String expected = "(0,2,0)\n" + "(0,2,1)\n" + "(2,4,2)\n" + "(2,4,3)";
+		compareResultAsText(results, expected);
+	}
+
+	@Test
+	public void testJsonTuple() throws Exception {
+		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+		BatchTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env, config());
+
+		Table table = tableEnv
+			.fromDataSet(CollectionDataSets.getDataForJsonTuple(env), "a, b")
+			.join(new Table(tableEnv, "JSON_TUPLE(a, b, 'school')").as("c"))
+			.select("a, c");
+
+		TypeInformation<?> ti = new TupleTypeInfo<Tuple2<String, String>>(
+			BasicTypeInfo.STRING_TYPE_INFO,
+			BasicTypeInfo.STRING_TYPE_INFO);
+
+		DataSet<?> ds = tableEnv.toDataSet(table, ti);
+		List<?> results = ds.collect();
+		String expected = "({\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"},anna)\n" +
+			"({\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"},no.1)\n" +
+			"({\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"},30)\n" +
+			"({\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"},NYU)";
+		compareResultAsText(results, expected);
+	}
+
+	@Test
+	public void testStringSplit() throws Exception {
+		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+		BatchTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env, config());
+
+		Table table = tableEnv
+			.fromDataSet(CollectionDataSets.getDataForStringSplit(env), "a, b")
+			.join(new Table(tableEnv, "STRING_SPLIT(a, b)").as("c"))
+			.select("a, c");
+
+		TypeInformation<?> ti = new TupleTypeInfo<Tuple2<String, String>>(
+			BasicTypeInfo.STRING_TYPE_INFO,
+			BasicTypeInfo.STRING_TYPE_INFO);
+
+		DataSet<?> ds = tableEnv.toDataSet(table, ti);
+		List<?> results = ds.collect();
+		String expected = "(global-internet-company,global)\n" +
+			"(global-internet-company,internet)\n" +
+			"(global-internet-company,company)\n" +
+			"(facebook,facebook)";
 		compareResultAsText(results, expected);
 	}
 

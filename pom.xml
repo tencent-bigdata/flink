@@ -111,6 +111,7 @@ under the License.
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<scala.macros.version>2.1.0</scala.macros.version>
+
 		<!-- Default scala versions, must be overwritten by build profiles, so we set something
 		invalid here -->
 		<scala.version>2.11.12</scala.version>

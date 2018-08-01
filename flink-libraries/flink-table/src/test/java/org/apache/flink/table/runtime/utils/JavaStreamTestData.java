@@ -18,6 +18,7 @@
 
 package org.apache.flink.table.runtime.utils;
 
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple5;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -31,6 +32,36 @@ import java.util.List;
  * Test data.
  */
 public class JavaStreamTestData {
+
+	public static DataStream<Tuple2<Integer, Integer>> getDataForGenerateSeries
+		(StreamExecutionEnvironment env) {
+
+		List<Tuple2<Integer, Integer>> data = new ArrayList<>();
+		data.add(new Tuple2<>(0, 2));
+		data.add(new Tuple2<>(2, 4));
+
+		return env.fromCollection(data);
+	}
+
+	public static DataStream<Tuple2<String, String>> getDataForJsonTuple
+		(StreamExecutionEnvironment env) {
+
+		List<Tuple2<String, String>> data = new ArrayList<>();
+		data.add(new Tuple2<>("{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"}", "name"));
+		data.add(new Tuple2<>("{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"}", "age"));
+
+		return env.fromCollection(data);
+	}
+
+	public static DataStream<Tuple2<String, String>> getDataForStringSplit
+		(StreamExecutionEnvironment env) {
+
+		List<Tuple2<String, String>> data = new ArrayList<>();
+		data.add(new Tuple2<>("global-internet-company", "-"));
+		data.add(new Tuple2<>("facebook", "-"));
+
+		return env.fromCollection(data);
+	}
 
 	public static DataStream<Tuple3<Integer, Long, String>> getSmall3TupleDataSet(StreamExecutionEnvironment env) {
 

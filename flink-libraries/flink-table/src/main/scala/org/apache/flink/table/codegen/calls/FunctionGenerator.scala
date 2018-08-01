@@ -27,12 +27,13 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable._
 import org.apache.calcite.sql.fun.SqlTrimFunction
 import org.apache.calcite.util.BuiltInMethod
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo._
-import org.apache.flink.api.common.typeinfo.{BasicTypeInfo, SqlTimeTypeInfo, TypeInformation}
-import org.apache.flink.api.java.typeutils.GenericTypeInfo
+import org.apache.flink.api.common.typeinfo.{BasicTypeInfo, SqlTimeTypeInfo, TypeInformation, Types}
+import org.apache.flink.api.java.typeutils.{GenericTypeInfo, MapTypeInfo}
 import org.apache.flink.table.functions.sql.ScalarSqlFunctions
 import org.apache.flink.table.functions.sql.ScalarSqlFunctions._
 import org.apache.flink.table.functions.utils.{ScalarSqlFunction, TableSqlFunction}
 import org.apache.flink.table.typeutils.TimeIntervalTypeInfo
+import org.apache.flink.table.functions.sql.DateTimeSqlFunction._
 
 import scala.collection.mutable
 
@@ -47,6 +48,11 @@ object FunctionGenerator {
   // ----------------------------------------------------------------------------------------------
   // String functions
   // ----------------------------------------------------------------------------------------------
+
+  addSqlFunctionMethod(HASH_CODE,
+    Seq(STRING_TYPE_INFO),
+    INT_TYPE_INFO,
+    BuiltInMethods.HASH_CODE)
 
   addSqlFunctionMethod(
     SUBSTRING,
@@ -207,6 +213,31 @@ object FunctionGenerator {
     STRING_TYPE_INFO,
     BuiltInMethods.REPEAT)
 
+  addSqlFunctionMethod(
+    JSON_VALUE,
+    Seq(STRING_TYPE_INFO, STRING_TYPE_INFO),
+    STRING_TYPE_INFO,
+    BuiltInMethods.JSON_VALUE)
+
+  addSqlFunctionMethod(
+    KEY_VALUE,
+    Seq(STRING_TYPE_INFO, STRING_TYPE_INFO, STRING_TYPE_INFO, STRING_TYPE_INFO),
+    STRING_TYPE_INFO,
+    BuiltInMethods.KEY_VALUE
+  )
+
+  addSqlFunctionMethod(
+    URL_ENCODE,
+    Seq(STRING_TYPE_INFO, STRING_TYPE_INFO),
+    STRING_TYPE_INFO,
+    BuiltInMethods.URL_ENCODE)
+
+  addSqlFunctionMethod(
+    URL_DECODE,
+    Seq(STRING_TYPE_INFO, STRING_TYPE_INFO),
+    STRING_TYPE_INFO,
+    BuiltInMethods.URL_DECODE
+  )
   // ----------------------------------------------------------------------------------------------
   // Arithmetic functions
   // ----------------------------------------------------------------------------------------------
@@ -487,6 +518,54 @@ object FunctionGenerator {
     DOUBLE_TYPE_INFO,
     BuiltInMethods.ROUND_DOUBLE)
 
+  addSqlFunctionMethod(
+    BIT_AND,
+    Seq(INT_TYPE_INFO, INT_TYPE_INFO),
+    INT_TYPE_INFO,
+    BuiltInMethods.BIT_AND)
+
+  addSqlFunctionMethod(
+    BIT_NOT,
+    Seq(INT_TYPE_INFO),
+    INT_TYPE_INFO,
+    BuiltInMethods.BIT_NOT)
+
+  addSqlFunctionMethod(
+    BIT_OR,
+    Seq(INT_TYPE_INFO, INT_TYPE_INFO),
+    INT_TYPE_INFO,
+    BuiltInMethods.BIT_OR)
+
+  addSqlFunctionMethod(
+    BIT_XOR,
+    Seq(INT_TYPE_INFO, INT_TYPE_INFO),
+    INT_TYPE_INFO,
+    BuiltInMethods.BIT_XOR)
+
+  addSqlFunctionMethod(
+    DATE_DIFF,
+    Seq(STRING_TYPE_INFO, STRING_TYPE_INFO),
+    INT_TYPE_INFO,
+    BuiltInMethods.DATE_DIFF_S_S)
+
+  addSqlFunctionMethod(
+    DATE_DIFF,
+    Seq(STRING_TYPE_INFO, SqlTimeTypeInfo.TIMESTAMP),
+    INT_TYPE_INFO,
+    BuiltInMethods.DATE_DIFF_S_T)
+
+  addSqlFunctionMethod(
+    DATE_DIFF,
+    Seq(SqlTimeTypeInfo.TIMESTAMP, STRING_TYPE_INFO),
+    INT_TYPE_INFO,
+    BuiltInMethods.DATE_DIFF_T_S)
+
+  addSqlFunctionMethod(
+    DATE_DIFF,
+    Seq(SqlTimeTypeInfo.TIMESTAMP, SqlTimeTypeInfo.TIMESTAMP),
+    INT_TYPE_INFO,
+    BuiltInMethods.DATE_DIFF_T_T)
+
   addSqlFunction(
     PI,
     Seq(),
@@ -681,6 +760,37 @@ object FunctionGenerator {
     Seq(SqlTimeTypeInfo.TIMESTAMP, STRING_TYPE_INFO),
     new DateFormatCallGen
   )
+
+  addSqlFunctionMethod(
+    ScalarSqlFunctions.DATE_ADD,
+    Seq(STRING_TYPE_INFO, INT_TYPE_INFO),
+    STRING_TYPE_INFO,
+    BuiltInMethods.DATE_ADD)
+
+  addSqlFunctionMethod(
+    ScalarSqlFunctions.DATE_SUB,
+    Seq(STRING_TYPE_INFO, INT_TYPE_INFO),
+    STRING_TYPE_INFO,
+    BuiltInMethods.DATE_SUB)
+
+  addSqlFunctionMethod(
+    ScalarSqlFunctions.REPEAT,
+    Seq(STRING_TYPE_INFO, INT_TYPE_INFO),
+    STRING_TYPE_INFO,
+    BuiltInMethods.REPEAT)
+
+  addSqlFunctionMethod(
+    ScalarSqlFunctions.SPLIT_INDEX,
+    Seq(STRING_TYPE_INFO, STRING_TYPE_INFO, INT_TYPE_INFO),
+    STRING_TYPE_INFO,
+    BuiltInMethods.SPLIT_INDEX)
+
+  addSqlFunctionMethod(
+    ScalarSqlFunctions.REVERSE,
+    Seq(STRING_TYPE_INFO),
+    STRING_TYPE_INFO,
+    BuiltInMethods.REVERSE)
+
   addSqlFunctionMethod(
     ScalarSqlFunctions.LPAD,
     Seq(STRING_TYPE_INFO, INT_TYPE_INFO, STRING_TYPE_INFO),
@@ -738,6 +848,27 @@ object FunctionGenerator {
     Seq(STRING_TYPE_INFO, INT_TYPE_INFO),
     new HashCalcCallGen("SHA-2")
   )
+
+  // ----------------------------------------------------------------------------------------------
+  // Condition functions
+  // ----------------------------------------------------------------------------------------------
+  addSqlFunctionMethod(
+    ScalarSqlFunctions._IF,
+    Seq(BOOLEAN_TYPE_INFO, STRING_TYPE_INFO, STRING_TYPE_INFO),
+    STRING_TYPE_INFO,
+    BuiltInMethods.IF)
+
+  addSqlFunctionMethod(
+    ScalarSqlFunctions.IS_ALPHA,
+    Seq(STRING_TYPE_INFO),
+    BOOLEAN_TYPE_INFO,
+    BuiltInMethods.IS_ALPHA)
+
+  addSqlFunctionMethod(
+    ScalarSqlFunctions.IS_DECIMAL,
+    Seq(STRING_TYPE_INFO),
+    BOOLEAN_TYPE_INFO,
+    BuiltInMethods.IS_DECIMAL)
 
   // ----------------------------------------------------------------------------------------------
 

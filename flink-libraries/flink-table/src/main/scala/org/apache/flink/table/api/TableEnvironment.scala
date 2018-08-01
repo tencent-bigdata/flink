@@ -42,6 +42,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.common.typeutils.CompositeType
 import org.apache.flink.api.java.typeutils.{RowTypeInfo, _}
 import org.apache.flink.api.java.{ExecutionEnvironment => JavaBatchExecEnv}
+import org.apache.flink.api.scala._
 import org.apache.flink.api.scala.typeutils.CaseClassTypeInfo
 import org.apache.flink.api.scala.{ExecutionEnvironment => ScalaBatchExecEnv}
 import org.apache.flink.streaming.api.environment.{StreamExecutionEnvironment => JavaStreamExecEnv}
@@ -53,6 +54,7 @@ import org.apache.flink.table.catalog.{ExternalCatalog, ExternalCatalogSchema}
 import org.apache.flink.table.codegen.{ExpressionReducer, FunctionCodeGenerator, GeneratedFunction}
 import org.apache.flink.table.descriptors.{ConnectorDescriptor, TableDescriptor}
 import org.apache.flink.table.expressions._
+import org.apache.flink.table.functions.utils.{ConcatAggAccumulator, GenericAggFunctions, GenericTableFunctions}
 import org.apache.flink.table.functions.utils.UserDefinedFunctionUtils._
 import org.apache.flink.table.functions.{AggregateFunction, ScalarFunction, TableFunction}
 import org.apache.flink.table.plan.cost.DataSetCostFactory
@@ -111,6 +113,30 @@ abstract class TableEnvironment(val config: TableConfig) {
 
   // registered external catalog names -> catalog
   private val externalCatalogs = new mutable.HashMap[String, ExternalCatalog]
+
+  /** Register Built-in Table functions and Agg functions*/
+  {
+    registerInternalTableFunctions
+    registerInternalGenericAggFunctions
+  }
+
+  /** Register built-in Table functions*/
+  private def registerInternalTableFunctions = {
+    registerTableFunctionInternal[Integer]("GENERATE_SERIES",
+      GenericTableFunctions.GENERATE_SERIES)
+    registerTableFunctionInternal[String]("JSON_TUPLE",
+      GenericTableFunctions.JSON_TUPLE)
+    registerTableFunctionInternal[String]("STRING_SPLIT",
+      GenericTableFunctions.STRING_SPLIT)
+    GenericTableFunctions.instance
+  }
+
+  /** Register built-in Agg functions*/
+  private def registerInternalGenericAggFunctions = {
+    registerAggregateFunctionInternal[String, ConcatAggAccumulator]("CONCAT_AGG",
+      GenericAggFunctions.CONCAT_AGG)
+    GenericAggFunctions.instance
+  }
 
   /** Returns the table config to define the runtime behavior of the Table API. */
   def getConfig: TableConfig = config

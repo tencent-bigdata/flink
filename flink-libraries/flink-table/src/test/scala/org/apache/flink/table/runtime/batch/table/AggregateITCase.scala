@@ -455,6 +455,21 @@ class AggregationsITCase(
     val results = t.toDataSet[Row].collect()
     TestBaseUtils.compareResultAsText(results.asJava, expected)
   }
+
+  @Test
+  def testConcatAgg(): Unit = {
+    val env = ExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env, config)
+
+    val ds = CollectionDataSets.getStringDataSetForConcatAgg(env)
+      .toTable(tEnv, 'c).select(concatAgg("-", 'c), concatAgg("+", 'c))
+    val result = ds.toDataSet[Row].collect()
+    val expected =
+      "Hi-Hello-Hello world-Hello world-Hi-Hello-Hi-LOL," +
+        "Hi+Hello+Hello world+Hello world+Hi+Hello+Hi+LOL\n"
+
+    TestBaseUtils.compareResultAsText(result.asJava, expected)
+  }
 }
 
 case class WC(word: String, frequency: Long)

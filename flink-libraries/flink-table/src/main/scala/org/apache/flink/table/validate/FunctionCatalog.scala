@@ -24,7 +24,7 @@ import org.apache.calcite.sql.util.{ChainedSqlOperatorTable, ListSqlOperatorTabl
 import org.apache.calcite.sql._
 import org.apache.flink.table.api._
 import org.apache.flink.table.expressions._
-import org.apache.flink.table.functions.sql.ScalarSqlFunctions
+import org.apache.flink.table.functions.sql.{DateTimeSqlFunction, ScalarSqlFunctions}
 import org.apache.flink.table.functions.utils.{AggSqlFunction, ScalarSqlFunction, TableSqlFunction}
 import org.apache.flink.table.functions.{AggregateFunction, ScalarFunction, TableFunction}
 
@@ -183,6 +183,8 @@ object FunctionCatalog {
     "varPop" -> classOf[VarPop],
     "varSamp" -> classOf[VarSamp],
     "collect" -> classOf[Collect],
+    "firstValue" -> classOf[FirstValue],
+    "lastValue" -> classOf[LastValue],
 
     // string functions
     "charLength" -> classOf[CharLength],
@@ -201,6 +203,9 @@ object FunctionCatalog {
     "overlay" -> classOf[Overlay],
     "concat" -> classOf[Concat],
     "concat_ws" -> classOf[ConcatWs],
+    "repeat" -> classOf[Repeat],
+    "splitIndex" -> classOf[SplitIndex],
+    "reverse" -> classOf[Reverse],
     "lpad" -> classOf[Lpad],
     "rpad" -> classOf[Rpad],
     "regexpExtract" -> classOf[RegexpExtract],
@@ -211,6 +216,16 @@ object FunctionCatalog {
     "rtrim" -> classOf[RTrim],
     "repeat" -> classOf[Repeat],
     "regexpReplace" -> classOf[RegexpReplace],
+    "hash_code" -> classOf[HashCode],
+    "json_value" -> classOf[JsonValue],
+    "key_value" -> classOf[KeyValue],
+    "parse_url"-> classOf[ParseURL],
+    "unix_timestamp" -> classOf[UnixTimeStamp],
+    "from_unixtime" -> classOf[FromUnixTime],
+    "now" -> classOf[NOW],
+    "strToMap" -> classOf[StrToMap],
+    "urlEncode" -> classOf[URLEncode],
+    "urlDecode" -> classOf[URLDecode],
 
     // math functions
     "plus" -> classOf[Plus],
@@ -251,6 +266,15 @@ object FunctionCatalog {
     "bin" -> classOf[Bin],
     "hex" -> classOf[Hex],
 
+    //bit
+    "bitAnd" -> classOf[BitAnd],
+    "bitNot" -> classOf[BitNot],
+    "bitOr" -> classOf[BitOr],
+    "bitXor" -> classOf[BitXor],
+
+    //date
+    "dateDiff" -> classOf[DateDiff],
+
     // temporal functions
     "extract" -> classOf[Extract],
     "currentDate" -> classOf[CurrentDate],
@@ -263,6 +287,8 @@ object FunctionCatalog {
     "dateTimePlus" -> classOf[Plus],
     "dateFormat" -> classOf[DateFormat],
     "timestampDiff" -> classOf[TimestampDiff],
+    "dateAdd" -> classOf[DateAdd],
+    "dateSub" -> classOf[DateSub],
 
     // item
     "at" -> classOf[ItemAt],
@@ -287,6 +313,11 @@ object FunctionCatalog {
     // ordering
     "asc" -> classOf[Asc],
     "desc" -> classOf[Desc],
+
+    // condition functions
+    "_IF" -> classOf[_IF],
+    "isDecimal" -> classOf[IsDecimal],
+    "isAlpha" -> classOf[IsAlpha],
 
     // crypto hash
     "md5" -> classOf[Md5],
@@ -374,6 +405,8 @@ class BasicOperatorTable extends ReflectiveSqlOperatorTable {
     SqlStdOperatorTable.STDDEV_SAMP,
     SqlStdOperatorTable.VAR_POP,
     SqlStdOperatorTable.VAR_SAMP,
+    SqlStdOperatorTable.FIRST_VALUE,
+    SqlStdOperatorTable.LAST_VALUE,
     // ARRAY OPERATORS
     SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
     SqlStdOperatorTable.ELEMENT,
@@ -426,6 +459,9 @@ class BasicOperatorTable extends ReflectiveSqlOperatorTable {
     SqlStdOperatorTable.CURRENT_TIMESTAMP,
     SqlStdOperatorTable.CURRENT_DATE,
     ScalarSqlFunctions.DATE_FORMAT,
+    ScalarSqlFunctions.DATE_ADD,
+    ScalarSqlFunctions.DATE_SUB,
+
     SqlStdOperatorTable.CAST,
     SqlStdOperatorTable.EXTRACT,
     SqlStdOperatorTable.QUARTER,
@@ -457,6 +493,9 @@ class BasicOperatorTable extends ReflectiveSqlOperatorTable {
     SqlStdOperatorTable.TIMESTAMP_ADD,
     SqlStdOperatorTable.TIMESTAMP_DIFF,
     ScalarSqlFunctions.LOG,
+    ScalarSqlFunctions.REPEAT,
+    ScalarSqlFunctions.SPLIT_INDEX,
+    ScalarSqlFunctions.REVERSE,
     ScalarSqlFunctions.LPAD,
     ScalarSqlFunctions.RPAD,
     ScalarSqlFunctions.MD5,
@@ -476,12 +515,36 @@ class BasicOperatorTable extends ReflectiveSqlOperatorTable {
     ScalarSqlFunctions.REPEAT,
     ScalarSqlFunctions.REGEXP_REPLACE,
 
+    ScalarSqlFunctions.HASH_CODE,
+    ScalarSqlFunctions.JSON_VALUE,
+    ScalarSqlFunctions.KEY_VALUE,
+    ScalarSqlFunctions.PARSE_URL,
+    ScalarSqlFunctions.UNIX_TIMESTAMP,
+    ScalarSqlFunctions.FROM_UNIXTIME,
+    ScalarSqlFunctions.NOW,
+
     // MATCH_RECOGNIZE
     SqlStdOperatorTable.FIRST,
     SqlStdOperatorTable.LAST,
     SqlStdOperatorTable.PREV,
     SqlStdOperatorTable.FINAL,
     SqlStdOperatorTable.RUNNING,
+
+    //bit
+    ScalarSqlFunctions.BIT_AND,
+    ScalarSqlFunctions.BIT_NOT,
+    ScalarSqlFunctions.BIT_OR,
+    ScalarSqlFunctions.BIT_XOR,
+
+    //date
+    DateTimeSqlFunction.DATE_DIFF,
+
+    ScalarSqlFunctions._IF,
+    ScalarSqlFunctions.IS_ALPHA,
+    ScalarSqlFunctions.IS_DECIMAL,
+    ScalarSqlFunctions.STR_TO_MAP,
+    ScalarSqlFunctions.URL_ENCODE,
+    ScalarSqlFunctions.URL_DECODE,
 
     // EXTENSIONS
     BasicOperatorTable.ENHANCED,
@@ -616,5 +679,4 @@ object BasicOperatorTable {
       SqlFunctionCategory.SYSTEM)
   val SESSION_PROCTIME: SqlGroupedWindowFunction =
     SESSION.auxiliary("SESSION_PROCTIME", SqlKind.OTHER_FUNCTION)
-
 }

@@ -18,13 +18,42 @@
 
 package org.apache.flink.table.functions.sql
 
-import org.apache.calcite.sql.{SqlFunction, SqlFunctionCategory, SqlKind}
+import org.apache.calcite.rel.`type`.RelDataType
+import org.apache.calcite.sql.{SqlFunction, SqlFunctionCategory, SqlKind, SqlOperatorBinding}
 import org.apache.calcite.sql.`type`._
+
+import org.apache.flink.api.common.typeinfo.BasicTypeInfo
+import org.apache.flink.table.api.Types
+import org.apache.flink.table.calcite.FlinkTypeFactory
 
 /**
   * All built-in scalar SQL functions.
   */
 object ScalarSqlFunctions {
+
+  val IS_DECIMAL = new SqlFunction(
+    "IS_DECIMAL",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.BOOLEAN,
+    null,
+    OperandTypes.family(SqlTypeFamily.STRING),
+    SqlFunctionCategory.STRING)
+
+  val IS_ALPHA = new SqlFunction(
+    "IS_ALPHA",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.BOOLEAN,
+    null,
+    OperandTypes.family(SqlTypeFamily.STRING),
+    SqlFunctionCategory.STRING)
+
+  val _IF = new SqlFunction(
+    "_IF",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR), SqlTypeTransforms.TO_NULLABLE),
+    null,
+    OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+    SqlFunctionCategory.STRING)
 
   val E = new SqlFunction(
     "E",
@@ -108,6 +137,22 @@ object ScalarSqlFunctions {
     null,
     OperandTypes.NUMERIC,
     SqlFunctionCategory.NUMERIC)
+
+  val SPLIT_INDEX = new SqlFunction(
+    "SPLIT_INDEX",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR), SqlTypeTransforms.TO_NULLABLE),
+    null,
+    OperandTypes.family(SqlTypeFamily.STRING,SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
+    SqlFunctionCategory.STRING)
+
+  val REVERSE = new SqlFunction(
+    "REVERSE",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR), SqlTypeTransforms.TO_NULLABLE),
+    null,
+    OperandTypes.STRING,
+    SqlFunctionCategory.STRING)
 
   val LPAD = new SqlFunction(
     "LPAD",
@@ -276,4 +321,141 @@ object ScalarSqlFunctions {
     OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
     SqlFunctionCategory.STRING)
 
+  val BIT_AND = new SqlFunction(
+    "BIT_AND",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.INTEGER,
+    null,
+    OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+    SqlFunctionCategory.NUMERIC)
+
+  val BIT_NOT = new SqlFunction(
+    "BIT_NOT",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.INTEGER,
+    null,
+    OperandTypes.family(SqlTypeFamily.INTEGER),
+    SqlFunctionCategory.NUMERIC)
+
+  val BIT_OR = new SqlFunction(
+    "BIT_OR",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.INTEGER,
+    null,
+    OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+    SqlFunctionCategory.NUMERIC)
+
+  val BIT_XOR = new SqlFunction(
+    "BIT_XOR",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.INTEGER,
+    null,
+    OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+    SqlFunctionCategory.NUMERIC)
+
+  val DATE_ADD = new SqlFunction(
+    "DATE_ADD",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR), SqlTypeTransforms.TO_NULLABLE),
+    null,
+    OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER),
+    SqlFunctionCategory.TIMEDATE
+  )
+
+  val DATE_SUB   = new SqlFunction(
+    "DATE_SUB",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR), SqlTypeTransforms.TO_NULLABLE),
+    null,
+    OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER),
+    SqlFunctionCategory.TIMEDATE
+  )
+
+  val HASH_CODE = new SqlFunction(
+    "HASH_CODE",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.INTEGER_NULLABLE,
+    null,
+    OperandTypes.family(SqlTypeFamily.STRING),
+    SqlFunctionCategory.STRING)
+
+  val JSON_VALUE = new SqlFunction(
+    "JSON_VALUE",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR), SqlTypeTransforms.TO_NULLABLE),
+    null,
+    OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+    SqlFunctionCategory.STRING)
+
+  val KEY_VALUE = new SqlFunction(
+    "KEY_VALUE",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR), SqlTypeTransforms.TO_NULLABLE),
+    null,
+    OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+      SqlTypeFamily.STRING),
+    SqlFunctionCategory.STRING)
+
+  val PARSE_URL = new SqlFunction(
+    "PARSE_URL",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR), SqlTypeTransforms.TO_NULLABLE),
+    null,
+    OperandTypes.ONE_OR_MORE,
+    SqlFunctionCategory.STRING)
+
+  val UNIX_TIMESTAMP = new SqlFunction(
+    "UNIX_TIMESTAMP",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.BIGINT_NULLABLE,
+    null,
+    OperandTypes.variadic(SqlOperandCountRanges.from(0)),
+    SqlFunctionCategory.STRING)
+
+  val FROM_UNIXTIME = new SqlFunction(
+    "FROM_UNIXTIME",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR), SqlTypeTransforms.TO_NULLABLE),
+    null,
+    OperandTypes.ONE_OR_MORE,
+    SqlFunctionCategory.STRING)
+
+  val NOW = new SqlFunction(
+    "NOW",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.BIGINT_NULLABLE,
+    null,
+    OperandTypes.variadic(SqlOperandCountRanges.from(0)),
+    SqlFunctionCategory.NUMERIC)
+
+  val STR_TO_MAP = new SqlFunction(
+    "STR_TO_MAP",
+    SqlKind.OTHER_FUNCTION,
+    new SqlReturnTypeInference {
+      override def inferReturnType(opBinding: SqlOperatorBinding): RelDataType = {
+        val typeFactory = opBinding.getTypeFactory.asInstanceOf[FlinkTypeFactory]
+        typeFactory.createTypeFromTypeInfo(Types.MAP(BasicTypeInfo.STRING_TYPE_INFO,
+          BasicTypeInfo.STRING_TYPE_INFO), isNullable = true)
+      }
+    },
+    null,
+    OperandTypes.ONE_OR_MORE,
+    SqlFunctionCategory.STRING)
+
+  val URL_ENCODE = new SqlFunction(
+    "URL_ENCODE",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR), SqlTypeTransforms.TO_NULLABLE),
+    null,
+    OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+    SqlFunctionCategory.STRING)
+
+  val URL_DECODE = new SqlFunction(
+    "URL_DECODE",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR), SqlTypeTransforms.TO_NULLABLE),
+    null,
+    OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+    SqlFunctionCategory.STRING
+  )
 }

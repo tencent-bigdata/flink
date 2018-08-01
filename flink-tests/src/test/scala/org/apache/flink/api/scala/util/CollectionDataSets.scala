@@ -127,6 +127,19 @@ object CollectionDataSets {
     env.fromCollection(Random.shuffle(data))
   }
 
+  def getStringDataSetForConcatAgg(env: ExecutionEnvironment): DataSet[String] = {
+    val data = new mutable.MutableList[String]
+    data.+=("Hi")
+    data.+=("Hello")
+    data.+=("Hello world")
+    data.+=("Hello world")
+    data.+=("Hi")
+    data.+=("Hello")
+    data.+=("Hi")
+    data.+=("LOL")
+    env.fromCollection(data)
+  }
+
   def getIntDataSet(env: ExecutionEnvironment): DataSet[Int] = {
     val data = new mutable.MutableList[Int]
     data.+=(1)

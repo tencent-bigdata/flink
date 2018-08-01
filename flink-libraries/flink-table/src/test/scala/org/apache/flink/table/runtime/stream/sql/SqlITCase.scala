@@ -53,6 +53,30 @@ class SqlITCase extends StreamingWithStateTestBase {
     (20000L, "20", "Hello World"))
 
   @Test
+  def testConcatAgg(): Unit = {
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env)
+    env.setParallelism(1)
+    StreamITCase.clear
+
+    val stream = env.fromCollection(data)
+    val table = stream.toTable(tEnv, 'a, 'b, 'c)
+
+    tEnv.registerTable("T1", table)
+
+    val sqlQuery = "SELECT CONCAT_AGG('-', c), CONCAT_AGG(c) as var FROM T1"
+
+    val result = tEnv.sqlQuery(sqlQuery).toRetractStream[Row]
+    result.addSink(new StreamITCase.RetractingSink)
+    env.execute()
+
+    val expected =
+      List("Hello-Hello-Hello-Hello-Hello-Hello-Hello World-Hello World-Hello World," +
+        "Hello\nHello\nHello\nHello\nHello\nHello\nHello World\nHello World\nHello World")
+    assertEquals(expected.sorted, StreamITCase.retractedResults.sorted)
+  }
+
+  @Test
   def testDistinctAggWithMergeOnEventTimeSessionGroupWindow(): Unit = {
     // create a watermark with 10ms offset to delay the window emission by 10ms to verify merge
     val sessionWindowTestData = List(

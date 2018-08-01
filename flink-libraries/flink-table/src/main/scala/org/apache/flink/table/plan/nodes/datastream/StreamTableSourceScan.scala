@@ -171,12 +171,14 @@ private class PeriodicWatermarkAssignerWrapper(
 
     if (System.currentTimeMillis() - currentWatermark.getTimestamp > 1000L * 60 * 30 ) {
       if (logPrinter.shouldPrint()) {
-        LOG.info("Current watermark is less than current processing time, the timestamp is : " + currentWatermark.getTimestamp)
+        LOG.info("Current watermark is less than current processing time, the timestamp is : "
+          + currentWatermark.getTimestamp)
       }
     }
 
     if (currentWatermark.getTimestamp - System.currentTimeMillis() > 1000L * 60 * 10) {
-        LOG.info("Current watermark is larger than current processing time, the timestamp is : " + currentWatermark.getTimestamp)
+        LOG.info("Current watermark is larger than current processing time, the timestamp is : "
+          + currentWatermark.getTimestamp)
     }
 
     currentWatermark

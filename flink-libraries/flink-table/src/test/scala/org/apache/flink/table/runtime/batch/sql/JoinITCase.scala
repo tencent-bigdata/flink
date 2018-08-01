@@ -519,4 +519,82 @@ class JoinITCase(
     val results = result.toDataSet[Row].collect().map(_.toString)
     assertEquals(expected, results.sorted.mkString(", "))
   }
+
+  @Test
+  def testGenerateSeries(): Unit = {
+    val env = ExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env, config)
+
+    val data = List(
+      (0.asInstanceOf[Integer], 2.asInstanceOf[Integer]),
+      (2.asInstanceOf[Integer], 4.asInstanceOf[Integer])
+    )
+    val stream = env.fromCollection(data)
+    tEnv.registerDataSet("test", stream, 'a, 'b)
+
+    val sqlQuery = "SELECT a, b, c FROM test, LATERAL TABLE(GENERATE_SERIES(a, b)) as T(c)"
+
+    val result = tEnv.sqlQuery(sqlQuery)
+
+    val expected = List(
+      "0,2,0",
+      "0,2,1",
+      "2,4,2",
+      "2,4,3"
+    ).mkString(", ")
+    val results = result.toDataSet[Row].collect().map(_.toString)
+    assertEquals(expected, results.sorted.mkString(", "))
+  }
+
+  @Test
+  def testJsonTuple(): Unit = {
+    val env = ExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env, config)
+
+    val data = List(
+      ("{\"name\":\"anna\",\"age\": 22 ,\"school\":[\"no.1\",\"cmu\"]}", "name"),
+      ("{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"}", "age")
+    )
+    val stream = env.fromCollection(data)
+    tEnv.registerDataSet("test", stream, 'a, 'b)
+
+    val sqlQuery = "SELECT a, c FROM test, LATERAL TABLE(JSON_TUPLE(a, b, 'school')) as T(c)"
+
+    val result = tEnv.sqlQuery(sqlQuery)
+
+    val expected = List(
+      "{\"name\":\"anna\",\"age\": 22 ,\"school\":[\"no.1\",\"cmu\"]},anna",
+      "{\"name\":\"anna\",\"age\": 22 ,\"school\":[\"no.1\",\"cmu\"]},[\"no.1\",\"cmu\"]",
+      "{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"},30",
+      "{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"},NYU"
+    ).mkString(", ")
+    val results = result.toDataSet[Row].collect().map(_.toString)
+    assertEquals(expected, results.mkString(", "))
+  }
+
+  @Test
+  def testStringSplit(): Unit = {
+    val env = ExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env, config)
+
+    val data = List(
+      ("global-internet-company", "-"),
+      ("facebook", "-")
+    )
+    val stream = env.fromCollection(data)
+    tEnv.registerDataSet("test", stream, 'a, 'b)
+
+    val sqlQuery = "SELECT a, c FROM test, LATERAL TABLE(STRING_SPLIT(a, b)) as T(c)"
+
+    val result = tEnv.sqlQuery(sqlQuery)
+
+    val expected = List(
+      "global-internet-company,global",
+      "global-internet-company,internet",
+      "global-internet-company,company",
+      "facebook,facebook"
+    ).mkString(", ")
+    val results = result.toDataSet[Row].collect().map(_.toString)
+    assertEquals(expected, results.mkString(", "))
+  }
 }

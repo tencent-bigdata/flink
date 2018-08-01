@@ -33,6 +33,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 /**
   * Tests of groupby (without window) aggregations
@@ -322,5 +323,30 @@ class AggregateITCase extends StreamingWithStateTestBase {
 
     val expected = List("(true,A,1)", "(true,B,2)", "(true,C,3)")
     assertEquals(expected.sorted, RowCollector.getAndClearValues.map(_.toString).sorted)
+  }
+
+  @Test
+  def testConcatAgg(): Unit = {
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env)
+    env.setParallelism(1)
+    StreamITCase.clear
+
+    val data = List(
+      (1, 1L, "A"),
+      (2, 2L, "B"),
+      (3, 2L, "B"),
+      (4, 3L, "C"),
+      (5, 3L, "C"))
+
+    val t = env.fromCollection(data).toTable(tEnv, 'a, 'b, 'c)
+    val table = t.select(concatAgg('c), concatAgg("-", 'c), concatAgg("+", 'a), concatAgg('b))
+
+    val results = table.toRetractStream[Row](queryConfig)
+    results.addSink(new StreamITCase.RetractingSink)
+    env.execute()
+
+    val expected = ArrayBuffer("A\nB\nB\nC\nC,A-B-B-C-C,1+2+3+4+5,1\n2\n2\n3\n3")
+    assertEquals(expected, StreamITCase.retractedResults)
   }
 }

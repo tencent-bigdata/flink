@@ -21,12 +21,77 @@ import org.apache.calcite.rex.RexNode
 import org.apache.calcite.sql.fun.SqlStdOperatorTable
 import org.apache.calcite.tools.RelBuilder
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo._
-import org.apache.flink.api.common.typeinfo.{BasicTypeInfo, TypeInformation}
+import org.apache.flink.api.common.typeinfo.{BasicTypeInfo, TypeInformation, Types}
 import org.apache.flink.table.expressions.TrimMode.TrimMode
 import org.apache.flink.table.functions.sql.ScalarSqlFunctions
 import org.apache.flink.table.validate._
 
 import scala.collection.JavaConversions._
+
+case class IsDecimal(child: Expression) extends UnaryExpression with InputTypeSpec {
+
+  override private[flink] def expectedTypes = Seq(STRING_TYPE_INFO)
+
+  override private[flink] def resultType = BOOLEAN_TYPE_INFO
+
+  override private[flink] def validateInput(): ValidationResult = {
+    if (child.resultType == STRING_TYPE_INFO) {
+      ValidationSuccess
+    } else {
+      ValidationFailure(s"IsDecimal operator requires String input, " +
+        s"but $child is of type ${child.resultType}")
+    }
+  }
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder) = {
+    relBuilder.call(ScalarSqlFunctions.IS_DECIMAL, children.map(_.toRexNode))
+  }
+}
+
+case class IsAlpha(child: Expression) extends UnaryExpression with InputTypeSpec {
+
+  override private[flink] def expectedTypes = Seq(STRING_TYPE_INFO)
+
+  override private[flink] def resultType = BOOLEAN_TYPE_INFO
+
+  override private[flink] def validateInput(): ValidationResult = {
+    if (child.resultType == STRING_TYPE_INFO) {
+      ValidationSuccess
+    } else {
+      ValidationFailure(s"IsAlpha operator requires String input, " +
+        s"but $child is of type ${child.resultType}")
+    }
+  }
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder) = {
+    relBuilder.call(ScalarSqlFunctions.IS_ALPHA, children.map(_.toRexNode))
+  }
+}
+
+case class _IF(condition: Expression, v1: Expression, v2: Expression)
+  extends Expression with InputTypeSpec {
+
+  override private[flink] def resultType = STRING_TYPE_INFO
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] =
+    Seq(BOOLEAN_TYPE_INFO, STRING_TYPE_INFO, STRING_TYPE_INFO)
+
+  override private[flink] def children: Seq[Expression] = Seq(condition, v1, v2)
+
+  override private[flink] def validateInput() = {
+   if (condition.resultType == BOOLEAN_TYPE_INFO) {
+     ValidationSuccess
+   } else {
+     ValidationFailure(s"IF operator requires first input type is Boolean ,the second type" +
+       s" must equal the third type " +
+       s"but the second type  is ${v1.resultType} and the third type is ${v2.resultType}")
+   }
+  }
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder) = {
+    relBuilder.call(ScalarSqlFunctions._IF, condition.toRexNode, v1.toRexNode, v2.toRexNode)
+  }
+}
 
 /**
   * Returns the length of this `str`.
@@ -324,6 +389,47 @@ case class ConcatWs(separator: Expression, strings: Seq[Expression])
   }
 }
 
+/**
+  * Returns the idx segment from the split strings.
+  */
+case class SplitIndex(text: Expression, split: Expression, idx: Expression)
+  extends Expression with InputTypeSpec {
+
+  override private[flink] def children: Seq[Expression] = Seq(text, split, idx)
+
+  override private[flink] def resultType: TypeInformation[_] = BasicTypeInfo.STRING_TYPE_INFO
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] =
+    Seq(BasicTypeInfo.STRING_TYPE_INFO, BasicTypeInfo.STRING_TYPE_INFO, BasicTypeInfo.INT_TYPE_INFO)
+
+  override def toString: String = s"($text).splitIndex($split,$idx)"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.SPLIT_INDEX, children.map(_.toRexNode))
+  }
+}
+
+/**
+  * Returns a reversed string.
+  */
+case class Reverse(text: Expression)
+  extends Expression with InputTypeSpec {
+
+  override private[flink] def children: Seq[Expression] = Seq(text)
+
+  override private[flink] def resultType: TypeInformation[_] = BasicTypeInfo.STRING_TYPE_INFO
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] =
+    Seq(BasicTypeInfo.STRING_TYPE_INFO)
+
+  override def toString: String = s"($text).reverse()"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.REVERSE, children.map(_.toRexNode))
+  }
+}
+
+
 case class Lpad(text: Expression, len: Expression, pad: Expression)
   extends Expression with InputTypeSpec {
 
@@ -471,7 +577,28 @@ case class ToBase64(child: Expression) extends UnaryExpression with InputTypeSpe
   }
 
   override def toString: String = s"($child).toBase64"
+}
 
+case class HashCode(child: Expression) extends UnaryExpression with InputTypeSpec {
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] = Seq(STRING_TYPE_INFO)
+
+  override private[flink] def resultType: TypeInformation[_] = INT_TYPE_INFO
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.HASH_CODE, children.map(_.toRexNode))
+  }
+
+  override private[flink] def validateInput(): ValidationResult = {
+    if (child.resultType == STRING_TYPE_INFO) {
+      ValidationSuccess
+    } else {
+      ValidationFailure(s"hash_code operator requires String input," +
+        s"but $child is of type ${child.resultType}")
+    }
+  }
+
+  override def toString: String = s"hash_code($child)"
 }
 
 /**
@@ -573,4 +700,104 @@ case class Replace(str: Expression,
   override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
     relBuilder.call(SqlStdOperatorTable.REPLACE, children.map(_.toRexNode))
   }
+}
+
+case class JsonValue(content: Expression, jsonPath: Expression) extends Expression with
+  InputTypeSpec {
+
+  override private[flink] def children: Seq[Expression] = Seq(content, jsonPath)
+
+  override private[flink] def resultType: TypeInformation[_] = BasicTypeInfo.STRING_TYPE_INFO
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] = children.map(_
+  =>STRING_TYPE_INFO)
+
+  override def toString: String = s"json_value($content, $jsonPath)"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.JSON_VALUE, children.map(_.toRexNode))
+  }
+}
+
+case class KeyValue(string: Expression, split1: Expression, split2: Expression, key: Expression)
+  extends Expression with InputTypeSpec {
+
+  override private[flink] def children: Seq[Expression] = Seq(string, split1, split2, key)
+
+  override private[flink] def resultType: TypeInformation[_] = BasicTypeInfo.STRING_TYPE_INFO
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] =
+    children.map(_ => STRING_TYPE_INFO)
+
+  override def toString: String = s"keyvalue($string, $split1, $split2, $key)"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.KEY_VALUE, children.map(_.toRexNode))
+  }
+}
+
+case class ParseURL(urlString: Expression, partToExtract_key: Seq[Expression])
+  extends Expression with InputTypeSpec {
+
+  override private[flink] def children: Seq[Expression] = Seq(urlString) ++ partToExtract_key
+
+  override private[flink] def resultType: TypeInformation[_] = BasicTypeInfo.STRING_TYPE_INFO
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] =
+    children.map(_ => STRING_TYPE_INFO)
+
+  override def toString: String = s"parse_url($urlString, $partToExtract_key)"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.PARSE_URL, children.map(_.toRexNode))
+  }
+}
+
+case class StrToMap(args: Seq[Expression]) extends Expression with InputTypeSpec {
+
+  override private[flink] def children: Seq[Expression] = args
+
+  override private[flink] def resultType: TypeInformation[_] =
+    Types.MAP(STRING_TYPE_INFO, STRING_TYPE_INFO)
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] =
+    children.map(_ => STRING_TYPE_INFO)
+
+  override def toString: String = s"StrToMap($args)"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.STR_TO_MAP, children.map(_.toRexNode))
+  }
+}
+
+case class URLEncode(url: Expression, enc: Expression) extends Expression with InputTypeSpec {
+
+  override private[flink] def children: Seq[Expression] = Seq(url, enc)
+
+  override private[flink] def resultType: TypeInformation[_] = BasicTypeInfo.STRING_TYPE_INFO
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] =
+    children.map(_ => STRING_TYPE_INFO)
+
+  override def toString: String = s"URLEncode($url, $enc)"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.URL_ENCODE, children.map(_.toRexNode))
+  }
+}
+
+case class URLDecode(encodedUrl: Expression, enc: Expression) extends Expression with
+  InputTypeSpec {
+
+  override private[flink] def children:Seq[Expression] = Seq(encodedUrl, enc)
+
+  override private[flink] def resultType: TypeInformation[_] = BasicTypeInfo.STRING_TYPE_INFO
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] = children.map(_ =>
+    STRING_TYPE_INFO)
+
+  override def toString: String = s"URLDecode($encodedUrl, $enc)"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = relBuilder
+    .call(ScalarSqlFunctions.URL_DECODE, children.map(_.toRexNode))
 }

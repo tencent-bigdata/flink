@@ -81,6 +81,96 @@ class JoinITCase extends StreamingWithStateTestBase {
     env.execute()
   }
 
+  @Test
+  def testGenerateSeries(): Unit = {
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env)
+    env.setStateBackend(getStateBackend)
+    StreamITCase.clear
+    env.setParallelism(1)
+
+    val sqlQuery = "SELECT a, b, c FROM test, LATERAL TABLE(GENERATE_SERIES(a, b)) as T(c)"
+
+    val data1 = new mutable.MutableList[(Integer, Integer)]
+    data1.+=((-2.asInstanceOf[Integer], 0.asInstanceOf[Integer]))
+    data1.+=((2.asInstanceOf[Integer], 4.asInstanceOf[Integer]))
+
+    val t1 = env.fromCollection(data1).toTable(tEnv, 'a, 'b)
+
+    tEnv.registerTable("test", t1)
+
+    val result = tEnv.sqlQuery(sqlQuery).toAppendStream[Row]
+    result.addSink(new StreamITCase.StringSink[Row])
+    env.execute()
+
+    val expected = new java.util.ArrayList[String]
+    expected.add("-2,0,-2")
+    expected.add("-2,0,-1")
+    expected.add("2,4,2")
+    expected.add("2,4,3")
+    StreamITCase.compareWithList(expected)
+  }
+
+  @Test
+  def testJsonTuple(): Unit = {
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env)
+    env.setStateBackend(getStateBackend)
+    StreamITCase.clear
+    env.setParallelism(1)
+
+    val sqlQuery = "SELECT a, c FROM test, LATERAL TABLE(JSON_TUPLE(a, b, 'school')) as T(c)"
+
+    val data = new mutable.MutableList[(String, String)]
+    data.+=(("{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"}", "name"))
+    data.+=(("{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"}", "age"))
+
+    val t1 = env.fromCollection(data).toTable(tEnv, 'a, 'b)
+
+    tEnv.registerTable("test", t1)
+
+    val result = tEnv.sqlQuery(sqlQuery).toAppendStream[Row]
+    result.addSink(new StreamITCase.StringSink[Row])
+    env.execute()
+
+    val expected = new java.util.ArrayList[String]
+    expected.add("{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"},anna")
+    expected.add("{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"},no.1")
+    expected.add("{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"},30")
+    expected.add("{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"},NYU")
+    StreamITCase.compareWithList(expected)
+  }
+
+  @Test
+  def testStringSplit(): Unit = {
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env)
+    env.setStateBackend(getStateBackend)
+    StreamITCase.clear
+    env.setParallelism(1)
+
+    val sqlQuery = "SELECT a, c FROM test, LATERAL TABLE(STRING_SPLIT(a, b)) as T(c)"
+
+    val data = new mutable.MutableList[(String, String)]
+    data.+=(("global-internet-company", "-"))
+    data.+=(("facebook", "-"))
+
+    val t1 = env.fromCollection(data).toTable(tEnv, 'a, 'b)
+
+    tEnv.registerTable("test", t1)
+
+    val result = tEnv.sqlQuery(sqlQuery).toAppendStream[Row]
+    result.addSink(new StreamITCase.StringSink[Row])
+    env.execute()
+
+    val expected = new java.util.ArrayList[String]
+    expected.add("global-internet-company,global")
+    expected.add("global-internet-company,internet")
+    expected.add("global-internet-company,company")
+    expected.add("facebook,facebook")
+    StreamITCase.compareWithList(expected)
+  }
+
   /** test proctime inner join with other condition **/
   @Test
   def testProcessTimeInnerJoinWithOtherConditions(): Unit = {

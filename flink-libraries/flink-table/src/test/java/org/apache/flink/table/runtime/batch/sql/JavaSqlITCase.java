@@ -152,6 +152,69 @@ public class JavaSqlITCase extends TableProgramsCollectionTestBase {
 	}
 
 	@Test
+	public void testGenerateSeries() throws Exception {
+		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+		BatchTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env, config());
+
+		DataSet<Tuple2<Integer, Integer>> ds1 =
+			CollectionDataSets.getDataForGenerateSeries(env);
+
+		tableEnv.registerDataSet("test", ds1, "a, b");
+
+		String sqlQuery = "SELECT a, b, c FROM test, LATERAL TABLE(GENERATE_SERIES(a, b)) as T(c)";
+		Table result = tableEnv.sqlQuery(sqlQuery);
+
+		DataSet<Row> resultSet = tableEnv.toDataSet(result, Row.class);
+		List<Row> results = resultSet.collect();
+		String expected = "0,2,0\n" + "0,2,1\n" + "2,4,2\n" + "2,4,3";
+		compareResultAsText(results, expected);
+	}
+
+	@Test
+	public void testJsonTuple() throws Exception {
+		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+		BatchTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env, config());
+
+		DataSet<Tuple2<String, String>> ds1 =
+			CollectionDataSets.getDataForJsonTuple(env);
+
+		tableEnv.registerDataSet("test", ds1, "a, b");
+
+		String sqlQuery = "SELECT a, c FROM test, LATERAL TABLE(JSON_TUPLE(a, b, 'school')) as T(c)";
+		Table result = tableEnv.sqlQuery(sqlQuery);
+
+		DataSet<Row> resultSet = tableEnv.toDataSet(result, Row.class);
+		List<Row> results = resultSet.collect();
+		String expected = "{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"},anna\n" +
+			"{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"},no.1\n" +
+			"{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"},30\n" +
+			"{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"},NYU";
+		compareResultAsText(results, expected);
+	}
+
+	@Test
+	public void testStringSplit() throws Exception {
+		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+		BatchTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env, config());
+
+		DataSet<Tuple2<String, String>> ds1 =
+			CollectionDataSets.getDataForStringSplit(env);
+
+		tableEnv.registerDataSet("test", ds1, "a, b");
+
+		String sqlQuery = "SELECT a, c FROM test, LATERAL TABLE(STRING_SPLIT(a, b)) as T(c)";
+		Table result = tableEnv.sqlQuery(sqlQuery);
+
+		DataSet<Row> resultSet = tableEnv.toDataSet(result, Row.class);
+		List<Row> results = resultSet.collect();
+		String expected = "global-internet-company,global\n" +
+			"global-internet-company,internet\n" +
+			"global-internet-company,company\n" +
+			"facebook,facebook";
+		compareResultAsText(results, expected);
+	}
+
+	@Test
 	public void testMap() throws Exception {
 		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 		BatchTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env, config());

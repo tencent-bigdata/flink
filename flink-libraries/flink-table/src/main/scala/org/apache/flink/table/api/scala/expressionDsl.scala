@@ -22,6 +22,7 @@ import java.sql.{Date, Time, Timestamp}
 
 import org.apache.calcite.avatica.util.DateTimeUtils._
 import org.apache.flink.api.common.typeinfo.{SqlTimeTypeInfo, TypeInformation}
+import org.apache.flink.api.scala._
 import org.apache.flink.table.api.{CurrentRange, CurrentRow, TableException, UnboundedRange, UnboundedRow}
 import org.apache.flink.table.expressions.ExpressionUtils.{convertArray, toMilliInterval, toMonthInterval, toRowInterval}
 import org.apache.flink.table.api.Table
@@ -29,6 +30,7 @@ import org.apache.flink.table.expressions.TimeIntervalUnit.TimeIntervalUnit
 import org.apache.flink.table.expressions.TimePointUnit.TimePointUnit
 import org.apache.flink.table.expressions._
 import org.apache.flink.table.functions.{AggregateFunction, DistinctAggregateFunction}
+import org.apache.flink.table.functions.utils.{GenericAggFunctions, GenericTableFunctions}
 
 import scala.language.implicitConversions
 
@@ -42,6 +44,12 @@ import scala.language.implicitConversions
 trait ImplicitExpressionOperations {
   private[flink] def expr: Expression
 
+  def isDecimal() = IsDecimal(expr)
+
+  def isAlpha() = IsAlpha(expr)
+
+  def IF(v1: Expression, v2: Expression) = _IF(expr, v1, v2)
+
   /**
     * Enables literals on left side of binary expressions.
     *
@@ -50,6 +58,35 @@ trait ImplicitExpressionOperations {
     * @return expression
     */
   def toExpr: Expression = expr
+
+  /**
+    * Returns the result of bitwise Not of A.
+    * If one of parameters is out of range, will throw IllegalArgumentException.
+    */
+  def bitNot() = BitNot(expr)
+
+  /**
+    * Returns the result of bitwise AND of A and B.
+    * If one of parameters is out of range, will throw IllegalArgumentException.
+    */
+  def bitAnd(other: Expression) = BitAnd(expr, other)
+
+  /**
+    * Returns a int results form bit or.
+    * If one of parameters is out of range, will throw IllegalArgumentException.
+    */
+  def bitOr(other: Expression) = BitOr(expr, other)
+
+  /**
+    * Returns the result of bitwise XOR of A and B.
+    * If one of parameters is out of range, will throw IllegalArgumentException.
+    */
+  def bitXor(other: Expression) = BitXor(expr, other)
+
+ /**
+   * date diff in day
+   */
+  def dateDiff(other: Expression) = DateDiff(expr, other)
 
   /**
     * Boolean AND in three-valued logic.
@@ -539,6 +576,31 @@ trait ImplicitExpressionOperations {
   def position(haystack: Expression) = Position(expr, haystack)
 
   /**
+    * Returns the idx segment from the split strings.
+    */
+  def splitIndex(split: Expression, idx: Expression) = SplitIndex(expr, split, idx)
+
+  /**
+    * Returns a reversed string.
+    */
+  def reverse() = Reverse(expr)
+
+  /**
+    * Returns a map based on list delimiter and key-value delimiter.
+    */
+
+  /**
+    * Returns a new date by adding delta.
+    */
+  def dateAdd(delta: Expression) = DateAdd(expr, delta)
+
+  /**
+    * Returns a new date by subing delta.
+    */
+  def dateSub(delta: Expression) = DateSub(expr, delta)
+
+
+  /**
     * Returns a string left-padded with the given pad string to a length of len characters. If
     * the string is longer than len, the return value is shortened to len characters.
     *
@@ -944,6 +1006,17 @@ trait ImplicitExpressionOperations {
     */
   def notBetween(lowerBound: Expression, upperBound: Expression) =
     NotBetween(expr, lowerBound, upperBound)
+
+  def hash_code() = HashCode(expr)
+
+  def json_value(jsonPath: Expression) = JsonValue(expr, jsonPath)
+
+  def key_value(split1: Expression, split2: Expression, key: Expression) =
+    KeyValue(expr, split1, split2, key)
+
+  def urlEncode(enc: Expression) = URLEncode(expr, enc)
+
+  def urlDecode(enc: Expression) = URLDecode(expr, enc)
 }
 
 /**
@@ -1176,6 +1249,7 @@ object dateFormat {
   }
 }
 
+
 /**
   * Returns the (signed) number of [[TimePointUnit]] between timePoint1 and timePoint2.
   *
@@ -1375,4 +1449,67 @@ object uuid {
   }
 }
 
+object parse_url {
+  def apply(urlString: Expression, partToExtract_key: Expression*): Expression = {
+    new ParseURL(urlString, partToExtract_key)
+  }
+}
+
+object unix_timestamp {
+  def apply(args: Expression*): Expression = {
+    new UnixTimeStamp(args)
+  }
+}
+
+object from_unixtime {
+  def apply(unixTime: Expression, formatString: Expression*): Expression = {
+    new FromUnixTime(unixTime, formatString)
+  }
+}
+
+object now {
+  def apply(offset: Expression*): Expression = new NOW(offset)
+}
+
+object strToMap {
+  def apply(args: Expression*): Expression = {
+    StrToMap(args)
+  }
+}
+
+//---------------------- Table functions ---------------------
+
+object generateSeries {
+  def apply(from: Expression, to: Expression): Table = {
+    GenericTableFunctions.GENERATE_SERIES(from, to)
+  }
+}
+
+object jsonTuple {
+  def apply(str: Expression, path: Expression*): Table = {
+    val args = Seq(str) ++ path
+    GenericTableFunctions.JSON_TUPLE(args:_*)
+  }
+}
+
+object stringSplit {
+  def apply(str: Expression, split: Expression): Table = {
+    GenericTableFunctions.STRING_SPLIT(str, split)
+  }
+}
+
+//---------------------- Aggregate functions ---------------------
+
+object concatAgg {
+  def apply(args: Expression*): AggFunctionCall =
+    GenericAggFunctions.CONCAT_AGG(args: _*)
+}
+
+object firstValue {
+  def apply(args: Expression) = FirstValue(args)
+}
+
+object lastValue {
+  def apply(args: Expression) = LastValue(args)
+}
 // scalastyle:on object.name

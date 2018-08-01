@@ -40,7 +40,7 @@ import org.apache.flink.table.dataview.MapViewTypeInfo
 import org.apache.flink.table.expressions.ExpressionUtils.isTimeIntervalLiteral
 import org.apache.flink.table.expressions._
 import org.apache.flink.table.functions.aggfunctions._
-import org.apache.flink.table.functions.utils.AggSqlFunction
+import org.apache.flink.table.functions.utils._
 import org.apache.flink.table.functions.utils.UserDefinedFunctionUtils._
 import org.apache.flink.table.functions.{AggregateFunction => TableAggregateFunction}
 import org.apache.flink.table.plan.logical._
@@ -1435,6 +1435,69 @@ object AggregateUtil {
                 }
               }
             }
+
+          case sqlFirstLastValueFunction: SqlFirstLastValueAggFunction =>
+            aggregates(index) = if (sqlFirstLastValueFunction.getKind == SqlKind.FIRST_VALUE) {
+                sqlTypeName match {
+                  case TINYINT =>
+                    new ByteFirstValue
+                  case SMALLINT =>
+                    new ShortFirstValue
+                  case INTEGER =>
+                    new IntFirstValue
+                  case BIGINT =>
+                    new LongFirstValue
+                  case FLOAT =>
+                    new FloatFirstValue
+                  case DOUBLE =>
+                    new DoubleFirstValue
+                  case DECIMAL =>
+                    new BigDecimalFirstValue
+                  case BOOLEAN =>
+                    new BooleanFirstValue
+                  case VARCHAR | CHAR =>
+                    new StringFirstValue
+                  case TIMESTAMP =>
+                    new TimestampFirstValue
+                  case DATE =>
+                    new DateFirstValue
+                  case TIME =>
+                    new TimeFirstValue
+                  case sqlType: SqlTypeName =>
+                    throw new TableException(
+                      s"FirstValue aggregate function does no support type: '$sqlType'")
+                }
+              } else {
+                sqlTypeName match {
+                  case TINYINT =>
+                    new ByteLastValue
+                  case SMALLINT =>
+                    new ShortLastValue
+                  case INTEGER =>
+                    new IntLastValue
+                  case BIGINT =>
+                    new LongLastValue
+                  case FLOAT =>
+                    new FloatLastValue
+                  case DOUBLE =>
+                    new DoubleLastValue
+                  case DECIMAL =>
+                    new BigDecimalLastValue
+                  case BOOLEAN =>
+                    new BooleanLastValue
+                  case VARCHAR | CHAR =>
+                    new StringLastValue
+                  case TIMESTAMP =>
+                    new TimestampLastValue
+                  case DATE =>
+                    new DateLastValue
+                  case TIME =>
+                    new TimeLastValue
+                  case sqlType: SqlTypeName =>
+                    throw new TableException(
+                      s"LastValue aggregate function does no support type: '$sqlType'")
+                }
+              }
 
           case collect: SqlAggFunction if collect.getKind == SqlKind.COLLECT =>
             aggregates(index) = new CollectAggFunction(FlinkTypeFactory.toTypeInfo(relDataType))

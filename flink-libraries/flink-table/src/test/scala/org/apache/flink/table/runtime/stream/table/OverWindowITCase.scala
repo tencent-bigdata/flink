@@ -126,6 +126,80 @@ class OverWindowITCase extends StreamingWithStateTestBase {
   }
 
   @Test
+  def testFirstValue(): Unit = {
+    val data = List(
+      (1L, 1, "Hello"),
+      (2L, 2, "Hello"),
+      (3L, 3, "Hello"),
+      (4L, 4, "Hello"),
+      (5L, 5, "Hello"),
+      (6L, 6, "Hello"),
+      (7L, 7, "Hello World"),
+      (8L, 8, "Hello World"),
+      (20L, 20, "Hello World"))
+
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    env.setParallelism(1)
+    val tEnv = TableEnvironment.getTableEnvironment(env)
+    StreamITCase.testResults = mutable.MutableList()
+    StreamITCase.clear
+    val stream = env.fromCollection(data)
+    val table = stream.toTable(tEnv, 'a, 'b, 'c, 'proctime.proctime)
+
+    val windowedTable = table
+      .window(
+        Over partitionBy 'c orderBy 'proctime preceding UNBOUNDED_RANGE as 'w)
+      .select('c, firstValue('b) over 'w as 'var)
+
+    val results = windowedTable.toAppendStream[Row]
+    results.addSink(new StreamITCase.StringSink[Row])
+    env.execute()
+
+    val expected = mutable.MutableList(
+      "Hello,1", "Hello,1", "Hello,1", "Hello,1", "Hello,1", "Hello,1",
+      "Hello World,7", "Hello World,7", "Hello World,7")
+
+    assertEquals(expected.sorted, StreamITCase.testResults.sorted)
+  }
+
+  @Test
+  def testLastValue(): Unit = {
+    val data = List(
+      (1L, 1, "Hello"),
+      (2L, 2, "Hello"),
+      (3L, 3, "Hello"),
+      (4L, 4, "Hello"),
+      (5L, 5, "Hello"),
+      (6L, 6, "Hello"),
+      (7L, 7, "Hello World"),
+      (8L, 8, "Hello World"),
+      (20L, 20, "Hello World"))
+
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    env.setParallelism(1)
+    val tEnv = TableEnvironment.getTableEnvironment(env)
+    StreamITCase.testResults = mutable.MutableList()
+    StreamITCase.clear
+    val stream = env.fromCollection(data)
+    val table = stream.toTable(tEnv, 'a, 'b, 'c, 'proctime.proctime)
+
+    val windowedTable = table
+      .window(
+        Over partitionBy 'c orderBy 'proctime preceding UNBOUNDED_RANGE as 'w)
+      .select('c, lastValue('b) over 'w as 'var)
+
+    val results = windowedTable.toAppendStream[Row]
+    results.addSink(new StreamITCase.StringSink[Row])
+    env.execute()
+
+    val expected = mutable.MutableList(
+      "Hello,1", "Hello,2", "Hello,3", "Hello,4", "Hello,5", "Hello,6",
+      "Hello World,7", "Hello World,8", "Hello World,20")
+
+    assertEquals(expected.sorted, StreamITCase.testResults.sorted)
+  }
+
+  @Test
   def testRowTimeUnBoundedPartitionedRangeOver(): Unit = {
     val env = StreamExecutionEnvironment.getExecutionEnvironment
     val tEnv = TableEnvironment.getTableEnvironment(env)

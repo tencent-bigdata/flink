@@ -1014,6 +1014,21 @@ abstract class CodeGenerator(
       case ScalarSqlFunctions.CONCAT_WS =>
         generateConcatWs(operands)
 
+      case ScalarSqlFunctions.PARSE_URL =>
+        generateParseUrl(this.nullCheck, operands)
+
+      case ScalarSqlFunctions.UNIX_TIMESTAMP =>
+        generateUnixTimestamp(this.nullCheck, operands)
+
+      case ScalarSqlFunctions.FROM_UNIXTIME =>
+        generateFromUnixTime(this.nullCheck, operands)
+
+      case ScalarSqlFunctions.NOW =>
+        generateNOW(this.nullCheck, operands)
+
+      case ScalarSqlFunctions.STR_TO_MAP =>
+        generateStrToMap(this.nullCheck, operands)
+
       case StreamRecordTimestampSqlFunction =>
         generateStreamRecordRowtimeAccess()
 

@@ -53,6 +53,36 @@ import scala.math.BigInt;
  */
 public class CollectionDataSets {
 
+	public static DataSet<Tuple2<Integer, Integer>> getDataForGenerateSeries
+		(ExecutionEnvironment env) {
+
+		List<Tuple2<Integer, Integer>> data = new ArrayList<>();
+		data.add(new Tuple2<>(0, 2));
+		data.add(new Tuple2<>(2, 4));
+
+		return env.fromCollection(data);
+	}
+
+	public static DataSet<Tuple2<String, String>> getDataForJsonTuple
+		(ExecutionEnvironment env) {
+
+		List<Tuple2<String, String>> data = new ArrayList<>();
+		data.add(new Tuple2<>("{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"}", "name"));
+		data.add(new Tuple2<>("{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"}", "age"));
+
+		return env.fromCollection(data);
+	}
+
+	public static DataSet<Tuple2<String, String>> getDataForStringSplit
+		(ExecutionEnvironment env) {
+
+		List<Tuple2<String, String>> data = new ArrayList<>();
+		data.add(new Tuple2<>("global-internet-company", "-"));
+		data.add(new Tuple2<>("facebook", "-"));
+
+		return env.fromCollection(data);
+	}
+
 	public static DataSet<Tuple3<Integer, Long, String>> get3TupleDataSet(ExecutionEnvironment env) {
 
 		List<Tuple3<Integer, Long, String>> data = new ArrayList<>();

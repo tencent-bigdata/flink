@@ -25,7 +25,7 @@ import org.apache.calcite.util.BuiltInMethod
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo._
 import org.apache.flink.api.common.typeinfo._
 import org.apache.flink.api.java.typeutils.{MapTypeInfo, ObjectArrayTypeInfo, RowTypeInfo}
-import org.apache.flink.table.api.TableConfig
+import org.apache.flink.table.api.{TableConfig, Types}
 import org.apache.flink.table.codegen.CodeGenUtils._
 import org.apache.flink.table.codegen.calls.CallGenerator.generateCallIfArgsNotNull
 import org.apache.flink.table.codegen.{CodeGenException, CodeGenerator, GeneratedExpression}
@@ -1131,6 +1131,55 @@ object ScalarOperators {
 
     generateCallIfArgsNotNull(nullCheck, STRING_TYPE_INFO, operands) {
       (terms) =>s"${qualifyMethod(BuiltInMethods.CONCAT)}(${terms.mkString(", ")})"
+    }
+  }
+
+  def generateParseUrl(
+      nullCheck: Boolean,
+      operands: Seq[GeneratedExpression])
+    : GeneratedExpression = {
+
+    generateCallIfArgsNotNull(nullCheck, STRING_TYPE_INFO, operands) {
+      (terms) =>s"${qualifyMethod(BuiltInMethods.PARSE_URL)}(${terms.mkString(", ")})"
+    }
+  }
+
+  def generateStrToMap(
+      nullCheck: Boolean,
+      operands: Seq[GeneratedExpression])
+    : GeneratedExpression = {
+    generateCallIfArgsNotNull(nullCheck, Types.MAP(STRING_TYPE_INFO, STRING_TYPE_INFO), operands) {
+      (terms) => s"${qualifyMethod(BuiltInMethods.STR_TO_MAP)}(${terms.mkString(", ")})"
+    }
+  }
+
+  def generateUnixTimestamp(
+      nullCheck: Boolean,
+      operands: Seq[GeneratedExpression])
+    : GeneratedExpression = {
+
+    generateCallIfArgsNotNull(nullCheck, BasicTypeInfo.LONG_TYPE_INFO, operands) {
+      (terms) =>s"${qualifyMethod(BuiltInMethods.UNIX_TIMESTAMP)}(${terms.mkString(", ")})"
+    }
+  }
+
+  def generateFromUnixTime(
+      nullCheck: Boolean,
+      operands: Seq[GeneratedExpression])
+     : GeneratedExpression = {
+
+    generateCallIfArgsNotNull(nullCheck, BasicTypeInfo.STRING_TYPE_INFO, operands) {
+      (terms) =>s"${qualifyMethod(BuiltInMethods.FROM_UNIXTIME)}(${terms.mkString(", ")})"
+    }
+  }
+
+  def generateNOW(
+      nullCheck: Boolean,
+      operands: Seq[GeneratedExpression])
+      : GeneratedExpression = {
+
+    generateCallIfArgsNotNull(nullCheck, BasicTypeInfo.LONG_TYPE_INFO, operands) {
+      (terms) =>s"${qualifyMethod(BuiltInMethods.NOW)}(${terms.mkString(", ")})"
     }
   }
 

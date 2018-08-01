@@ -17,13 +17,30 @@
  */
 package org.apache.flink.table.runtime.functions
 
-import java.lang.{StringBuilder, Long => JLong}
-import java.math.{BigDecimal => JBigDecimal}
-import java.util.regex.{Matcher, Pattern}
+import java.lang.{Long => JLong}
+import java.util.regex.Matcher
 
 import org.apache.flink.table.utils.EncodingUtils
 
+import org.apache.http.NameValuePair
+import org.apache.http.client.utils.URLEncodedUtils
+
+import collection.JavaConversions._
+import com.google.common.base.Splitter
+import com.jayway.jsonpath.JsonPath
+
 import scala.annotation.varargs
+
+import java.lang.StringBuilder
+
+import java.math.{BigDecimal => JBigDecimal}
+import java.net.URLDecoder
+import java.net.URLEncoder
+import java.nio.charset.Charset
+import java.util.{Date, Locale}
+import java.util.regex.Pattern
+import java.text.SimpleDateFormat
+
 
 /**
   * Built-in scalar runtime functions.
@@ -38,6 +55,40 @@ class ScalarFunctions {}
 
 object ScalarFunctions {
 
+  def isDecimal(str: String): Boolean = {
+    var data=str
+    var result = false
+    if (data.startsWith("-")) {
+      data = data.substring(0)
+    }
+    val pattern1 = Pattern.compile("[0-9]+")
+    var isNum = pattern1.matcher(data)
+    if (isNum.matches) {
+      result = true
+    }
+    val pattern2 = Pattern.compile("^\\\\d+(\\\\.\\\\d+)?$")
+    isNum = pattern2.matcher(data)
+    if (isNum.matches) {
+      result = true
+    }
+    result
+  }
+
+  def isAlpha(str: String): Boolean= {
+    val regex = "[a-zA-Z]+"
+    val m = Pattern.compile(regex).matcher(str)
+    m.matches()
+  }
+
+  def _IF(condition: Boolean, v1: String, v2: String): String = {
+    if (condition) {
+      v1
+    }
+    else {
+      v2
+    }
+  }
+
   def power(a: Double, b: JBigDecimal): Double = {
     Math.pow(a, b.doubleValue())
   }
@@ -47,6 +98,72 @@ object ScalarFunctions {
     */
   def cosh(x: JBigDecimal): Double = {
     Math.cosh(x.doubleValue())
+  }
+  /**
+    * Returns the result of bitwise AND of A and B.
+    * If one of parameters is out of range, will throw IllegalArgumentException.
+    */
+  def bitAnd(a: Int, b: Int): Int = {
+    if(a > Int.MaxValue || a < Int.MinValue ){
+      throw new IllegalArgumentException(s"Parameter a of 'bitAnd(a, b)' must be a int, " +
+        s"but it's overflowed, a = $a")
+    }
+
+    if(b >  Int.MaxValue || b < Int.MinValue ){
+      throw new IllegalArgumentException(s"Parameter b of 'bitAnd(a, b)' must be a int, " +
+        s"but it's overflowed, b = $b")
+    }
+
+    a & b
+  }
+
+  /**
+    * Returns the result of bitwise Not of A.
+    * If one of parameters is out of range, will throw IllegalArgumentException.
+    */
+  def bitNot(a: Int): Int = {
+    if(a > Int.MaxValue || a < Int.MinValue ){
+      throw new IllegalArgumentException(s"Parameter a of 'bitNot(a, b)' must be a int, " +
+        s"but it's overflowed, a = $a")
+    }
+
+    ~ a
+  }
+
+  /**
+    * Returns a int results form bit or.
+    * If one of parameters is out of range, will throw IllegalArgumentException.
+    */
+  def bitOr(a: Int, b: Int): Int = {
+    if(a > Int.MaxValue || a < Int.MinValue ){
+      throw new IllegalArgumentException(s"Parameter a of 'bitOr(a, b)' must be a int, " +
+        s"but it's overflowed, a = $a")
+    }
+
+    if(b >  Int.MaxValue || b < Int.MinValue ){
+      throw new IllegalArgumentException(s"Parameter b of 'bitOr(a, b)' must be a int, " +
+        s"but it's overflowed, b = $b")
+    }
+
+    a | b
+  }
+
+  /**
+    * Returns the result of bitwise XOR of A and B.
+    * If one of parameters is out of range, will throw IllegalArgumentException.
+    */
+  def bitXor(a: Int, b: Int): Int = {
+    if(a > Int.MaxValue || a < Int.MinValue ){
+      throw new IllegalArgumentException(s"Parameter a of 'bitXor(a, b)' must be a int, " +
+        s"but it's overflowed, a = $a")
+    }
+
+    if(b >  Int.MaxValue || b < Int.MinValue ){
+      throw new IllegalArgumentException(s"Parameter b of 'bitXor(a, b)' must be a int, " +
+        s"but it's overflowed, b = $b")
+    }
+
+    a ^ b
   }
 
   /**
@@ -139,6 +256,42 @@ object ScalarFunctions {
     }
   }
 
+  def repeat(base: String, cnt: Integer): String = {
+    if (cnt < 0) {
+      return null
+    } else if (cnt == 0) {
+      return ""
+    }
+    var s1 = new StringBuilder()
+    for (i <- 1 to cnt) {
+      s1.append(base)
+    }
+    return s1.toString
+  }
+
+  def reverse(base: String): String = {
+    if (base == null) return null
+    var s1 = new StringBuilder()
+    for (i <- 1 to base.length) {
+      s1.append(base.charAt(base.length - i))
+    }
+    return s1.toString
+  }
+
+  def splitIndex(base: String, sep: String, index: Integer): String = {
+    if (base == null || sep == null) return null
+    var regex = sep
+    if (regex.length == 1 && ".$|()[{^?*+\\".indexOf(regex.charAt(0)) > -1) {
+      regex = "\\".concat(regex)
+    }
+    val result = base.split(regex)
+    if (result.length <= index) {
+      return null
+    } else {
+      return result(index)
+    }
+  }
+
   /**
     * Returns the logarithm of "x" with base 2.
     */
@@ -225,7 +378,6 @@ object ScalarFunctions {
     new String(data)
   }
 
-
   /**
     * Returns a string resulting from replacing all substrings
     * that match the regular expression with replacement.
@@ -296,4 +448,217 @@ object ScalarFunctions {
     */
   def repeat(base: String, n: Int): String = EncodingUtils.repeat(base, n)
 
+  def hash_code(str: String): Int = {
+    str.hashCode
+  }
+
+  def json_value(content: String, jsonPath: String): String = {
+    try {
+      val jsonArray = JsonPath.read[Any](content, jsonPath)
+      val result = jsonArray.toString
+      result
+    } catch {
+      case e: Exception => "null"
+    }
+  }
+
+  def keyvalue(string: String, split1: String, split2: String, key: String): String = {
+    if (string == null || string == "") {
+      "null"
+    } else {
+      try {
+        val JAVA_REGEX_SPECIALS = "[]()|^-+*?{}$\\."
+        var split_r_1 = ""
+        var split_r_2 = ""
+        for (c <- split1.toList) {
+          if(JAVA_REGEX_SPECIALS.contains(c)) {split_r_1 = split_r_1 + "\\" + c}
+          else {split_r_1 = split_r_1 + c}
+        }
+        for (c <- split2.toList) {
+          if(JAVA_REGEX_SPECIALS.contains(c)) {split_r_2 = split_r_2 + "\\" + c}
+          else {split_r_2 = split_r_2 + c}
+        }
+
+        val pattern = s"(.+$split_r_2.+)($split_r_1.+$split_r_2.+)*".r
+        val key_values = pattern.findAllIn(string).mkString
+        val key_value = key_values.split(split_r_1).toList
+
+        var result = ""
+        for (kv <- key_value) {
+          if (kv.split(split_r_2).apply(0).equals(key)) {
+            if(result != "") {
+              result += ","
+            }
+            result += kv.split(split_r_2).apply(1)
+          }
+        }
+        if(result == "") {
+          result = "null"
+        }
+        result
+      } catch {
+        case e:Exception => "null"
+      }
+    }
+  }
+
+  @varargs
+  def parse_url(urlString: String, partToExtract_key: String*): String = {
+    try {
+      val url = new java.net.URL(urlString)
+      val key = if (partToExtract_key.size == 2) partToExtract_key.apply(1) else ""
+      partToExtract_key.head match {
+        case "AUTHORITY" => url.getAuthority
+        case "FILE" => url.getFile
+        case "HOST" => url.getHost
+        case "PATH" => url.getPath
+        case "REF" => url.getRef
+        case "PROTOCOL" => url.getProtocol
+        case "USERINFO" => url.getUserInfo
+        case "QUERY" =>
+          var result = ""
+          val query = url.getQuery
+          val values: java.util.List[NameValuePair] = URLEncodedUtils.parse(query, Charset.forName
+          ("UTF-8"))
+          for (name_value: NameValuePair <- values) {
+            if (name_value.getName == key) {
+              result = name_value.getValue
+            } else result = if (key == "") query else "null"
+          }
+          values.clear()
+          if (result == "") "null" else result
+      }
+    } catch {
+      case e: Exception => "null"
+    }
+  }
+
+  @varargs
+  def unix_timestamp(args: String*): Long = {
+    try {
+      if (args.size > 2) {
+        throw new Exception(s"The number of arguments of unix_timestamp($args) is wrong")
+      } else {
+        if(args.isEmpty) {
+          val result = System.currentTimeMillis() / 1000
+          result
+        } else if(args.size == 1) {
+          val format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+          val timestamp = format.parse(args.head).getTime / 1000
+          timestamp
+        } else {
+          val format = new SimpleDateFormat(args.apply(1), Locale.US)
+          val timestamp = format.parse(args.head).getTime / 1000
+          timestamp
+        }
+      }
+    } catch {
+      case e: Exception => throw new Exception(s"Exception is $e, cause is ${e.getCause}")
+    }
+  }
+
+  @varargs
+  def from_unixtime(unixTime: Long, formatString: String*): String = {
+    try{
+      if (formatString.size > 1 || (formatString.size == 1 && formatString.head == "")) {
+        "null"
+      } else {
+        val formatStr = if (formatString.size == 1) formatString.head else "yyyy-MM-dd HH:mm:ss"
+        val timestamp = unixTime * 1000
+        val format = new SimpleDateFormat(formatStr, Locale.US)
+        val date = format.format(new Date(timestamp))
+        date
+      }
+    } catch {
+      case e: Exception => "null"
+    }
+  }
+
+  @varargs
+  def now(offset: Int*): Long = {
+    try{
+      if (offset.size > 1) {
+        throw new Exception(s"The number of arguments of now($offset) is wrong")
+      } else {
+        val nowtime = System.currentTimeMillis() / 1000
+        val offSet = if (offset.size == 1) offset.head else 0
+        nowtime + offSet
+      }
+    } catch {
+      case e: Exception => throw new Exception(s"Exception is $e, cause is ${e.getCause}")
+    }
+  }
+
+  @varargs
+  def strToMap(args: String*): java.util.Map[String, String] = {
+    val args1Size = args.size == 1
+    val args3Size = args.size == 3 && args.apply(1) != null && !args.apply(1).isEmpty &&
+      args.apply(2) != null && !args.apply(2).isEmpty
+
+    if ((args1Size || args3Size) && (args.head != null && !args.head.isEmpty)) {
+      val javaSpecial = "[]()|^-+*?{}$\\."
+      val keyValueMap = new java.util.HashMap[String, String]
+      var delimiter1 = ""
+      var delimiter2 = ""
+
+      try{
+        if (args1Size) {
+          delimiter1 = ","
+          delimiter2 = "="
+        } else {
+          for (c <- args.apply(1)) {
+            if (javaSpecial.contains(c)) {
+              delimiter1 = delimiter1 + "\\" + c
+            } else {
+              delimiter1 = delimiter1 + c
+            }
+          }
+
+          for (c <- args.apply(2)) {
+            if (javaSpecial.contains(c)) {
+              delimiter2 = delimiter2 + "\\" + c
+            } else {
+              delimiter2 =delimiter2 + c
+            }
+          }
+        }
+
+        val pattern = s"(.+$delimiter2.+)($delimiter1.+$delimiter2.+)*".r
+        val keyValues = pattern.findAllIn(args.head).mkString
+        val keyValue = keyValues.split(delimiter1).toList
+        for (kv <- keyValue) {
+          keyValueMap.put(kv.split(delimiter2).apply(0), kv.split(delimiter2).apply(1))
+        }
+        keyValueMap
+      } catch {
+        case e: Exception => throw new Exception(e)
+      }
+    } else {
+      throw new IllegalArgumentException("The arguments of the strToMap function should match " +
+        "these pattern: strToMap(string) or strToMap(string, delimiter1, delimiter2), and all " +
+        "arguments must not be null or empty string.")
+    }
+  }
+
+  def urlEncode(url: String, enc: String): String = {
+    try {
+      URLEncoder.encode(url, enc)
+    } catch {
+      case e: Exception => "Exception while encoding " + e.getMessage
+    }
+  }
+
+  def urlDecode(encodedURL: String, enc: String): String = {
+    try {
+      var prevUrl = ""
+      var decodeUrl = encodedURL
+      while (!prevUrl.equals(decodeUrl)) {
+        prevUrl = decodeUrl
+        decodeUrl = URLDecoder.decode(decodeUrl, enc)
+      }
+      decodeUrl
+    } catch {
+      case e:Exception => "Exception while decoding " + e.getMessage
+    }
+  }
 }

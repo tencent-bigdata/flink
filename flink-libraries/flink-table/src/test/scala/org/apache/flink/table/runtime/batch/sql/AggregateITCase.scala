@@ -559,4 +559,22 @@ class AggregateITCase(
 
     TestBaseUtils.compareResultAsText(result.asJava, expected)
   }
+
+  @Test
+  def testConcatAgg(): Unit = {
+    val env = ExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env, config)
+
+    val sqlQuery = "SELECT CONCAT_AGG('-', c) as a, CONCAT_AGG('+', c) as var FROM test GROUP BY c"
+
+    val ds = CollectionDataSets.getStringDataSetForConcatAgg(env)
+    tEnv.registerDataSet("test", ds, 'c)
+    val result = tEnv.sqlQuery(sqlQuery).toDataSet[Row].collect()
+
+    val expected =
+      "Hi-Hi-Hi,Hi+Hi+Hi\n" + "Hello-Hello,Hello+Hello\n" +
+        "Hello world-Hello world,Hello world+Hello world\n" + "LOL,LOL\n"
+
+    TestBaseUtils.compareResultAsText(result.asJava, expected)
+  }
 }

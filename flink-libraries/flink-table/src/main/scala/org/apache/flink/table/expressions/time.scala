@@ -26,7 +26,7 @@ import org.apache.flink.api.common.typeinfo.BasicTypeInfo._
 import org.apache.flink.api.common.typeinfo.{SqlTimeTypeInfo, TypeInformation}
 import org.apache.flink.table.calcite.FlinkRelBuilder
 import org.apache.flink.table.expressions.TimeIntervalUnit.TimeIntervalUnit
-import org.apache.flink.table.functions.sql.ScalarSqlFunctions
+import org.apache.flink.table.functions.sql.{DateTimeSqlFunction, ScalarSqlFunctions}
 import org.apache.flink.table.typeutils.TypeCheckUtils.isTimeInterval
 import org.apache.flink.table.typeutils.{TimeIntervalTypeInfo, TypeCheckUtils}
 import org.apache.flink.table.validate.{ValidationFailure, ValidationResult, ValidationSuccess}
@@ -354,13 +354,13 @@ case class TimestampDiff(
     if (!TypeCheckUtils.isTimePoint(timePoint1.resultType)) {
       return ValidationFailure(
         s"$this requires an input time point type, " +
-        s"but timePoint1 is of type '${timePoint1.resultType}'.")
+          s"but timePoint1 is of type '${timePoint1.resultType}'.")
     }
 
     if (!TypeCheckUtils.isTimePoint(timePoint2.resultType)) {
       return ValidationFailure(
         s"$this requires an input time point type, " +
-        s"but timePoint2 is of type '${timePoint2.resultType}'.")
+          s"but timePoint2 is of type '${timePoint2.resultType}'.")
     }
 
     timePointUnit match {
@@ -380,17 +380,108 @@ case class TimestampDiff(
 
       case _ =>
         ValidationFailure(s"$this operator does not support unit '$timePointUnit'" +
-            s" for input of type ('${timePoint1.resultType}', '${timePoint2.resultType}').")
+          s" for input of type ('${timePoint1.resultType}', '${timePoint2.resultType}').")
     }
   }
+
   override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
     relBuilder
-    .getRexBuilder
-    .makeCall(SqlStdOperatorTable.TIMESTAMP_DIFF,
-       Seq(timePointUnit.toRexNode, timePoint2.toRexNode, timePoint1.toRexNode))
+      .getRexBuilder
+      .makeCall(SqlStdOperatorTable.TIMESTAMP_DIFF,
+        Seq(timePointUnit.toRexNode, timePoint2.toRexNode, timePoint1.toRexNode))
   }
 
   override def toString: String = s"timestampDiff(${children.mkString(", ")})"
 
   override private[flink] def resultType = INT_TYPE_INFO
+}
+
+case class DateDiff(left: Expression, right: Expression) extends Expression {
+  override private[flink] def children = left :: right :: Nil
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder) =
+    relBuilder.call(DateTimeSqlFunction.DATE_DIFF, left.toRexNode, right.toRexNode)
+
+  override def toString: String = s"$left.dateDiff($right)"
+
+  override private[flink] def resultType = INT_TYPE_INFO
+
+}
+
+/**
+  * Returns a new date by adding delta.
+  */
+case class DateAdd(time: Expression, delta: Expression) extends Expression {
+  override private[flink] def children = time :: delta :: Nil
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder) =
+    relBuilder.call(ScalarSqlFunctions.DATE_ADD, time.toRexNode, delta.toRexNode)
+
+  override def toString: String = s"$time.dateAdd($delta)"
+
+  override private[flink] def resultType = STRING_TYPE_INFO
+}
+
+/**
+  * Returns a new date by subing delta.
+  */
+case class DateSub(time: Expression, delta: Expression) extends Expression {
+  override private[flink] def children = time :: delta :: Nil
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder) =
+    relBuilder.call(ScalarSqlFunctions.DATE_SUB, time.toRexNode, delta.toRexNode)
+
+  override def toString: String = s"$time.dateSub($delta)"
+
+  override private[flink] def resultType = STRING_TYPE_INFO
+}
+
+case class UnixTimeStamp(args: Seq[Expression]) extends Expression with
+  InputTypeSpec {
+
+  override private[flink] def children: Seq[Expression] = args
+
+  override private[flink] def resultType: TypeInformation[_] = LONG_TYPE_INFO
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] =
+    children.map(_ => STRING_TYPE_INFO)
+
+  override def toString: String = s"unix_timestamp($args)"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.UNIX_TIMESTAMP, children.map(_.toRexNode))
+  }
+}
+
+case class FromUnixTime(unixTime: Expression, formatString: Seq[Expression]) extends Expression
+  with InputTypeSpec {
+
+  override private[flink] def children: Seq[Expression] = Seq(unixTime) ++ formatString
+
+  override private[flink] def resultType: TypeInformation[_] = STRING_TYPE_INFO
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] =
+    Seq(LONG_TYPE_INFO) ++ formatString.map(_ => STRING_TYPE_INFO)
+
+  override def toString: String = s"from_unixtime($unixTime, $formatString)"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.FROM_UNIXTIME, children.map(_.toRexNode))
+  }
+}
+
+case class NOW(offset: Seq[Expression]) extends Expression with InputTypeSpec {
+
+  override private[flink] def children: Seq[Expression] = offset
+
+  override private[flink] def resultType: TypeInformation[_] = LONG_TYPE_INFO
+
+  override private[flink] def expectedTypes: Seq[TypeInformation[_]] =
+    children.map(_ => INT_TYPE_INFO)
+
+  override def toString: String = s"now($offset)"
+
+  override private[flink] def toRexNode(implicit relBuilder: RelBuilder): RexNode = {
+    relBuilder.call(ScalarSqlFunctions.NOW, children.map(_.toRexNode))
+  }
 }

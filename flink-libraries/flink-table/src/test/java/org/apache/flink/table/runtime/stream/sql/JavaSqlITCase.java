@@ -20,6 +20,7 @@ package org.apache.flink.table.runtime.stream.sql;
 
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple5;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
@@ -161,6 +162,84 @@ public class JavaSqlITCase extends AbstractTestBase {
 		expected.add("1,1,Hallo");
 		expected.add("2,2,Hallo Welt");
 		expected.add("2,3,Hallo Welt wie");
+
+		StreamITCase.compareWithList(expected);
+	}
+
+	@Test
+	public void testGenerateSeries() throws Exception {
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
+		StreamITCase.clear();
+
+		DataStream<Tuple2<Integer, Integer>> ds1 = JavaStreamTestData
+			.getDataForGenerateSeries(env);
+		tableEnv.registerDataStream("test", ds1, "a, b");
+
+		String sqlQuery = "SELECT a, b, c FROM test, LATERAL TABLE(GENERATE_SERIES(a, b)) as T(c)";
+		Table result = tableEnv.sqlQuery(sqlQuery);
+
+		DataStream<Row> resultSet = tableEnv.toAppendStream(result, Row.class);
+		resultSet.addSink(new StreamITCase.StringSink<Row>());
+		env.execute();
+
+		List<String> expected = new ArrayList<>();
+		expected.add("0,2,0");
+		expected.add("0,2,1");
+		expected.add("2,4,2");
+		expected.add("2,4,3");
+
+		StreamITCase.compareWithList(expected);
+	}
+
+	@Test
+	public void testJsonTuple() throws Exception {
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
+		StreamITCase.clear();
+
+		DataStream<Tuple2<String, String>> ds1 = JavaStreamTestData
+			.getDataForJsonTuple(env);
+		tableEnv.registerDataStream("test", ds1, "a, b");
+
+		String sqlQuery = "SELECT a, c FROM test, LATERAL TABLE(JSON_TUPLE(a, b, 'school')) as T(c)";
+		Table result = tableEnv.sqlQuery(sqlQuery);
+
+		DataStream<Row> resultSet = tableEnv.toAppendStream(result, Row.class);
+		resultSet.addSink(new StreamITCase.StringSink<Row>());
+		env.execute();
+
+		List<String> expected = new ArrayList<>();
+		expected.add("{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"},anna");
+		expected.add("{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"},no.1");
+		expected.add("{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"},30");
+		expected.add("{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"},NYU");
+
+		StreamITCase.compareWithList(expected);
+	}
+
+	@Test
+	public void testStringSplit() throws Exception {
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
+		StreamITCase.clear();
+
+		DataStream<Tuple2<String, String>> ds1 = JavaStreamTestData
+			.getDataForStringSplit(env);
+		tableEnv.registerDataStream("test", ds1, "a, b");
+
+		String sqlQuery = "SELECT a, c FROM test, LATERAL TABLE(STRING_SPLIT(a, b)) as T(c)";
+		Table result = tableEnv.sqlQuery(sqlQuery);
+
+		DataStream<Row> resultSet = tableEnv.toAppendStream(result, Row.class);
+		resultSet.addSink(new StreamITCase.StringSink<Row>());
+		env.execute();
+
+		List<String> expected = new ArrayList<>();
+		expected.add("global-internet-company,global");
+		expected.add("global-internet-company,internet");
+		expected.add("global-internet-company,company");
+		expected.add("facebook,facebook");
 
 		StreamITCase.compareWithList(expected);
 	}

@@ -28,7 +28,9 @@ import org.apache.flink.types.Row
 class ScalarTypesTestBase extends ExpressionTestBase {
 
   def testData: Row = {
-    val testData = new Row(36)
+
+    val testData = new Row(55)
+
     testData.setField(0, "This is a test String.")
     testData.setField(1, true)
     testData.setField(2, 42.toByte)
@@ -65,6 +67,28 @@ class ScalarTypesTestBase extends ExpressionTestBase {
     testData.setField(33, null)
     testData.setField(34, 256)
     testData.setField(35, "aGVsbG8gd29ybGQ=")
+    testData.setField(36, 2)
+    testData.setField(37, Int.MaxValue + 1)
+    testData.setField(38, Int.MinValue - 1)
+    testData.setField(39,"2018-08-02 11:41:33")
+    testData.setField(40,"2015-08-02 11:41:33")
+    testData.setField(41, Timestamp.valueOf("2018-08-02 11:41:33"))
+    testData.setField(42,Timestamp.valueOf("2015-08-02 11:41:33"))
+    testData.setField(43, null)
+    testData.setField(44, "2018-08-08")
+    testData.setField(45, "[10, 20, [30, 40]]")
+    testData.setField(46,
+      """{"aaa":"bbb","ccc":{"ddd":"eee","fff":"ggg","hhh":["h0","h1","h2"]},
+        |"iii":"jjj"}""".stripMargin)
+    testData.setField(47, "\"{xx]\"")
+    testData.setField(48, "k1=v1;k2=v2")
+    testData.setField(49, "k1:v1|k2:v2")
+    testData.setField(50, "http://facebook.com/path/p1.php?query=1")
+    testData.setField(52, 1505404800.toLong)
+    testData.setField(53, null)
+    testData.setField(53, "abc")
+    testData.setField(54, "123")
+
     testData
   }
 
@@ -105,6 +129,25 @@ class ScalarTypesTestBase extends ExpressionTestBase {
       Types.INT,
       Types.STRING,
       Types.INT,
+      Types.STRING,
+      Types.INT,
+      Types.INT,
+      Types.INT,
+      Types.STRING,
+      Types.STRING,
+      Types.SQL_TIMESTAMP,
+      Types.SQL_TIMESTAMP,
+      Types.STRING,
+      Types.STRING,
+      Types.STRING,
+      Types.STRING,
+      Types.STRING,
+      Types.STRING,
+      Types.STRING,
+      Types.STRING,
+      Types.LONG,
+      Types.INT,
+      Types.STRING,
       Types.STRING).asInstanceOf[TypeInformation[Any]]
   }
 }

@@ -65,6 +65,66 @@ class CorrelateITCase extends AbstractTestBase {
   }
 
   @Test
+  def testGenerateSeries(): Unit = {
+    val t = testDataForGenerateSeries(env).toTable(tEnv).as('a, 'b)
+
+    val result = t
+      .join(generateSeries('a, 'b) as 'c)
+      .select('a, 'b, 'c)
+      .toAppendStream[Row]
+
+    result.addSink(new StreamITCase.StringSink[Row])
+    env.execute()
+
+    val expected = mutable.MutableList(
+      "-2,0,-2",
+      "-2,0,-1",
+      "2,4,2",
+      "2,4,3")
+    assertEquals(expected.sorted, StreamITCase.testResults.sorted)
+  }
+
+  @Test
+  def testJsonTuple(): Unit = {
+    val t = testDataForJsonTuple(env).toTable(tEnv).as('a, 'b)
+
+    val result = t
+      .join(jsonTuple('a, 'b, "school") as 'c)
+      .select('a, 'c)
+      .toAppendStream[Row]
+
+    result.addSink(new StreamITCase.StringSink[Row])
+    env.execute()
+
+    val expected = mutable.MutableList(
+      "{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"},anna",
+      "{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"},no.1",
+      "{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"},30",
+      "{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"},NYU")
+    assertEquals(expected.sorted, StreamITCase.testResults.sorted)
+  }
+
+  @Test
+  def testStringSplit(): Unit = {
+    val t = testDataForStringSplit(env).toTable(tEnv).as('a, 'b)
+
+    val result = t
+      .join(stringSplit('a, 'b) as 'c)
+      .select('a, 'c)
+      .toAppendStream[Row]
+
+    result.addSink(new StreamITCase.StringSink[Row])
+    env.execute()
+
+    val expected = mutable.MutableList(
+      "global-internet-company,global",
+      "global-internet-company,internet",
+      "global-internet-company,company",
+      "facebook,facebook")
+    assertEquals(expected.sorted, StreamITCase.testResults.sorted)
+  }
+
+  @Test
   def testLeftOuterJoinWithoutPredicates(): Unit = {
     val t = testData(env).toTable(tEnv).as('a, 'b, 'c)
     val func0 = new TableFunc0
@@ -314,6 +374,31 @@ class CorrelateITCase extends AbstractTestBase {
     data.+=((2, 2L, "John#19"))
     data.+=((3, 2L, "Anna#44"))
     data.+=((4, 3L, "nosharp"))
+    env.fromCollection(data)
+  }
+
+  private def testDataForGenerateSeries(
+      env: StreamExecutionEnvironment): DataStream[(Integer, Integer)] = {
+
+    val data = new mutable.MutableList[(Integer, Integer)]
+    data.+=((-2.asInstanceOf[Integer], 0.asInstanceOf[Integer]))
+    data.+=((2.asInstanceOf[Integer], 4.asInstanceOf[Integer]))
+    env.fromCollection(data)
+  }
+
+  private def testDataForJsonTuple(
+      env: StreamExecutionEnvironment): DataStream[(String, String)] = {
+    val data = new mutable.MutableList[(String, String)]
+    data.+=(("{\"name\":\"anna\",\"age\": 22 ,\"school\":\"no.1\"}", "name"))
+    data.+=(("{\"name\":\"mark\",\"age\": 30 ,\"school\":\"NYU\"}", "age"))
+    env.fromCollection(data)
+  }
+
+  private def testDataForStringSplit(
+      env: StreamExecutionEnvironment): DataStream[(String, String)] = {
+    val data = new mutable.MutableList[(String, String)]
+    data.+=(("global-internet-company", "-"))
+    data.+=(("facebook", "-"))
     env.fromCollection(data)
   }
 }

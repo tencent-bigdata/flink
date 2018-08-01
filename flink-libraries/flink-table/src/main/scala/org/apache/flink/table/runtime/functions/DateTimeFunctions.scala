@@ -17,8 +17,15 @@
  */
 package org.apache.flink.table.runtime.functions
 
-import org.joda.time.format.DateTimeFormatter
-import org.joda.time.format.DateTimeFormatterBuilder
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import org.joda.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
+
+/**
+  * Built-in date time runtime functions.
+  */
+class DateTimeFunctions {}
 
 object DateTimeFunctions {
   private val PIVOT_YEAR = 2020
@@ -26,6 +33,44 @@ object DateTimeFunctions {
   private val DATETIME_FORMATTER_CACHE = new ThreadLocalCache[String, DateTimeFormatter](64) {
     protected override def getNewInstance(format: String): DateTimeFormatter
     = createDateTimeFormatter(format)
+  }
+
+  def dateAdd(base: String, day: Integer): String = {
+    if (base == null || day == null) return null
+    try {
+      var myformat = base.length match {
+        case 10 => new SimpleDateFormat("yyyy-MM-dd")
+        case 19 => new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+      }
+
+      val x = myformat.parse(base).getTime
+      val delta = day * 24 * 60 * 60 * 1000
+      val y = x + delta
+      val myformat1 = new SimpleDateFormat("yyyy-MM-dd")
+      val time = new Date(y)
+      myformat1.format(time)
+    } catch {
+      case ex: Exception => null
+    }
+  }
+
+  def dateSub(base: String, day: Integer): String = {
+    if (base == null || day == null) return null
+    try {
+      var myformat = base.length match {
+        case 10 => new SimpleDateFormat("yyyy-MM-dd")
+        case 19 => new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+      }
+
+      val x = myformat.parse(base).getTime
+      val delta = day * 24 * 60 * 60 * 1000
+      val y = x - delta
+      val myformat1 = new SimpleDateFormat("yyyy-MM-dd")
+      val time = new Date(y)
+      myformat1.format(time)
+    } catch {
+      case ex: Exception => null
+    }
   }
 
   def dateFormat(ts: Long, formatString: String): String = {
@@ -115,4 +160,179 @@ object DateTimeFunctions {
     }
     builder.toFormatter
   }
+
+  /**
+    * Returns the diff of two date in day format.
+    */
+  def dateDiffTT(startDate: Long, endDate: Long): Integer ={
+    if(startDate <= 0 ){
+      return null
+    }
+    if(endDate <= 0){
+      return null
+    }
+
+    try{
+      val calStart: Calendar = Calendar.getInstance()
+      calStart.setTimeInMillis(startDate)
+      val calEnd: Calendar = Calendar.getInstance()
+      calEnd.setTimeInMillis(endDate)
+
+      val yearStart = calStart.get(Calendar.YEAR)
+      val yearEnd = calEnd.get(Calendar.YEAR)
+
+      val dayStart = calStart.get(Calendar.DAY_OF_YEAR)
+      val dayEnd = calEnd.get(Calendar.DAY_OF_YEAR)
+
+      dateDiffInDay(yearStart, yearEnd, dayStart, dayEnd)
+    }catch{
+      case _:Throwable =>  null
+    }
+  }
+
+  /**
+    * Returns the diff of two date in day format.
+    */
+  def dateDiffST(startDate: String, endDate: Long): Integer ={
+    val formatYMD: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
+    val formatYMDHMS: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    if(startDate == null || startDate.isEmpty ||
+      (startDate.length != 10 && startDate.length != 19)){
+
+      return null
+    }
+    if(endDate <= 0){
+      return null
+    }
+
+    try{
+      val start = startDate.length match {
+        case 10 => formatYMD.parse(startDate)
+        case 19 => formatYMDHMS.parse(startDate)
+      }
+      val calStart: Calendar = Calendar.getInstance()
+      calStart.setTime(start)
+      val calEnd: Calendar = Calendar.getInstance()
+      calEnd.setTimeInMillis(endDate)
+
+      val yearStart = calStart.get(Calendar.YEAR)
+      val yearEnd = calEnd.get(Calendar.YEAR)
+
+      val dayStart = calStart.get(Calendar.DAY_OF_YEAR)
+      val dayEnd = calEnd.get(Calendar.DAY_OF_YEAR)
+
+      dateDiffInDay(yearStart, yearEnd, dayStart, dayEnd)
+    }catch{
+      case _:Throwable =>  null
+    }
+  }
+
+  /**
+    * Returns the diff  of two date in day format.
+    */
+  def dateDiffTS(startDate: Long, endDate: String): Integer ={
+    val formatYMD: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
+    val formatYMDHMS: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    if(startDate <= 0){
+      return null
+    }
+    if(endDate == null || endDate.isEmpty || (endDate.length != 10 && endDate.length != 19)){
+      return null
+    }
+
+    try{
+      val end =  endDate.length match {
+        case 10 => formatYMD.parse(endDate)
+        case 19 => formatYMDHMS.parse(endDate)
+      }
+      val calStart: Calendar = Calendar.getInstance()
+      calStart.setTimeInMillis(startDate)
+      val calEnd: Calendar = Calendar.getInstance()
+      calEnd.setTime(end)
+
+      val yearStart = calStart.get(Calendar.YEAR)
+      val yearEnd = calEnd.get(Calendar.YEAR)
+
+      val dayStart = calStart.get(Calendar.DAY_OF_YEAR)
+      val dayEnd = calEnd.get(Calendar.DAY_OF_YEAR)
+
+      dateDiffInDay(yearStart, yearEnd, dayStart, dayEnd)
+    } catch {
+      case _:Throwable =>  null
+    }
+  }
+
+  /**
+    * Returns the diff of two date in day format.
+    */
+  def dateDiffSS(startDate: String, endDate: String): Integer ={
+    val formatYMD: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
+    val formatYMDHMS: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+
+    if(startDate == null || startDate.isEmpty ||
+      (startDate.length != 10 && startDate.length != 19)) {
+
+      return null
+    }
+
+    if(endDate == null || endDate.isEmpty || (endDate.length != 10 && endDate.length != 19)) {
+      return null
+    }
+
+    try{
+      val start = startDate.length match {
+        case 10 => formatYMD.parse(startDate)
+        case 19 => formatYMDHMS.parse(startDate)
+      }
+
+      val end =  endDate.length match {
+        case 10 => formatYMD.parse(endDate)
+        case 19 => formatYMDHMS.parse(endDate)
+      }
+
+      val calStart: Calendar = Calendar.getInstance()
+      calStart.setTime(start)
+
+      val calEnd: Calendar = Calendar.getInstance()
+      calEnd.setTime(end)
+
+      val yearStart = calStart.get(Calendar.YEAR)
+      val yearEnd = calEnd.get(Calendar.YEAR)
+
+      val dayStart = calStart.get(Calendar.DAY_OF_YEAR)
+      val dayEnd = calEnd.get(Calendar.DAY_OF_YEAR)
+
+      dateDiffInDay(yearStart, yearEnd, dayStart, dayEnd)
+    }catch{
+      case _:Throwable =>  null
+    }
+  }
+
+  /**
+    * Returns the date diff between two days.
+    */
+  def dateDiffInDay(yearStart: Int, yearEnd: Int, dayStart: Int, dayEnd: Int): Integer ={
+    var diff: Int  = 0
+    if(yearStart > yearEnd) {
+      for (i <- yearEnd until yearStart ){
+        if (i % 4 == 0 && i % 100 != 0 || i % 400 == 0){
+          diff += 366
+        }else{
+          diff += 365
+        }
+      }
+    } else if(yearStart < yearEnd){
+      for (i <- yearStart until yearEnd ){
+        if (i % 4 == 0 && i % 100 != 0 || i % 400 == 0){
+          diff += -366
+        }else{
+          diff += -365
+        }
+      }
+    }
+
+    diff += dayStart - dayEnd
+    diff
+  }
+
 }
