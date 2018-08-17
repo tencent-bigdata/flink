@@ -72,23 +72,27 @@ public class PackagedProgram {
 
 	// --------------------------------------------------------------------------------------------
 
-	private final URL jarFile;
+	private URL jarFile;
 
-	private final String[] args;
+	private String[] args;
 
-	private final Program program;
+	private Program program;
 
-	private final Class<?> mainClass;
+	private Class<?> mainClass;
 
-	private final List<File> extractedTempLibraries;
+	private List<File> extractedTempLibraries;
 
-	private final List<URL> classpaths;
+	private List<URL> classpaths;
 
 	private ClassLoader userCodeClassLoader;
 
 	private Plan plan;
 
 	private SavepointRestoreSettings savepointSettings = SavepointRestoreSettings.none();
+
+	public PackagedProgram() {
+		super();
+	}
 
 	/**
 	 * Creates an instance that wraps the plan defined in the jar file using the given
