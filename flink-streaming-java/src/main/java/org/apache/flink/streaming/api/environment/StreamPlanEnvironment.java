@@ -35,7 +35,7 @@ public class StreamPlanEnvironment extends StreamExecutionEnvironment {
 
 	private ExecutionEnvironment env;
 
-	protected StreamPlanEnvironment(ExecutionEnvironment env) {
+	public StreamPlanEnvironment(ExecutionEnvironment env) {
 		super();
 		this.env = env;
 
