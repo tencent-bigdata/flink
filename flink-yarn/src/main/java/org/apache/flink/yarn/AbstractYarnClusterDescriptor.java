@@ -1026,7 +1026,7 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 		final String customApplicationName = customName != null ? customName : applicationName;
 
 		appContext.setApplicationName(customApplicationName);
-		appContext.setApplicationType("Apache Flink");
+		appContext.setApplicationType("Oceanus+Flink");
 		appContext.setAMContainerSpec(amContainer);
 		appContext.setResource(capability);
 
