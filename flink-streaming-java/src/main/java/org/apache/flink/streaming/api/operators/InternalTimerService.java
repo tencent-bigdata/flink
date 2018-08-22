@@ -58,4 +58,15 @@ public interface InternalTimerService<N> {
 	 * Deletes the timer for the given key and namespace.
 	 */
 	void deleteEventTimeTimer(N namespace, long time);
+
+	/**
+	 * Returns the number of event-time timers for the given namespace.
+	 */
+	int numEventTimeTimers(N namespace);
+
+	/**
+	 * Returns the number of processing-time timers for the given namespace.
+	 */
+	int numProcessingTimeTimers(N namespace);
+
 }

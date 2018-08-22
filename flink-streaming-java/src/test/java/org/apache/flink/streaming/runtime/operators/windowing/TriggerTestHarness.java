@@ -325,6 +325,16 @@ public class TriggerTestHarness<T, W extends Window> {
 		}
 
 		@Override
+		public int numEventTimeTimers() {
+			return timerService.numEventTimeTimers(window);
+		}
+
+		@Override
+		public int numProcessingTimeTimers() {
+			return timerService.numProcessingTimeTimers(window);
+		}
+
+		@Override
 		public void deleteProcessingTimeTimer(long time) {
 			timerService.deleteProcessingTimeTimer(window, time);
 		}

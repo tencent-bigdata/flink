@@ -86,6 +86,29 @@ class GroupWindowValidationTest extends TableTestBase {
   }
 
   @Test(expected = classOf[ValidationException])
+  def testInvalidEnhancedTumblingSize(): Unit = {
+    val util = streamTestUtil()
+    val table = util.addTable[(Long, Int, String)]('long.rowtime, 'int, 'string)
+
+    table
+      .window(EnhancedTumble over "WRONG" on 'long as 'w) // string is not a valid interval
+      .groupBy('w, 'string)
+      .select('string, 'int.count)
+  }
+
+  @Test(expected = classOf[ValidationException])
+  def testEnhancedTumbleUdAggWithInvalidArgs(): Unit = {
+    val util = streamTestUtil()
+    val weightedAvg = new WeightedAvgWithMerge
+    val table = util.addTable[(Long, Int, String)]('long, 'int, 'string)
+
+    table
+      .window(EnhancedTumble over 2.hours on 'rowtime as 'w)
+      .groupBy('w, 'string)
+      .select('string, weightedAvg('string, 'int)) // invalid UDAGG args
+  }
+
+  @Test(expected = classOf[ValidationException])
   def testInvalidSlidingSize(): Unit = {
     val util = streamTestUtil()
     val table = util.addTable[(Long, Int, String)]('long.rowtime, 'int, 'string)

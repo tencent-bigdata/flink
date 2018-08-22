@@ -308,11 +308,13 @@ public class InternalTimerServiceImpl<K, N> implements InternalTimerService<N>, 
 	}
 
 	@VisibleForTesting
+	@Override
 	public int numProcessingTimeTimers(N namespace) {
 		return countTimersInNamespaceInternal(namespace, processingTimeTimersQueue);
 	}
 
 	@VisibleForTesting
+	@Override
 	public int numEventTimeTimers(N namespace) {
 		return countTimersInNamespaceInternal(namespace, eventTimeTimersQueue);
 	}

@@ -1128,6 +1128,7 @@ object AggregateUtil {
 
   private def isTimeWindow(window: LogicalWindow) = {
     window match {
+      case EnhancedTumblingGroupWindow(_, _, size) => isTimeIntervalLiteral(size)
       case TumblingGroupWindow(_, _, size) => isTimeIntervalLiteral(size)
       case SlidingGroupWindow(_, _, size, _) => isTimeIntervalLiteral(size)
       case SessionGroupWindow(_, _, _) => true

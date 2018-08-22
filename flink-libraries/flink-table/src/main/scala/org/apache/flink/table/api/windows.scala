@@ -147,6 +147,106 @@ abstract class Window(val alias: Expression, val timeField: Expression) {
 }
 
 // ------------------------------------------------------------------------------------------------
+// Enhanced tumbling windows
+// ------------------------------------------------------------------------------------------------
+
+/**
+  * Enhanced tumbling window.
+  *
+  * For streaming tables you can specify grouping by a event-time or processing-time attribute.
+  *
+  * For batch tables you can specify grouping on a timestamp or long attribute.
+  *
+  * @param size the size of the window either as time or row-count interval.
+  */
+class EnhancedTumbleWithSize(size: Expression) {
+
+  /**
+    * Enhanced tumbling window.
+    *
+    * For streaming tables you can specify grouping by a event-time or processing-time attribute.
+    *
+    * For batch tables you can specify grouping on a timestamp or long attribute.
+    *
+    * @param size the size of the window either as time or row-count interval.
+    */
+  def this(size: String) = this(ExpressionParser.parseExpression(size))
+
+  /**
+    * Specifies the time attribute on which rows are grouped.
+    *
+    * For streaming tables you can specify grouping by a event-time or processing-time attribute.
+    *
+    * For batch tables you can specify grouping on a timestamp or long attribute.
+    *
+    * @param timeField time attribute for streaming and batch tables
+    * @return a tumbling window on event-time
+    */
+  def on(timeField: Expression): EnhancedTumbleWithSizeOnTime =
+    new EnhancedTumbleWithSizeOnTime(timeField, size)
+
+  /**
+    * Specifies the time attribute on which rows are grouped.
+    *
+    * For streaming tables you can specify grouping by a event-time or processing-time attribute.
+    *
+    * For batch tables you can specify grouping on a timestamp or long attribute.
+    *
+    * @param timeField time attribute for streaming and batch tables
+    * @return a tumbling window on event-time
+    */
+  def on(timeField: String): EnhancedTumbleWithSizeOnTime =
+    on(ExpressionParser.parseExpression(timeField))
+}
+
+/**
+  * Enhanced tumbling window on time.
+  */
+class EnhancedTumbleWithSizeOnTime(time: Expression, size: Expression) {
+
+  /**
+    * Assigns an alias for this window that the following `groupBy()` and `select()` clause can
+    * refer to. `select()` statement can access window properties such as window start or end time.
+    *
+    * @param alias alias for this window
+    * @return this window
+    */
+  def as(alias: Expression): EnhancedTumbleWithSizeOnTimeWithAlias = {
+    new EnhancedTumbleWithSizeOnTimeWithAlias(alias, time, size)
+  }
+
+  /**
+    * Assigns an alias for this window that the following `groupBy()` and `select()` clause can
+    * refer to. `select()` statement can access window properties such as window start or end time.
+    *
+    * @param alias alias for this window
+    * @return this window
+    */
+  def as(alias: String): EnhancedTumbleWithSizeOnTimeWithAlias = {
+    as(ExpressionParser.parseExpression(alias))
+  }
+}
+
+/**
+  * Enhanced tumbling window on time with alias. Fully specifies a window.
+  */
+class EnhancedTumbleWithSizeOnTimeWithAlias(
+    alias: Expression,
+    timeField: Expression,
+    size: Expression)
+  extends Window(
+    alias,
+    timeField) {
+
+  /**
+    * Converts an API class to a logical window for planning.
+    */
+  override private[flink] def toLogicalWindow: LogicalWindow = {
+    EnhancedTumblingGroupWindow(alias, timeField, size)
+  }
+}
+
+// ------------------------------------------------------------------------------------------------
 // Tumbling windows
 // ------------------------------------------------------------------------------------------------
 

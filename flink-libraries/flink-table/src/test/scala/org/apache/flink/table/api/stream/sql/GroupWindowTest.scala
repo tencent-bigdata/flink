@@ -32,6 +32,41 @@ class GroupWindowTest extends TableTestBase {
     "MyTable", 'a, 'b, 'c, 'proctime.proctime, 'rowtime.rowtime)
 
   @Test
+  def testEnhancedTumbleFunction() = {
+    streamUtil.tableEnv.registerFunction("weightedAvg", new WeightedAvgWithMerge)
+
+    val sql =
+      "SELECT " +
+        "  COUNT(*), weightedAvg(c, a) AS wAvg, " +
+        "  ENHANCED_START(rowtime, INTERVAL '15' MINUTE), " +
+        "  ENHANCED_END(rowtime, INTERVAL '15' MINUTE)" +
+        "FROM MyTable " +
+        "GROUP BY ENHANCED(rowtime, INTERVAL '15' MINUTE)"
+    val expected =
+      unaryNode(
+        "DataStreamCalc",
+        unaryNode(
+          "DataStreamGroupWindowAggregate",
+          unaryNode(
+            "DataStreamCalc",
+            streamTableNode(0),
+            term("select", "rowtime", "c", "a")
+          ),
+          term("window", EnhancedTumblingGroupWindow('w$, 'rowtime, 900000.millis)),
+          term("select",
+            "COUNT(*) AS EXPR$0",
+              "weightedAvg(c, a) AS wAvg",
+              "start('w$) AS w$start",
+              "end('w$) AS w$end",
+              "rowtime('w$) AS w$rowtime",
+              "proctime('w$) AS w$proctime")
+        ),
+        term("select", "EXPR$0", "wAvg", "w$start AS EXPR$2", "w$end AS EXPR$3")
+      )
+    streamUtil.verifySql(sql, expected)
+  }
+
+  @Test
   def testTumbleFunction() = {
     streamUtil.tableEnv.registerFunction("weightedAvg", new WeightedAvgWithMerge)
 

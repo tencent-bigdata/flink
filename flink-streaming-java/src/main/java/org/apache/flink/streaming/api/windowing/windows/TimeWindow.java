@@ -254,4 +254,9 @@ public class TimeWindow extends Window {
 	public static long getWindowStartWithOffset(long timestamp, long offset, long windowSize) {
 		return timestamp - (timestamp - offset + windowSize) % windowSize;
 	}
+
+	public static long getWindowStart(long timestamp, long windowSize){
+		return timestamp / windowSize * windowSize;
+	}
+
 }

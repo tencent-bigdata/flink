@@ -217,7 +217,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	@Override
 	public void open() throws Exception {
 		super.open();
-
 		this.numLateRecordsDropped = metrics.counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
 		timestampedCollector = new TimestampedCollector<>(output);
 
@@ -379,8 +378,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 			// need to make sure to update the merging state in state
 			mergingWindows.persist();
 		} else {
-			for (W window: elementWindows) {
-
+			for (W window : elementWindows) {
 				// drop if the window is already late
 				if (isWindowLate(window)) {
 					continue;
@@ -800,6 +798,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 			return WindowOperator.this.getMetricGroup();
 		}
 
+		@Override
 		public long getCurrentWatermark() {
 			return internalTimerService.currentWatermark();
 		}
@@ -836,6 +835,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 		}
 
 		@SuppressWarnings("unchecked")
+		@Override
 		public <S extends State> S getPartitionedState(StateDescriptor<S, ?> stateDescriptor) {
 			try {
 				return WindowOperator.this.getPartitionedState(window, windowSerializer, stateDescriptor);
@@ -879,6 +879,16 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 		@Override
 		public void registerEventTimeTimer(long time) {
 			internalTimerService.registerEventTimeTimer(window, time);
+		}
+
+		@Override
+		public int numEventTimeTimers() {
+			return internalTimerService.numEventTimeTimers(window);
+		}
+
+		@Override
+		public int numProcessingTimeTimers() {
+			return internalTimerService.numProcessingTimeTimers(window);
 		}
 
 		@Override

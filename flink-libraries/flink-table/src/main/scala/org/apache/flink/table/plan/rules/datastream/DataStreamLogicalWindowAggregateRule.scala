@@ -22,8 +22,9 @@ import java.math.{BigDecimal => JBigDecimal}
 
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rex._
-import org.apache.calcite.sql.`type`.{SqlTypeFamily, SqlTypeName}
-import org.apache.flink.table.api.scala.{Session, Slide, Tumble}
+import org.apache.calcite.sql.`type`.{SqlTypeFamily}
+import org.apache.calcite.sql.`type`.SqlTypeName
+import org.apache.flink.table.api.scala.{EnhancedTumble, Session, Slide, Tumble}
 import org.apache.flink.table.api.{TableException, ValidationException, Window}
 import org.apache.flink.table.calcite.FlinkTypeFactory
 import org.apache.flink.table.expressions.{Literal, ResolvedFieldReference, WindowReference}
@@ -85,6 +86,13 @@ class DataStreamLogicalWindowAggregateRule
       }
 
     windowExpr.getOperator match {
+      case BasicOperatorTable.ENHANCED =>
+        val time = getOperandAsTimeIndicator(windowExpr, 0)
+        val interval = getOperandAsLong(windowExpr, 1)
+        val w = EnhancedTumble.over(Literal(interval, TimeIntervalTypeInfo.INTERVAL_MILLIS))
+
+        w.on(time).as(WindowReference("w$", Some(time.resultType)))
+
       case BasicOperatorTable.TUMBLE =>
         val time = getOperandAsTimeIndicator(windowExpr, 0)
         val interval = getOperandAsLong(windowExpr, 1)

@@ -24,7 +24,8 @@ import org.apache.calcite.rel.core.AggregateCall
 import org.apache.calcite.rel.{RelNode, RelWriter, SingleRel}
 import org.apache.flink.streaming.api.datastream.{AllWindowedStream, DataStream, KeyedStream, WindowedStream}
 import org.apache.flink.streaming.api.windowing.assigners._
-import org.apache.flink.streaming.api.windowing.triggers.PurgingTrigger
+import org.apache.flink.streaming.api.windowing.time.Time
+import org.apache.flink.streaming.api.windowing.triggers.{EnhancedEventTimeTrigger, PurgingTrigger}
 import org.apache.flink.streaming.api.windowing.windows.{Window => DataStreamWindow}
 import org.apache.flink.table.api.{StreamQueryConfig, StreamTableEnvironment, TableException}
 import org.apache.flink.table.calcite.FlinkRelBuilder.NamedWindowProperty
@@ -130,6 +131,7 @@ class DataStreamGroupWindowAggregate(
     }
 
     val isCountWindow = window match {
+      case EnhancedTumblingGroupWindow(_, _, size) if isRowCountLiteral(size) => true
       case TumblingGroupWindow(_, _, size) if isRowCountLiteral(size) => true
       case SlidingGroupWindow(_, _, size, _) if isRowCountLiteral(size) => true
       case _ => false
@@ -251,6 +253,16 @@ object DataStreamGroupWindowAggregate {
       stream: KeyedStream[CRow, Row]):
     WindowedStream[CRow, Row, _ <: DataStreamWindow] = groupWindow match {
 
+    case EnhancedTumblingGroupWindow(_, timeField, size)
+        if isRowtimeAttribute(timeField) && isTimeIntervalLiteral(size) =>
+      stream.window(TumblingEventTimeWindows.of(toTime(size)))
+          .trigger(EnhancedEventTimeTrigger.create())
+          .allowedLateness(Time.milliseconds(Long.MaxValue))
+
+    case EnhancedTumblingGroupWindow(_, _, _) =>
+      throw new UnsupportedOperationException("Processing-time and " +
+        "Event-time grouping windows on row intervals are currently not supported.")
+
     case TumblingGroupWindow(_, timeField, size)
         if isProctimeAttribute(timeField) && isTimeIntervalLiteral(size)=>
       stream.window(TumblingProcessingTimeWindows.of(toTime(size)))
@@ -305,6 +317,15 @@ object DataStreamGroupWindowAggregate {
       groupWindow: LogicalWindow,
       stream: DataStream[CRow]):
     AllWindowedStream[CRow, _ <: DataStreamWindow] = groupWindow match {
+
+    case EnhancedTumblingGroupWindow(_, _, size) if isTimeInterval(size.resultType) =>
+      stream.windowAll(TumblingEventTimeWindows.of(toTime(size)))
+          .trigger(EnhancedEventTimeTrigger.create())
+          .allowedLateness(Time.milliseconds(Long.MaxValue))
+
+    case EnhancedTumblingGroupWindow(_, _, _) =>
+      throw new UnsupportedOperationException("Processing-time and " +
+        "Event-time grouping windows on row intervals are currently not supported.")
 
     case TumblingGroupWindow(_, timeField, size)
         if isProctimeAttribute(timeField) && isTimeIntervalLiteral(size) =>

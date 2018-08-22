@@ -25,6 +25,57 @@ import org.apache.flink.table.typeutils.TypeCheckUtils.{isTimePoint, isLong}
 import org.apache.flink.table.validate.{ValidationFailure, ValidationResult, ValidationSuccess}
 
 // ------------------------------------------------------------------------------------------------
+// Enhanced tumbling group windows
+// ------------------------------------------------------------------------------------------------
+
+case class EnhancedTumblingGroupWindow(
+    alias: Expression,
+    timeField: Expression,
+    size: Expression)
+  extends LogicalWindow(
+    alias,
+    timeField) {
+
+  override def resolveExpressions(resolve: (Expression) => Expression): LogicalWindow =
+    EnhancedTumblingGroupWindow(
+      resolve(alias),
+      resolve(timeField),
+      resolve(size))
+
+  override def validate(tableEnv: TableEnvironment): ValidationResult =
+    super.validate(tableEnv).orElse(
+      tableEnv match {
+
+        // check size
+        case _ if !isTimeIntervalLiteral(size) && !isRowCountLiteral(size) =>
+          ValidationFailure(
+            "Enhanced Tumbling window expects size literal of type Interval of Milliseconds " +
+              "or Interval of Rows.")
+
+        // check time attribute
+        case _: StreamTableEnvironment
+            if !isTimeAttribute(timeField) || !isRowtimeAttribute(timeField) =>
+          ValidationFailure("Enhanced Tumbling window expects a row time attribute for grouping " +
+            "in a stream environment.")
+        // check row intervals on event-time
+        case _: StreamTableEnvironment
+            if isRowCountLiteral(size) && isRowtimeAttribute(timeField) =>
+          ValidationFailure(
+            "Event-time grouping windows on row intervals in a stream environment " +
+              "are currently not supported.")
+        case _: BatchTableEnvironment =>
+          ValidationFailure(
+            "Enhanced Tumbling window in a batch environment are currently not supported.")
+
+        case _ =>
+          ValidationSuccess
+      }
+    )
+
+  override def toString: String = s"EnhancedTumblingGroupWindow($alias, $timeField, $size)"
+}
+
+// ------------------------------------------------------------------------------------------------
 // Tumbling group windows
 // ------------------------------------------------------------------------------------------------
 

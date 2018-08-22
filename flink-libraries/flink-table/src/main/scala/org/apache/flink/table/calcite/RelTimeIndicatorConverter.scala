@@ -475,7 +475,10 @@ class RexTimeIndicatorMaterializer(
     val materializedOperands = updatedCall.getOperator match {
 
       // skip materialization for special operators
-      case BasicOperatorTable.SESSION | BasicOperatorTable.HOP | BasicOperatorTable.TUMBLE =>
+      case BasicOperatorTable.SESSION |
+           BasicOperatorTable.HOP |
+           BasicOperatorTable.TUMBLE |
+           BasicOperatorTable.ENHANCED =>
         updatedCall.getOperands.toList
 
       case _ =>
@@ -491,16 +494,17 @@ class RexTimeIndicatorMaterializer(
         updatedCall
 
       // do not modify window time attributes
-      case BasicOperatorTable.TUMBLE_ROWTIME |
-          BasicOperatorTable.TUMBLE_PROCTIME |
-          BasicOperatorTable.HOP_ROWTIME |
-          BasicOperatorTable.HOP_PROCTIME |
-          BasicOperatorTable.SESSION_ROWTIME |
-          BasicOperatorTable.SESSION_PROCTIME
-          // since we materialize groupings on time indicators,
-          // we cannot check the operands anymore but the return type at least
-          if isTimeIndicatorType(updatedCall.getType) =>
-      updatedCall
+      case BasicOperatorTable.ENHANCED_ROWTIME |
+           BasicOperatorTable.TUMBLE_ROWTIME |
+           BasicOperatorTable.TUMBLE_PROCTIME |
+           BasicOperatorTable.HOP_ROWTIME |
+           BasicOperatorTable.HOP_PROCTIME |
+           BasicOperatorTable.SESSION_ROWTIME |
+           BasicOperatorTable.SESSION_PROCTIME
+           // since we materialize groupings on time indicators,
+           // we cannot check the operands anymore but the return type at least
+           if isTimeIndicatorType(updatedCall.getType) =>
+        updatedCall
 
       // materialize function's result and operands
       case _ if isTimeIndicatorType(updatedCall.getType) =>

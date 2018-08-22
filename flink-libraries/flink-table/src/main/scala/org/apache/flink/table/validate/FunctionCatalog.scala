@@ -484,15 +484,19 @@ class BasicOperatorTable extends ReflectiveSqlOperatorTable {
     SqlStdOperatorTable.RUNNING,
 
     // EXTENSIONS
+    BasicOperatorTable.ENHANCED,
     BasicOperatorTable.TUMBLE,
     BasicOperatorTable.HOP,
     BasicOperatorTable.SESSION,
+    BasicOperatorTable.ENHANCED_START,
+    BasicOperatorTable.ENHANCED_END,
     BasicOperatorTable.TUMBLE_START,
     BasicOperatorTable.TUMBLE_END,
     BasicOperatorTable.HOP_START,
     BasicOperatorTable.HOP_END,
     BasicOperatorTable.SESSION_START,
     BasicOperatorTable.SESSION_END,
+    BasicOperatorTable.ENHANCED_ROWTIME,
     BasicOperatorTable.TUMBLE_PROCTIME,
     BasicOperatorTable.TUMBLE_ROWTIME,
     BasicOperatorTable.HOP_PROCTIME,
@@ -509,6 +513,30 @@ object BasicOperatorTable {
   /**
     * We need custom group auxiliary functions in order to support nested windows.
     */
+
+  val ENHANCED: SqlGroupedWindowFunction = new SqlGroupedWindowFunction(
+    SqlKind.ENHANCED,
+    null,
+    OperandTypes.or(OperandTypes.DATETIME_INTERVAL, OperandTypes.DATETIME_INTERVAL_TIME)) {
+    override def getAuxiliaryFunctions: _root_.java.util.List[SqlGroupedWindowFunction] =
+      Seq(
+        ENHANCED_START,
+        ENHANCED_END,
+        ENHANCED_ROWTIME)
+  }
+  val ENHANCED_START: SqlGroupedWindowFunction = ENHANCED.auxiliary(SqlKind.ENHANCED_START)
+  val ENHANCED_END: SqlGroupedWindowFunction = ENHANCED.auxiliary(SqlKind.ENHANCED_END)
+  val ENHANCED_ROWTIME: SqlGroupedWindowFunction =
+    new SqlGroupedWindowFunction(
+      "ENHANCED_ROWTIME",
+      SqlKind.OTHER_FUNCTION,
+      ENHANCED,
+      // ensure that returned rowtime is always NOT_NULLABLE
+      ReturnTypes.cascade(ReturnTypes.ARG0, SqlTypeTransforms.TO_NOT_NULLABLE),
+      null,
+      ENHANCED.getOperandTypeChecker,
+      SqlFunctionCategory.SYSTEM)
+
 
   val TUMBLE: SqlGroupedWindowFunction = new SqlGroupedWindowFunction(
     SqlKind.TUMBLE,

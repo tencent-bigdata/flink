@@ -163,6 +163,16 @@ public abstract class Trigger<T, W extends Window> implements Serializable {
 		void registerEventTimeTimer(long time);
 
 		/**
+		 * Returns the number of event-time timers for the given namespace.
+		 */
+		int numEventTimeTimers();
+
+		/**
+		 * Returns the number of processing-time timers for the given namespace.
+		 */
+		int numProcessingTimeTimers();
+
+		/**
 		 * Delete the processing time trigger for the given time.
 		 */
 		void deleteProcessingTimeTimer(long time);

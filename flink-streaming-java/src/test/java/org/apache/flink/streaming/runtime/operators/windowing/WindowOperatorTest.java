@@ -52,6 +52,7 @@ import org.apache.flink.streaming.api.windowing.assigners.WindowAssigner;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.triggers.ContinuousEventTimeTrigger;
 import org.apache.flink.streaming.api.windowing.triggers.CountTrigger;
+import org.apache.flink.streaming.api.windowing.triggers.EnhancedEventTimeTrigger;
 import org.apache.flink.streaming.api.windowing.triggers.EventTimeTrigger;
 import org.apache.flink.streaming.api.windowing.triggers.ProcessingTimeTrigger;
 import org.apache.flink.streaming.api.windowing.triggers.PurgingTrigger;
@@ -352,6 +353,128 @@ public class WindowOperatorTest extends TestLogger {
 				null /* late data output tag */);
 
 		testTumblingEventTimeWindows(operator);
+
+		// we close once in the rest...
+		Assert.assertEquals("Close was not called.", 2, closeCalled.get());
+	}
+
+	private void testEnhancedTumblingEventTimeWindows(OneInputStreamOperator<Tuple2<String, Integer>, Tuple2<String, Integer>> operator) throws Exception {
+		OneInputStreamOperatorTestHarness<Tuple2<String, Integer>, Tuple2<String, Integer>> testHarness =
+			createTestHarness(operator);
+
+		ConcurrentLinkedQueue<Object> expectedOutput = new ConcurrentLinkedQueue<>();
+
+		testHarness.open();
+
+		// add elements out-of-order
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 1), 3999));
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 1), 3000));
+
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key1", 1), 20));
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key1", 1), 0));
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key1", 1), 999));
+
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 1), 1998));
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 1), 1999));
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 1), 1000));
+
+		testHarness.processWatermark(new Watermark(999));
+		expectedOutput.add(new Watermark(999));
+		TestHarnessUtil.assertOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new Tuple2ResultSortComparator());
+
+		testHarness.processWatermark(new Watermark(1999));
+		expectedOutput.add(new Watermark(1999));
+		TestHarnessUtil.assertOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new Tuple2ResultSortComparator());
+
+		// do a snapshot, close and restore again
+		OperatorSubtaskState snapshot = testHarness.snapshot(0L, 0L);
+		TestHarnessUtil.assertOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new Tuple2ResultSortComparator());
+		testHarness.close();
+
+		testHarness = createTestHarness(operator);
+		expectedOutput.clear();
+		testHarness.setup();
+		testHarness.initializeState(snapshot);
+		testHarness.open();
+
+		testHarness.processWatermark(new Watermark(2999));
+		expectedOutput.add(new StreamRecord<>(new Tuple2<>("key1", 3), 2999));
+		expectedOutput.add(new StreamRecord<>(new Tuple2<>("key2", 3), 2999));
+		expectedOutput.add(new Watermark(2999));
+		TestHarnessUtil.assertOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new Tuple2ResultSortComparator());
+
+		testHarness.processWatermark(new Watermark(3999));
+		expectedOutput.add(new Watermark(3999));
+		TestHarnessUtil.assertOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new Tuple2ResultSortComparator());
+
+		testHarness.processWatermark(new Watermark(4999));
+		expectedOutput.add(new Watermark(4999));
+		TestHarnessUtil.assertOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new Tuple2ResultSortComparator());
+
+		testHarness.processWatermark(new Watermark(5999));
+		expectedOutput.add(new StreamRecord<>(new Tuple2<>("key2", 2), 5999));
+		expectedOutput.add(new Watermark(5999));
+		TestHarnessUtil.assertOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new Tuple2ResultSortComparator());
+
+		// those don't have any effect...
+		testHarness.processWatermark(new Watermark(6999));
+		testHarness.processWatermark(new Watermark(7999));
+		expectedOutput.add(new Watermark(6999));
+		expectedOutput.add(new Watermark(7999));
+
+		TestHarnessUtil.assertOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new Tuple2ResultSortComparator());
+		assertEquals(null, testHarness.getSideOutput(lateOutputTag));
+
+		testHarness.close();
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testEnhancedTumblingEventTimeWindowsReduce() throws Exception {
+		closeCalled.set(0);
+
+		final int windowSize = 3;
+
+		ReducingStateDescriptor<Tuple2<String, Integer>> stateDesc = new ReducingStateDescriptor<>("window-contents",
+				new SumReducer(),
+				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
+
+		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator = new WindowOperator<>(
+				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS)),
+				new TimeWindow.Serializer(),
+				new TupleKeySelector(),
+				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
+				stateDesc,
+				new InternalSingleValueWindowFunction<>(new PassThroughWindowFunction<>()),
+				EnhancedEventTimeTrigger.create(),
+				Long.MAX_VALUE,
+				lateOutputTag /* late data output tag */);
+
+		testEnhancedTumblingEventTimeWindows(operator);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testEnhancedTumblingEventTimeWindowsApply() throws Exception {
+		closeCalled.set(0);
+
+		final int windowSize = 3;
+
+		ListStateDescriptor<Tuple2<String, Integer>> stateDesc = new ListStateDescriptor<>("window-contents",
+				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
+
+		WindowOperator<String, Tuple2<String, Integer>, Iterable<Tuple2<String, Integer>>, Tuple2<String, Integer>, TimeWindow> operator = new WindowOperator<>(
+				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS)),
+				new TimeWindow.Serializer(),
+				new TupleKeySelector(),
+				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
+				stateDesc,
+				new InternalIterableWindowFunction<>(new RichSumReducer<>()),
+				EnhancedEventTimeTrigger.create(),
+				Long.MAX_VALUE,
+				lateOutputTag /* late data output tag */);
+
+		testEnhancedTumblingEventTimeWindows(operator);
 
 		// we close once in the rest...
 		Assert.assertEquals("Close was not called.", 2, closeCalled.get());
@@ -1451,6 +1574,76 @@ public class WindowOperatorTest extends TestLogger {
 				lateExpected,
 				(Iterable) testHarness.getSideOutput(lateOutputTag),
 				new Tuple2ResultSortComparator());
+
+		testHarness.close();
+	}
+
+	@Test
+	public void testEnhancedEventTimeTrigger() throws Exception {
+		final int windowSize = 2;
+
+		ReducingStateDescriptor<Tuple2<String, Integer>> stateDesc = new ReducingStateDescriptor<>("window-contents",
+			new SumReducer(),
+				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
+
+		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator =
+			new WindowOperator<>(
+				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS)),
+				new TimeWindow.Serializer(),
+				new TupleKeySelector(),
+				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
+				stateDesc,
+				new InternalSingleValueWindowFunction<>(new PassThroughWindowFunction<>()),
+				EnhancedEventTimeTrigger.create(),
+				Long.MAX_VALUE,
+				lateOutputTag);
+
+		OneInputStreamOperatorTestHarness<Tuple2<String, Integer>, Tuple2<String, Integer>> testHarness =
+			createTestHarness(operator);
+
+		testHarness.open();
+
+		ConcurrentLinkedQueue<Object> expected = new ConcurrentLinkedQueue<>();
+
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 1), 500));
+		testHarness.processWatermark(new Watermark(1500));
+
+		expected.add(new Watermark(1500));
+
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 1), 1300));
+		testHarness.processWatermark(new Watermark(2500));
+
+		expected.add(new StreamRecord<>(new Tuple2<>("key2", 2), 1999));
+		expected.add(new Watermark(2500));
+
+		// late elements
+		assertEquals(0, testHarness.numEventTimeTimers());
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 2), 999));
+		assertEquals(1, testHarness.numEventTimeTimers());
+		testHarness.processWatermark(new Watermark(4000));
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 3), 1000));
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 1), 998));
+		assertEquals(1, testHarness.numEventTimeTimers());
+		testHarness.processWatermark(new Watermark(5000));
+
+		expected.add(new Watermark(4000));
+		expected.add(new StreamRecord<>(new Tuple2<>("key2", 6), 1999));
+		expected.add(new Watermark(5000));
+
+		// late elements
+		assertEquals(0, testHarness.numEventTimeTimers());
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 1), 99));
+		testHarness.processWatermark(new Watermark(6000));
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 2), 100));
+		testHarness.processWatermark(new Watermark(7000));
+
+		expected.add(new Watermark(6000));
+		expected.add(new StreamRecord<>(new Tuple2<>("key2", 3), 1999));
+		expected.add(new Watermark(7000));
+
+		TestHarnessUtil.assertOutputEqualsSorted("Output was not correct.", expected, testHarness.getOutput(), new Tuple2ResultSortComparator());
+
+		assertEquals(null, testHarness.getSideOutput(lateOutputTag));
 
 		testHarness.close();
 	}

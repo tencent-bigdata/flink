@@ -178,7 +178,8 @@ abstract class WindowPropertiesBaseRule(rulePredicate: RelOptRuleOperand, ruleNa
     node match {
       case n: RexCall if n.getOperator.isGroupAuxiliary =>
         n.getOperator match {
-          case BasicOperatorTable.TUMBLE_START |
+          case BasicOperatorTable.ENHANCED_START |
+               BasicOperatorTable.TUMBLE_START |
                BasicOperatorTable.HOP_START |
                BasicOperatorTable.SESSION_START
           => true
@@ -193,7 +194,8 @@ abstract class WindowPropertiesBaseRule(rulePredicate: RelOptRuleOperand, ruleNa
     node match {
       case n: RexCall if n.getOperator.isGroupAuxiliary =>
         n.getOperator match {
-          case BasicOperatorTable.TUMBLE_END |
+          case BasicOperatorTable.ENHANCED_END |
+               BasicOperatorTable.TUMBLE_END |
                BasicOperatorTable.HOP_END |
                BasicOperatorTable.SESSION_END
           => true
@@ -208,7 +210,8 @@ abstract class WindowPropertiesBaseRule(rulePredicate: RelOptRuleOperand, ruleNa
     node match {
       case n: RexCall if n.getOperator.isGroupAuxiliary =>
         n.getOperator match {
-          case BasicOperatorTable.TUMBLE_ROWTIME |
+          case BasicOperatorTable.ENHANCED_ROWTIME |
+               BasicOperatorTable.TUMBLE_ROWTIME |
                BasicOperatorTable.HOP_ROWTIME |
                BasicOperatorTable.SESSION_ROWTIME
             => true

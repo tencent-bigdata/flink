@@ -710,9 +710,9 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 		// Copy the application master jar to the filesystem
 		// Create a local resource to point to the destination jar path
 		final FileSystem fs = FileSystem.get(yarnConfiguration);
-    	ConfigOption<String> clusterName = ConfigOptions.key("oceanus.cluster.name").defaultValue("oceanus/unknowCluster/");
-    	String cluster = flinkConfiguration.getString(clusterName);
-    	final Path homeDir =  new Path(fs.getHomeDirectory(), cluster);
+		ConfigOption<String> clusterName = ConfigOptions.key("oceanus.cluster.name").defaultValue("oceanus/unknowCluster/");
+		String cluster = flinkConfiguration.getString(clusterName);
+		final Path homeDir =  new Path(fs.getHomeDirectory(), cluster);
 
 		// hard coded check for the GoogleHDFS client because its not overriding the getScheme() method.
 		if (!fs.getClass().getSimpleName().equals("GoogleHadoopFileSystem") &&
@@ -1104,10 +1104,10 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 	 */
 	private Path getYarnFilesDir(final ApplicationId appId) throws IOException {
 		final FileSystem fileSystem = FileSystem.get(yarnConfiguration);
-    	ConfigOption<String> clusterName = ConfigOptions.key("oceanus.cluster.name").defaultValue("oceanus/unknowCluster/");
+		ConfigOption<String> clusterName = ConfigOptions.key("oceanus.cluster.name").defaultValue("oceanus/unknowCluster/");
 		final Path homeDir = fileSystem.getHomeDirectory();
-    	String cluster = flinkConfiguration.getString(clusterName);
-    	return new Path(homeDir, cluster + "/.flink/" + appId + '/');
+		String cluster = flinkConfiguration.getString(clusterName);
+		return new Path(homeDir, cluster + "/.flink/" + appId + '/');
 	}
 
 	/**

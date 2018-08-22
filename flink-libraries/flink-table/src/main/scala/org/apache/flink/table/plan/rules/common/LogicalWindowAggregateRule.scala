@@ -110,6 +110,12 @@ abstract class LogicalWindowAggregateRule(ruleName: String)
       g._1 match {
         case call: RexCall =>
           call.getOperator match {
+            case BasicOperatorTable.ENHANCED =>
+              if (call.getOperands.size() == 2) {
+                true
+              } else {
+                throw TableException("ENHANCED TUMBLE window with alignment is not supported yet.")
+              }
             case BasicOperatorTable.TUMBLE =>
               if (call.getOperands.size() == 2) {
                 true

@@ -18,8 +18,33 @@
 
 package org.apache.flink.table.api.scala
 
-import org.apache.flink.table.api.{TumbleWithSize, OverWindowWithPreceding, SlideWithSize, SessionWithGap}
+import org.apache.flink.table.api.{EnhancedTumbleWithSize, TumbleWithSize, OverWindowWithPreceding, SlideWithSize, SessionWithGap}
 import org.apache.flink.table.expressions.Expression
+
+/**
+  * Helper object for creating an enhanced tumbling window.
+  */
+object EnhancedTumble {
+
+  /**
+   * Creates an enhanced tumbling window. Tumbling windows are consecutive, non-overlapping
+   * windows of a specified fixed length. For example, a tumbling window of 5 minutes size groups
+   * elements in 5 minutes intervals.
+   *
+   * @param size the size of the window as time or row-count interval.
+   * @return a partially defined tumbling window
+   */
+  def over(size: String): EnhancedTumbleWithSize = new EnhancedTumbleWithSize(size)
+
+  /**
+    * Creates an enhanced tumbling window.
+    *
+    * @param size the size of the window as time or row-count interval.
+    * @return a partially defined tumbling window
+    */
+  def over(size: Expression): EnhancedTumbleWithSize = new EnhancedTumbleWithSize(size)
+
+}
 
 /**
   * Helper object for creating a tumbling window. Tumbling windows are consecutive, non-overlapping

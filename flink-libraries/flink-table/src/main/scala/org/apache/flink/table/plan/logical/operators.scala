@@ -672,6 +672,10 @@ case class WindowAggregate(
     // validate property
     if (propertyExpressions.nonEmpty) {
       resolvedWindowAggregate.window match {
+        case EnhancedTumblingGroupWindow(_, _, size) if isRowCountLiteral(size) =>
+          failValidation("Window start and Window end cannot be selected " +
+                           "for a row-count Enhanced Tumbling window.")
+
         case TumblingGroupWindow(_, _, size) if isRowCountLiteral(size) =>
           failValidation("Window start and Window end cannot be selected " +
                            "for a row-count Tumbling window.")
