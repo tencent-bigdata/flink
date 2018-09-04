@@ -64,8 +64,8 @@ trait CommonJoin {
       expression: (RexNode, List[String], Option[List[RexNode]]) => String): String = {
 
     s"${joinTypeToString(joinType)}" +
-      s"(where: (${joinConditionToString(inputType, joinCondition, expression)}), " +
-      s"join: (${joinSelectionToString(inputType)}))"
+      s"(where: (), " +
+      s"join: ()"
   }
 
   private[flink] def joinExplainTerms(

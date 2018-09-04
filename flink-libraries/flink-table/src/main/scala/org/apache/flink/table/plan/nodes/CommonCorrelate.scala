@@ -182,8 +182,8 @@ trait CommonCorrelate {
       expression: (RexNode, List[String], Option[List[RexNode]]) => String)
     : String = {
 
-    s"correlate: ${correlateToString(inputType, rexCall, sqlFunction, expression)}," +
-      s" select: ${selectToString(rowType)}"
+    s"correlate: ," +
+      s" select: "
   }
 
   private[flink] def correlateToString(

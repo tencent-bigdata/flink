@@ -52,10 +52,10 @@ trait OverAggregate {
       overWindow: Group,
       input: RelNode): String = {
     if (overWindow.lowerBound.isPreceding && !overWindow.lowerBound.isUnbounded) {
-      s"BETWEEN ${getLowerBoundary(logicWindow, overWindow, input)} PRECEDING " +
-          s"AND ${overWindow.upperBound}"
+      s"BETWEEN PRECEDING " +
+          s"AND "
     } else {
-      s"BETWEEN ${overWindow.lowerBound} AND ${overWindow.upperBound}"
+      s"BETWEEN AND "
     }
   }
 

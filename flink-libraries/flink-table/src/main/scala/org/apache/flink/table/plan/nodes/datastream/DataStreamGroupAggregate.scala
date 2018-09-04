@@ -127,9 +127,9 @@ class DataStreamGroupAggregate(
       namedAggregates,
       Nil)
 
-    val keyedAggOpName = s"groupBy: (${groupingToString(inputSchema.relDataType, groupings)}), " +
-      s"select: ($aggString)"
-    val nonKeyedAggOpName = s"select: ($aggString)"
+    val keyedAggOpName = s"groupBy: (), " +
+      s"select: ()"
+    val nonKeyedAggOpName = s"select: ()"
 
     val processFunction = AggregateUtil.createGroupAggregateFunction(
       generator,

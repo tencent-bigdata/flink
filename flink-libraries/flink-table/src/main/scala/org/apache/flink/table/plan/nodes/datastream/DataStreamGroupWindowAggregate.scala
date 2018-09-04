@@ -170,10 +170,10 @@ class DataStreamGroupWindowAggregate(
       namedAggregates,
       namedProperties)
 
-    val keyedAggOpName = s"groupBy: (${groupingToString(inputSchema.relDataType, grouping)}), " +
-      s"window: ($window), " +
-      s"select: ($aggString)"
-    val nonKeyedAggOpName = s"window: ($window), select: ($aggString)"
+    val keyedAggOpName = s"groupBy: (), " +
+      s"window: (), " +
+      s"select: ()"
+    val nonKeyedAggOpName = s"window: (), select: ()"
 
     val generator = new AggregationCodeGenerator(
       tableEnv.getConfig,

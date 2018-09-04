@@ -142,9 +142,8 @@ class DataStreamWindowJoin(
       ruleDescription)
 
     val joinOpName =
-      s"where: (" +
-        s"${joinConditionToString(schema.relDataType, joinCondition, getExpressionString)}), " +
-        s"join: (${joinSelectionToString(schema.relDataType)})"
+      s"where: (), " +
+        s"join: ()"
 
     val flinkJoinType = joinType match {
       case JoinRelType.INNER => JoinType.INNER

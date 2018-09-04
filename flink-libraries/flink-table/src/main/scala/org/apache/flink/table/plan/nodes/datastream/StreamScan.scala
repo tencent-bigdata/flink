@@ -86,7 +86,7 @@ trait StreamScan extends CommonScan[CRow] with DataStreamRel {
         function.code,
         cRowType)
 
-      val opName = s"from: (${schema.fieldNames.mkString(", ")})"
+      val opName = s"from: ()"
 
       input.process(processFunc).name(opName).returns(cRowType)
     }

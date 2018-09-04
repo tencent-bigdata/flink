@@ -317,21 +317,13 @@ class DataStreamOverAggregate(
 
     s"over: (${
       if (!partitionKeys.isEmpty) {
-        s"PARTITION BY: ${partitionToString(inputSchema.relDataType, partitionKeys)}, "
+        s"PARTITION BY: , "
       } else {
         ""
       }
-    }ORDER BY: ${orderingToString(inputSchema.relDataType,
-        overWindow.orderKeys.getFieldCollations)}, " +
+    }ORDER BY: , " +
       s"${if (overWindow.isRows) "ROWS" else "RANGE"}" +
-      s"${windowRange(logicWindow, overWindow, inputNode)}, " +
-      s"select: (${
-        aggregationToString(
-          inputSchema.relDataType,
-          constants,
-          schema.relDataType,
-          namedAggregates)
-      }))"
+      s"select: ())"
   }
 
 }

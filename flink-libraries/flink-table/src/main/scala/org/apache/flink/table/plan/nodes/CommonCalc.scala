@@ -127,10 +127,10 @@ trait CommonCalc {
     val selectionStr = selectionToString(calcProgram, expression)
 
     s"${if (calcProgram.getCondition != null) {
-      s"where: ($conditionStr), "
+      s"where: (), "
     } else {
       ""
-    }}select: ($selectionStr)"
+    }}select: ()"
   }
 
   private[flink] def calcToString(
