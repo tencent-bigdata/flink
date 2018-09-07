@@ -1800,4 +1800,17 @@ under the License.
 		</pluginManagement>
 	</build>
 
+	<distributionManagement>
+		<repository>
+			<id>tdwmirror</id>
+			<name>Internal Releases</name>
+			<url>http://maven.data.oa.com/nexus/content/repositories/releases</url>
+		</repository>
+		<snapshotRepository>
+			<id>tdwmirror-snapshots</id>
+			<name>Internal Snapshots</name>
+			<url>http://maven.data.oa.com/nexus/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
+
 </project>
