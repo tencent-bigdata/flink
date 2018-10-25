@@ -19,6 +19,7 @@
 package org.apache.flink.streaming.connectors.kafka.internals;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.Gauge;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
@@ -44,6 +45,8 @@ import static org.apache.flink.streaming.connectors.kafka.internals.metrics.Kafk
 import static org.apache.flink.streaming.connectors.kafka.internals.metrics.KafkaConsumerMetricConstants.CURRENT_OFFSETS_METRICS_GAUGE;
 import static org.apache.flink.streaming.connectors.kafka.internals.metrics.KafkaConsumerMetricConstants.LEGACY_COMMITTED_OFFSETS_METRICS_GROUP;
 import static org.apache.flink.streaming.connectors.kafka.internals.metrics.KafkaConsumerMetricConstants.LEGACY_CURRENT_OFFSETS_METRICS_GROUP;
+import static org.apache.flink.streaming.connectors.kafka.internals.metrics.KafkaConsumerMetricConstants.METRIC_CONSTANT_NUM_BYTES_IN_KAFKA;
+import static org.apache.flink.streaming.connectors.kafka.internals.metrics.KafkaConsumerMetricConstants.METRIC_CONSTANT_NUM_RECORDS_IN_KAFKA;
 import static org.apache.flink.streaming.connectors.kafka.internals.metrics.KafkaConsumerMetricConstants.OFFSETS_BY_PARTITION_METRICS_GROUP;
 import static org.apache.flink.streaming.connectors.kafka.internals.metrics.KafkaConsumerMetricConstants.OFFSETS_BY_TOPIC_METRICS_GROUP;
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -135,6 +138,10 @@ public abstract class AbstractFetcher<T, KPH> {
 	@Deprecated
 	private final MetricGroup legacyCommittedOffsetsMetricGroup;
 
+	protected final transient Counter numRecordsInKafka;
+
+	protected final transient Counter numBytesInKafka;
+
 	protected AbstractFetcher(
 			SourceContext<T> sourceContext,
 			Map<KafkaTopicPartition, Long> seedPartitionsWithInitialOffsets,
@@ -153,6 +160,8 @@ public abstract class AbstractFetcher<T, KPH> {
 		this.consumerMetricGroup = checkNotNull(consumerMetricGroup);
 		this.legacyCurrentOffsetsMetricGroup = consumerMetricGroup.addGroup(LEGACY_CURRENT_OFFSETS_METRICS_GROUP);
 		this.legacyCommittedOffsetsMetricGroup = consumerMetricGroup.addGroup(LEGACY_COMMITTED_OFFSETS_METRICS_GROUP);
+		this.numRecordsInKafka = consumerMetricGroup.counter(METRIC_CONSTANT_NUM_RECORDS_IN_KAFKA);
+		this.numBytesInKafka = consumerMetricGroup.counter(METRIC_CONSTANT_NUM_BYTES_IN_KAFKA);
 
 		// figure out what we watermark mode we will be using
 		this.watermarksPeriodic = watermarksPeriodic;
@@ -361,6 +370,7 @@ public abstract class AbstractFetcher<T, KPH> {
 				synchronized (checkpointLock) {
 					sourceContext.collect(record);
 					partitionState.setOffset(offset);
+
 				}
 			} else if (timestampWatermarkMode == PERIODIC_WATERMARKS) {
 				emitRecordWithTimestampAndPeriodicWatermark(record, partitionState, offset, Long.MIN_VALUE);

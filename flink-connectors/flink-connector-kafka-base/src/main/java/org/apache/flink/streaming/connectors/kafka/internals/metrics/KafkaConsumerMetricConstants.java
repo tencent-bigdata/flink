@@ -36,6 +36,16 @@ public class KafkaConsumerMetricConstants {
 	public static final String COMMITS_SUCCEEDED_METRICS_COUNTER = "commitsSucceeded";
 	public static final String COMMITS_FAILED_METRICS_COUNTER = "commitsFailed";
 
+	/**
+	 * Metrics key for num records in kafka.
+	 */
+	public static final String METRIC_CONSTANT_NUM_RECORDS_IN_KAFKA = "numRecordsInKafka";
+
+	/**
+	 * Metrics key for bytes in kafka.
+	 */
+	public static final String METRIC_CONSTANT_NUM_BYTES_IN_KAFKA = "numBytesInKafka";
+
 	// ------------------------------------------------------------------------
 	//  Per-partition metrics
 	// ------------------------------------------------------------------------

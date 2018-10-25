@@ -149,6 +149,12 @@ public class Kafka09Fetcher<T> extends AbstractFetcher<T, TopicPartition> {
 							break;
 						}
 
+						numRecordsInKafka.inc();
+						long bytes = record == null ? 0 :
+							((record.key() == null ? 0 : record.key().length)
+									+ (record.value() == null ? 0 : record.value().length));
+						numBytesInKafka.inc(bytes);
+
 						// emit the actual record. this also updates offset state atomically
 						// and deals with timestamps and watermark generation
 						emitRecord(value, partition, record.offset(), record);

@@ -22,6 +22,7 @@ import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.java.ClosureCleaner;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
@@ -29,6 +30,7 @@ import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.kafka.internals.metrics.KafkaMetricWrapper;
+import org.apache.flink.streaming.connectors.kafka.internals.metrics.KafkaProducerMetricConstants;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaDelegatePartitioner;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner;
 import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
@@ -130,6 +132,10 @@ public abstract class FlinkKafkaProducerBase<IN> extends RichSinkFunction<IN> im
 
 	/** Number of unacknowledged records. */
 	protected long pendingRecords;
+
+	protected transient Counter numRecordsOutKafka;
+
+	protected transient Counter numBytesOutKafka;
 
 	/**
 	 * The main constructor for creating a FlinkKafkaProducer.
@@ -269,6 +275,11 @@ public abstract class FlinkKafkaProducerBase<IN> extends RichSinkFunction<IN> im
 				}
 			};
 		}
+
+		numRecordsOutKafka = ctx.getMetricGroup().counter(
+			KafkaProducerMetricConstants.METRIC_CONSTANT_NUM_RECORDS_OUT_KAFKA);
+		numBytesOutKafka = ctx.getMetricGroup().counter(
+			KafkaProducerMetricConstants.METRIC_CONSTANT_NUM_BYTES_OUT_KAFKA);
 	}
 
 	/**
@@ -285,6 +296,7 @@ public abstract class FlinkKafkaProducerBase<IN> extends RichSinkFunction<IN> im
 		byte[] serializedKey = schema.serializeKey(next);
 		byte[] serializedValue = schema.serializeValue(next);
 		String targetTopic = schema.getTargetTopic(next);
+
 		if (targetTopic == null) {
 			targetTopic = defaultTopicId;
 		}
@@ -310,6 +322,19 @@ public abstract class FlinkKafkaProducerBase<IN> extends RichSinkFunction<IN> im
 				pendingRecords++;
 			}
 		}
+
+		numRecordsOutKafka.inc();
+
+		long totalBytes = 0;
+		if (serializedKey != null) {
+			totalBytes += serializedKey.length;
+		}
+
+		if (serializedValue != null) {
+			totalBytes += serializedValue.length;
+		}
+		numBytesOutKafka.inc(totalBytes);
+
 		producer.send(record, callback);
 	}
 
@@ -415,4 +440,5 @@ public abstract class FlinkKafkaProducerBase<IN> extends RichSinkFunction<IN> im
 			return pendingRecords;
 		}
 	}
+
 }
