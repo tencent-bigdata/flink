@@ -729,21 +729,27 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 		}
 
 		//check if there is a logback or log4j file
-		File logbackFile = new File(configurationDirectory + File.separator + CONFIG_FILE_LOGBACK_NAME);
-		final boolean hasLogback = logbackFile.exists();
-		if (hasLogback) {
-			systemShipFiles.add(logbackFile);
+		boolean hasLogback = false, hasLog4j = false;
+		for (File file : systemShipFiles) {
+			if (file.getName().contains(CONFIG_FILE_LOGBACK_NAME)) {
+				LOG.info("System ship files contains log configuration file : " + CONFIG_FILE_LOGBACK_NAME);
+				hasLogback = true;
+			}
+
+			if (file.getName().contains(CONFIG_FILE_LOG4J_NAME)) {
+				LOG.info("System ship files contains log configuration file : " + CONFIG_FILE_LOG4J_NAME);
+				hasLog4j = true;
+			}
+
+			if (hasLog4j && hasLogback) {
+				break;
+			}
 		}
 
-		File log4jFile = new File(configurationDirectory + File.separator + CONFIG_FILE_LOG4J_NAME);
-		final boolean hasLog4j = log4jFile.exists();
-		if (hasLog4j) {
-			systemShipFiles.add(log4jFile);
-			if (hasLogback) {
-				// this means there is already a logback configuration file --> fail
-				LOG.warn("The configuration directory ('" + configurationDirectory + "') contains both LOG4J and " +
-					"Logback configuration files. Please delete or rename one of them.");
-			}
+		if (hasLog4j && hasLogback) {
+			// this means there is already a logback configuration file --> fail
+			LOG.warn("The configuration directory ('" + configurationDirectory + "') contains both LOG4J and " +
+				"Logback configuration files. Please delete or rename one of them.");
 		}
 
 		addLibFolderToShipFiles(systemShipFiles);
@@ -1593,6 +1599,10 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 		//krb5.conf file will be available as local resource in JM/TM container
 		if (hasKrb5) {
 			javaOpts += " -Djava.security.krb5.conf=krb5.conf";
+		}
+
+		if (flinkConfiguration.containsKey("oceanus.job.id")) {
+			javaOpts += (" -Doceanus.job.id=" + flinkConfiguration.getString("oceanus.job.id", ""));
 		}
 
 		// Set up the container launch context for the application master

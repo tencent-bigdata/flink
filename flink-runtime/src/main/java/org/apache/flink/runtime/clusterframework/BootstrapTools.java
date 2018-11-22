@@ -498,11 +498,18 @@ public class BootstrapTools {
 		if (hasKrb5) {
 			javaOpts += " -Djava.security.krb5.conf=krb5.conf";
 		}
+
+		if (flinkConfig.containsKey("oceanus.job.id")) {
+			javaOpts += (" -Doceanus.job.id=" + flinkConfig.getString("oceanus.job.id", ""));
+		}
+
 		startCommandValues.put("jvmopts", javaOpts);
 
 		String logging = "";
 		if (hasLogback || hasLog4j) {
-			logging = "-Dlog.file=" + logDirectory + "/taskmanager.log";
+			logging = "-Xloggc:" + logDirectory + "/gc.log ";
+			logging += "-XX:HeapDumpPath=" + logDirectory + "/flink-job-heap.dump ";
+			logging += "-Dlog.file=" + logDirectory + "/taskmanager.log";
 			if (hasLogback) {
 				logging +=
 					" -Dlogback.configurationFile=file:" + configDirectory +
@@ -512,6 +519,8 @@ public class BootstrapTools {
 				logging += " -Dlog4j.configuration=file:" + configDirectory +
 					"/log4j.properties";
 			}
+
+
 		}
 
 		startCommandValues.put("logging", logging);
