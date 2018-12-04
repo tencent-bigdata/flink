@@ -43,6 +43,11 @@ env:
     - MALLOC_ARENA_MAX=2
     - DOCKER_COMPOSE_VERSION=1.22.0
 
+# safelist
+branches:
+  only:
+  - master
+
 before_script:
    - "gem install --no-document --version 0.8.9 faraday "
    - "export -f travis_nanoseconds"
