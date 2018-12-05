@@ -56,7 +56,6 @@ flink-queryable-state/flink-queryable-state-client-java"
 MODULES_CONNECTORS="\
 flink-contrib/flink-connector-wikiedits,\
 flink-filesystems/flink-hadoop-fs,\
-flink-filesystems/flink-mapr-fs,\
 flink-filesystems/flink-s3-fs-base,\
 flink-filesystems/flink-s3-fs-hadoop,\
 flink-filesystems/flink-s3-fs-presto,\

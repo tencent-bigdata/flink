@@ -51,7 +51,6 @@ under the License.
 		<module>flink-elasticsearch5-test</module>
 		<module>flink-elasticsearch6-test</module>
 		<module>flink-quickstart-test</module>
-		<module>flink-confluent-schema-registry</module>
 		<module>flink-stream-state-ttl-test</module>
 		<module>flink-sql-client-test</module>
 		<module>flink-streaming-file-sink-test</module>
