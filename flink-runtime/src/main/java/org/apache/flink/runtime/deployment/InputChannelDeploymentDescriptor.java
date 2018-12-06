@@ -144,10 +144,9 @@ public class InputChannelDeploymentDescriptor implements Serializable {
 			}
 
 			final ResultPartitionID consumedPartitionId = new ResultPartitionID(
-					consumedPartition.getPartitionId(), producer.getAttemptId());
+					consumedPartition.getResultId(), consumedPartition.getPartitionIndex(), producer.getAttemptId());
 
-			icdd[i] = new InputChannelDeploymentDescriptor(
-					consumedPartitionId, partitionLocation);
+			icdd[i] = new InputChannelDeploymentDescriptor(consumedPartitionId, partitionLocation);
 		}
 
 		return icdd;

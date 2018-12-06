@@ -22,7 +22,6 @@ import org.apache.flink.runtime.executiongraph.IntermediateResultPartition;
 import org.apache.flink.runtime.io.network.partition.ResultPartition;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionType;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
-import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
 import org.apache.flink.runtime.state.KeyGroupRangeAssignment;
 
 import java.io.Serializable;
@@ -42,11 +41,11 @@ public class ResultPartitionDeploymentDescriptor implements Serializable {
 	/** The ID of the result this partition belongs to. */
 	private final IntermediateDataSetID resultId;
 
-	/** The ID of the partition. */
-	private final IntermediateResultPartitionID partitionId;
-
 	/** The type of the partition. */
-	private final ResultPartitionType partitionType;
+	private final ResultPartitionType resultType;
+
+	/** The ID of the partition. */
+	private final int partitionIndex;
 
 	/** The number of subpartitions. */
 	private final int numberOfSubpartitions;
@@ -59,18 +58,19 @@ public class ResultPartitionDeploymentDescriptor implements Serializable {
 
 	public ResultPartitionDeploymentDescriptor(
 			IntermediateDataSetID resultId,
-			IntermediateResultPartitionID partitionId,
+			int partitionIndex,
 			ResultPartitionType partitionType,
 			int numberOfSubpartitions,
 			int maxParallelism,
 			boolean lazyScheduling) {
 
-		this.resultId = checkNotNull(resultId);
-		this.partitionId = checkNotNull(partitionId);
-		this.partitionType = checkNotNull(partitionType);
-
+		checkArgument(partitionIndex >= 0);
 		KeyGroupRangeAssignment.checkParallelismPreconditions(maxParallelism);
 		checkArgument(numberOfSubpartitions >= 1);
+
+		this.resultId = checkNotNull(resultId);
+		this.partitionIndex = partitionIndex;
+		this.resultType = checkNotNull(partitionType);
 		this.numberOfSubpartitions = numberOfSubpartitions;
 		this.maxParallelism = maxParallelism;
 		this.sendScheduleOrUpdateConsumersMessage = lazyScheduling;
@@ -80,12 +80,12 @@ public class ResultPartitionDeploymentDescriptor implements Serializable {
 		return resultId;
 	}
 
-	public IntermediateResultPartitionID getPartitionId() {
-		return partitionId;
+	public int getPartitionIndex() {
+		return partitionIndex;
 	}
 
 	public ResultPartitionType getPartitionType() {
-		return partitionType;
+		return resultType;
 	}
 
 	public int getNumberOfSubpartitions() {
@@ -104,7 +104,7 @@ public class ResultPartitionDeploymentDescriptor implements Serializable {
 	public String toString() {
 		return String.format("ResultPartitionDeploymentDescriptor [result id: %s, "
 						+ "partition id: %s, partition type: %s]",
-				resultId, partitionId, partitionType);
+							resultId, partitionIndex, resultType);
 	}
 
 	// ------------------------------------------------------------------------
@@ -112,9 +112,9 @@ public class ResultPartitionDeploymentDescriptor implements Serializable {
 	public static ResultPartitionDeploymentDescriptor from(
 			IntermediateResultPartition partition, int maxParallelism, boolean lazyScheduling) {
 
-		final IntermediateDataSetID resultId = partition.getIntermediateResult().getId();
-		final IntermediateResultPartitionID partitionId = partition.getPartitionId();
-		final ResultPartitionType partitionType = partition.getIntermediateResult().getResultType();
+		final IntermediateDataSetID resultId = partition.getResultId();
+		final ResultPartitionType resultType = partition.getResultType();
+		final int partitionIndex = partition.getPartitionIndex();
 
 		// The produced data is partitioned among a number of subpartitions.
 		//
@@ -132,6 +132,6 @@ public class ResultPartitionDeploymentDescriptor implements Serializable {
 		}
 
 		return new ResultPartitionDeploymentDescriptor(
-				resultId, partitionId, partitionType, numberOfSubpartitions, maxParallelism, lazyScheduling);
+				resultId, partitionIndex, resultType, numberOfSubpartitions, maxParallelism, lazyScheduling);
 	}
 }

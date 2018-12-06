@@ -60,7 +60,6 @@ import org.apache.flink.runtime.heartbeat.HeartbeatServices;
 import org.apache.flink.runtime.heartbeat.HeartbeatTarget;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
-import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertex;
@@ -598,9 +597,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 	}
 
 	@Override
-	public CompletableFuture<ExecutionState> requestPartitionState(
-			final IntermediateDataSetID intermediateResultId,
-			final ResultPartitionID resultPartitionId) {
+	public CompletableFuture<ExecutionState> requestPartitionState(final ResultPartitionID resultPartitionId) {
 
 		final Execution execution = executionGraph.getRegisteredExecutions().get(resultPartitionId.getProducerId());
 		if (execution != null) {
@@ -608,12 +605,12 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 		}
 		else {
 			final IntermediateResult intermediateResult =
-					executionGraph.getAllIntermediateResults().get(intermediateResultId);
+					executionGraph.getAllIntermediateResults().get(resultPartitionId.getResultId());
 
 			if (intermediateResult != null) {
 				// Try to find the producing execution
 				Execution producerExecution = intermediateResult
-						.getPartitionById(resultPartitionId.getPartitionId())
+						.getPartition(resultPartitionId.getPartitionIndex())
 						.getProducer()
 						.getCurrentExecutionAttempt();
 
@@ -624,7 +621,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 				}
 			} else {
 				return FutureUtils.completedExceptionally(new IllegalArgumentException("Intermediate data set with ID "
-						+ intermediateResultId + " not found."));
+						+ resultPartitionId.getResultId() + " not found."));
 			}
 		}
 	}

@@ -54,7 +54,7 @@ public class PartitionRequestClientTest {
 
 		final NetworkBufferPool networkBufferPool = new NetworkBufferPool(10, 32);
 		final SingleInputGate inputGate = createSingleInputGate();
-		final RemoteInputChannel inputChannel = createRemoteInputChannel(inputGate, client, 1, 2);
+		final RemoteInputChannel inputChannel = createRemoteInputChannel(inputGate, 0, client, 1, 2);
 
 		try {
 			final BufferPool bufferPool = networkBufferPool.createBufferPool(6, 6);
@@ -72,7 +72,7 @@ public class PartitionRequestClientTest {
 			assertEquals(numExclusiveBuffers, ((PartitionRequest) readFromOutbound).credit);
 
 			// retrigger subpartition request, e.g. due to failures
-			inputGate.retriggerPartitionRequest(inputChannel.getPartitionId().getPartitionId());
+			inputGate.retriggerPartitionRequest(inputChannel.getPartitionId().getPartitionIndex());
 			runAllScheduledPendingTasks(channel, deadline);
 
 			readFromOutbound = channel.readOutbound();
@@ -81,7 +81,7 @@ public class PartitionRequestClientTest {
 			assertEquals(numExclusiveBuffers, ((PartitionRequest) readFromOutbound).credit);
 
 			// retrigger subpartition request once again, e.g. due to failures
-			inputGate.retriggerPartitionRequest(inputChannel.getPartitionId().getPartitionId());
+			inputGate.retriggerPartitionRequest(inputChannel.getPartitionId().getPartitionIndex());
 			runAllScheduledPendingTasks(channel, deadline);
 
 			readFromOutbound = channel.readOutbound();
@@ -108,7 +108,7 @@ public class PartitionRequestClientTest {
 
 		final NetworkBufferPool networkBufferPool = new NetworkBufferPool(10, 32);
 		final SingleInputGate inputGate = createSingleInputGate();
-		final RemoteInputChannel inputChannel = createRemoteInputChannel(inputGate, client);
+		final RemoteInputChannel inputChannel = createRemoteInputChannel(inputGate, 0, client);
 
 		try {
 			final BufferPool bufferPool = networkBufferPool.createBufferPool(6, 6);

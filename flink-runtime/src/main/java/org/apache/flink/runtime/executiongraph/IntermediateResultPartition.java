@@ -19,7 +19,7 @@
 package org.apache.flink.runtime.executiongraph;
 
 import org.apache.flink.runtime.io.network.partition.ResultPartitionType;
-import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
+import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,46 +30,43 @@ public class IntermediateResultPartition {
 
 	private final ExecutionVertex producer;
 
-	private final int partitionNumber;
-
-	private final IntermediateResultPartitionID partitionId;
+	private final int partitionIndex;
 
 	private List<List<ExecutionEdge>> consumers;
 
-	public IntermediateResultPartition(IntermediateResult totalResult, ExecutionVertex producer, int partitionNumber) {
+	public IntermediateResultPartition(IntermediateResult totalResult, ExecutionVertex producer, int partitionIndex) {
 		this.totalResult = totalResult;
 		this.producer = producer;
-		this.partitionNumber = partitionNumber;
+		this.partitionIndex = partitionIndex;
 		this.consumers = new ArrayList<List<ExecutionEdge>>(0);
-		this.partitionId = new IntermediateResultPartitionID();
 	}
 
 	public ExecutionVertex getProducer() {
 		return producer;
 	}
 
-	public int getPartitionNumber() {
-		return partitionNumber;
-	}
-
 	public IntermediateResult getIntermediateResult() {
 		return totalResult;
 	}
-
-	public IntermediateResultPartitionID getPartitionId() {
-		return partitionId;
+	
+	public IntermediateDataSetID getResultId() {
+		return totalResult.getId();
 	}
 
-	ResultPartitionType getResultType() {
+	public ResultPartitionType getResultType() {
 		return totalResult.getResultType();
-	}
-
-	public List<List<ExecutionEdge>> getConsumers() {
-		return consumers;
 	}
 
 	public boolean isConsumable() {
 		return totalResult.isConsumable();
+	}
+	
+	public int getPartitionIndex() {
+		return partitionIndex;
+	}
+
+	public List<List<ExecutionEdge>> getConsumers() {
+		return consumers;
 	}
 
 	int addConsumerGroup() {

@@ -20,6 +20,7 @@ package org.apache.flink.runtime.io.network.partition.consumer;
 
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.execution.CancelTaskException;
+import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.network.TaskEventDispatcher;
 import org.apache.flink.runtime.io.network.buffer.BufferBuilder;
@@ -39,7 +40,6 @@ import org.apache.flink.runtime.io.network.util.TestBufferFactory;
 import org.apache.flink.runtime.io.network.util.TestPartitionProducer;
 import org.apache.flink.runtime.io.network.util.TestProducerSource;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
-import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
 import org.apache.flink.runtime.metrics.groups.UnregisteredMetricGroups;
 import org.apache.flink.runtime.taskmanager.TaskActions;
 
@@ -116,12 +116,13 @@ public class LocalInputChannelTest {
 
 		final ResultPartitionManager partitionManager = new ResultPartitionManager();
 
+		final IntermediateDataSetID resultID = new IntermediateDataSetID();
 		final ResultPartitionID[] partitionIds = new ResultPartitionID[parallelism];
 		final TestPartitionProducer[] partitionProducers = new TestPartitionProducer[parallelism];
 
 		// Create all partitions
 		for (int i = 0; i < parallelism; i++) {
-			partitionIds[i] = new ResultPartitionID();
+			partitionIds[i] = new ResultPartitionID(resultID, i, new ExecutionAttemptID());
 
 			final ResultPartition partition = new ResultPartition(
 				"Test Name",
@@ -328,7 +329,7 @@ public class LocalInputChannelTest {
 			1, 1,
 			UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup());
 
-		gate.setInputChannel(new IntermediateResultPartitionID(), channel);
+		gate.setInputChannel(0, channel);
 
 		Thread releaser = new Thread() {
 			@Override
@@ -505,7 +506,7 @@ public class LocalInputChannelTest {
 			// Setup input channels
 			for (int i = 0; i < numberOfInputChannels; i++) {
 				inputGate.setInputChannel(
-						new IntermediateResultPartitionID(),
+						consumedPartitionIds[i].getPartitionIndex(),
 						new LocalInputChannel(
 								inputGate,
 								i,

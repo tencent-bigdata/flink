@@ -28,9 +28,10 @@ import org.apache.flink.runtime.messages.JobManagerMessages.RequestPartitionProd
 public class PartitionProducerDisposedException extends Exception {
 
 	public PartitionProducerDisposedException(ResultPartitionID resultPartitionID) {
-		super(String.format("Execution %s producing partition %s has already been disposed.",
+		super(String.format("Execution %s producing partition %s-%s has already been disposed.",
 			resultPartitionID.getProducerId(),
-			resultPartitionID.getPartitionId()));
+			resultPartitionID.getResultId(),
+			resultPartitionID.getPartitionIndex()));
 	}
 
 }

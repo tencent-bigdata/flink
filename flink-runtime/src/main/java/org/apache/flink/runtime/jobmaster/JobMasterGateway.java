@@ -29,7 +29,6 @@ import org.apache.flink.runtime.executiongraph.ExecutionJobVertex;
 import org.apache.flink.runtime.executiongraph.ExecutionVertex;
 import org.apache.flink.runtime.io.network.partition.ResultPartition;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
-import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobmaster.message.ClassloadingProps;
@@ -129,13 +128,10 @@ public interface JobMasterGateway extends
 	 * Requests the current state of the partition. The state of a
 	 * partition is currently bound to the state of the producing execution.
 	 *
-	 * @param intermediateResultId The execution attempt ID of the task requesting the partition state.
 	 * @param partitionId          The partition ID of the partition to request the state of.
 	 * @return The future of the partition state
 	 */
-	CompletableFuture<ExecutionState> requestPartitionState(
-			final IntermediateDataSetID intermediateResultId,
-			final ResultPartitionID partitionId);
+	CompletableFuture<ExecutionState> requestPartitionState(final ResultPartitionID partitionId);
 
 	/**
 	 * Notifies the JobManager about available data for a produced partition.

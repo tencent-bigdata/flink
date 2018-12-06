@@ -1219,7 +1219,7 @@ public class JobMasterTest extends TestLogger {
 	}
 
 	/**
-	 * Tests the {@link JobMaster#requestPartitionState(IntermediateDataSetID, ResultPartitionID)}
+	 * Tests the {@link JobMaster#requestPartitionState(ResultPartitionID)}
 	 * call for a finished result partition.
 	 */
 	@Test
@@ -1283,13 +1283,13 @@ public class JobMasterTest extends TestLogger {
 			jobMasterGateway.updateTaskExecutionState(new TaskExecutionState(producerConsumerJobGraph.getJobID(), executionAttemptId, ExecutionState.FINISHED)).get();
 
 			// request the state of the result partition of the producer
-			final ResultPartitionID partitionId = new ResultPartitionID(partition.getPartitionId(), copiedExecutionAttemptId);
-			CompletableFuture<ExecutionState> partitionStateFuture = jobMasterGateway.requestPartitionState(partition.getResultId(), partitionId);
+			final ResultPartitionID partitionId = new ResultPartitionID(partition.getResultId(), partition.getPartitionIndex(), copiedExecutionAttemptId);
+			CompletableFuture<ExecutionState> partitionStateFuture = jobMasterGateway.requestPartitionState(partitionId);
 
 			assertThat(partitionStateFuture.get(), equalTo(ExecutionState.FINISHED));
 
 			// ask for unknown result partition
-			partitionStateFuture = jobMasterGateway.requestPartitionState(partition.getResultId(), new ResultPartitionID());
+			partitionStateFuture = jobMasterGateway.requestPartitionState(new ResultPartitionID());
 
 			try {
 				partitionStateFuture.get();
@@ -1299,7 +1299,7 @@ public class JobMasterTest extends TestLogger {
 			}
 
 			// ask for wrong intermediate data set id
-			partitionStateFuture = jobMasterGateway.requestPartitionState(new IntermediateDataSetID(), partitionId);
+			partitionStateFuture = jobMasterGateway.requestPartitionState(new ResultPartitionID(new IntermediateDataSetID(), partitionId.getPartitionIndex(), partitionId.getProducerId()));
 
 			try {
 				partitionStateFuture.get();
@@ -1309,7 +1309,7 @@ public class JobMasterTest extends TestLogger {
 			}
 
 			// ask for "old" execution
-			partitionStateFuture = jobMasterGateway.requestPartitionState(partition.getResultId(), new ResultPartitionID(partition.getPartitionId(), new ExecutionAttemptID()));
+			partitionStateFuture = jobMasterGateway.requestPartitionState(new ResultPartitionID(partition.getResultId(), partition.getPartitionIndex(), new ExecutionAttemptID()));
 
 			try {
 				partitionStateFuture.get();

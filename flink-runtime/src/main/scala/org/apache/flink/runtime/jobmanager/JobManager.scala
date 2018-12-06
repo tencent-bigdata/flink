@@ -934,7 +934,7 @@ class JobManager(
           )
       }
 
-    case RequestPartitionProducerState(jobId, intermediateDataSetId, resultPartitionId) =>
+    case RequestPartitionProducerState(jobId, resultPartitionId) =>
       currentJobs.get(jobId) match {
         case Some((executionGraph, _)) =>
           try {
@@ -952,12 +952,12 @@ class JobManager(
               // unregistered. We now look for the producing execution via the
               // intermediate result itself.
               val intermediateResult = executionGraph
-                .getAllIntermediateResults.get(intermediateDataSetId)
+                .getAllIntermediateResults.get(resultPartitionId.getResultId)
 
               if (intermediateResult != null) {
                 // Try to find the producing execution
                 val producerExecution = intermediateResult
-                  .getPartitionById(resultPartitionId.getPartitionId)
+                  .getPartition(resultPartitionId.getPartitionIndex)
                   .getProducer
                   .getCurrentExecutionAttempt
 
@@ -969,7 +969,7 @@ class JobManager(
                 }
               } else {
                 val cause = new IllegalArgumentException(
-                  s"Intermediate data set with ID $intermediateDataSetId not found.")
+                  s"Intermediate data set with ID ${resultPartitionId.getResultId} not found.")
                 sender ! decorateMessage(Status.Failure(cause))
               }
             }

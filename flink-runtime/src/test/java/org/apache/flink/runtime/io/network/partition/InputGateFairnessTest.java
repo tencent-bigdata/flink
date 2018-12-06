@@ -19,6 +19,7 @@
 package org.apache.flink.runtime.io.network.partition;
 
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.io.network.ConnectionID;
 import org.apache.flink.runtime.io.network.ConnectionManager;
 import org.apache.flink.runtime.io.network.TaskEventDispatcher;
@@ -33,7 +34,6 @@ import org.apache.flink.runtime.io.network.partition.consumer.RemoteInputChannel
 import org.apache.flink.runtime.io.network.partition.consumer.SingleInputGate;
 import org.apache.flink.runtime.io.network.util.TestBufferFactory;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
-import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
 import org.apache.flink.runtime.metrics.groups.TaskIOMetricGroup;
 import org.apache.flink.runtime.metrics.groups.UnregisteredMetricGroups;
 import org.apache.flink.runtime.taskmanager.TaskActions;
@@ -90,19 +90,21 @@ public class InputGateFairnessTest {
 
 		ResultPartitionManager resultPartitionManager = createResultPartitionManager(sources);
 
+		IntermediateDataSetID resultID = new IntermediateDataSetID();
 		SingleInputGate gate = new FairnessVerifyingInputGate(
 				"Test Task Name",
 				new JobID(),
-				new IntermediateDataSetID(),
+				resultID,
 				0, numChannels,
 				mock(TaskActions.class),
 				UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup(),
 				true);
 
 		for (int i = 0; i < numChannels; i++) {
-			LocalInputChannel channel = new LocalInputChannel(gate, i, new ResultPartitionID(),
+			ResultPartitionID resultPartitionID = new ResultPartitionID(resultID, i, new ExecutionAttemptID());
+			LocalInputChannel channel = new LocalInputChannel(gate, i, resultPartitionID,
 					resultPartitionManager, mock(TaskEventDispatcher.class), UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup());
-			gate.setInputChannel(new IntermediateResultPartitionID(), channel);
+			gate.setInputChannel(i, channel);
 		}
 
 		// read all the buffers and the EOF event
@@ -144,19 +146,21 @@ public class InputGateFairnessTest {
 
 			ResultPartitionManager resultPartitionManager = createResultPartitionManager(sources);
 
+			IntermediateDataSetID resultID = new IntermediateDataSetID();
 			SingleInputGate gate = new FairnessVerifyingInputGate(
 				"Test Task Name",
 				new JobID(),
-				new IntermediateDataSetID(),
+				resultID,
 				0, numChannels,
 				mock(TaskActions.class),
 				UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup(),
 				true);
 
 			for (int i = 0; i < numChannels; i++) {
-				LocalInputChannel channel = new LocalInputChannel(gate, i, new ResultPartitionID(),
+				ResultPartitionID resultPartitionID = new ResultPartitionID(resultID, i, new ExecutionAttemptID());
+				LocalInputChannel channel = new LocalInputChannel(gate, i, resultPartitionID,
 					resultPartitionManager, mock(TaskEventDispatcher.class), UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup());
-				gate.setInputChannel(new IntermediateResultPartitionID(), channel);
+				gate.setInputChannel(i, channel);
 			}
 
 			// seed one initial buffer
@@ -195,10 +199,11 @@ public class InputGateFairnessTest {
 
 		// ----- create some source channels and fill them with buffers -----
 
+		IntermediateDataSetID resultID = new IntermediateDataSetID();
 		SingleInputGate gate = new FairnessVerifyingInputGate(
 				"Test Task Name",
 				new JobID(),
-				new IntermediateDataSetID(),
+				resultID,
 				0, numChannels,
 				mock(TaskActions.class),
 				UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup(),
@@ -209,9 +214,10 @@ public class InputGateFairnessTest {
 		final RemoteInputChannel[] channels = new RemoteInputChannel[numChannels];
 
 		for (int i = 0; i < numChannels; i++) {
+			ResultPartitionID resultPartitionID = new ResultPartitionID(resultID, i, new ExecutionAttemptID());
 			RemoteInputChannel channel = new RemoteInputChannel(
-					gate, i, new ResultPartitionID(), mock(ConnectionID.class),
-					connManager, 0, 0, UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup());
+				gate, i, resultPartitionID, mock(ConnectionID.class),
+				connManager, 0, 0, UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup());
 
 			channels[i] = channel;
 
@@ -220,7 +226,7 @@ public class InputGateFairnessTest {
 			}
 			channel.onBuffer(EventSerializer.toBuffer(EndOfPartitionEvent.INSTANCE), buffersPerChannel, -1);
 
-			gate.setInputChannel(new IntermediateResultPartitionID(), channel);
+			gate.setInputChannel(i, channel);
 		}
 
 		// read all the buffers and the EOF event
@@ -251,10 +257,11 @@ public class InputGateFairnessTest {
 
 		// ----- create some source channels and fill them with buffers -----
 
+		IntermediateDataSetID resultID = new IntermediateDataSetID();
 		SingleInputGate gate = new FairnessVerifyingInputGate(
 				"Test Task Name",
 				new JobID(),
-				new IntermediateDataSetID(),
+				resultID,
 				0, numChannels,
 				mock(TaskActions.class),
 				UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup(),
@@ -266,12 +273,13 @@ public class InputGateFairnessTest {
 		final int[] channelSequenceNums = new int[numChannels];
 
 		for (int i = 0; i < numChannels; i++) {
+			ResultPartitionID resultPartitionID = new ResultPartitionID(resultID, i, new ExecutionAttemptID());
 			RemoteInputChannel channel = new RemoteInputChannel(
-					gate, i, new ResultPartitionID(), mock(ConnectionID.class),
+					gate, i, resultPartitionID, mock(ConnectionID.class),
 					connManager, 0, 0, UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup());
 
 			channels[i] = channel;
-			gate.setInputChannel(new IntermediateResultPartitionID(), channel);
+			gate.setInputChannel(i, channel);
 		}
 
 		channels[11].onBuffer(mockBuffer, 0, -1);

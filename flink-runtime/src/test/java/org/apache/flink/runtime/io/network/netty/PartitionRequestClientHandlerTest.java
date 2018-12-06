@@ -19,6 +19,7 @@
 package org.apache.flink.runtime.io.network.netty;
 
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.io.network.ConnectionID;
 import org.apache.flink.runtime.io.network.ConnectionManager;
 import org.apache.flink.runtime.io.network.buffer.Buffer;
@@ -232,18 +233,19 @@ public class PartitionRequestClientHandlerTest {
 	 * @return The new created remote input channel.
 	 */
 	static RemoteInputChannel createRemoteInputChannel(SingleInputGate inputGate) throws Exception {
-		return createRemoteInputChannel(inputGate, mock(PartitionRequestClient.class));
+		return createRemoteInputChannel(inputGate, 0, mock(PartitionRequestClient.class));
 	}
 
 	/**
 	 * Creates and returns a remote input channel for the specific input gate with specific partition request client.
 	 *
 	 * @param inputGate The input gate owns the created input channel.
+	 * @param partitionIndex The index of the partition.
 	 * @param client The client is used to send partition request.
 	 * @return The new created remote input channel.
 	 */
-	static RemoteInputChannel createRemoteInputChannel(SingleInputGate inputGate, PartitionRequestClient client) throws Exception {
-		return createRemoteInputChannel(inputGate, client, 0, 0);
+	static RemoteInputChannel createRemoteInputChannel(SingleInputGate inputGate, int partitionIndex, PartitionRequestClient client) throws Exception {
+		return createRemoteInputChannel(inputGate, partitionIndex, client, 0, 0);
 	}
 
 	/**
@@ -257,6 +259,7 @@ public class PartitionRequestClientHandlerTest {
 	 */
 	static RemoteInputChannel createRemoteInputChannel(
 			SingleInputGate inputGate,
+			int partitionIndex,
 			PartitionRequestClient client,
 			int initialBackoff,
 			int maxBackoff) throws Exception {
@@ -264,7 +267,7 @@ public class PartitionRequestClientHandlerTest {
 		when(connectionManager.createPartitionRequestClient(any(ConnectionID.class)))
 			.thenReturn(client);
 
-		ResultPartitionID partitionId = new ResultPartitionID();
+		ResultPartitionID partitionId = new ResultPartitionID(inputGate.getConsumedResultId(), partitionIndex, new ExecutionAttemptID());
 		RemoteInputChannel inputChannel = new RemoteInputChannel(
 			inputGate,
 			0,
@@ -275,7 +278,7 @@ public class PartitionRequestClientHandlerTest {
 			maxBackoff,
 			UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup());
 
-		inputGate.setInputChannel(partitionId.getPartitionId(), inputChannel);
+		inputGate.setInputChannel(partitionId.getPartitionIndex(), inputChannel);
 		return inputChannel;
 	}
 

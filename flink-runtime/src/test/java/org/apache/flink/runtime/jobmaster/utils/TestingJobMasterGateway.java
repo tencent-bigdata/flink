@@ -32,7 +32,6 @@ import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.executiongraph.ArchivedExecutionGraph;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
-import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobmaster.JobMasterGateway;
@@ -97,7 +96,7 @@ public class TestingJobMasterGateway implements JobMasterGateway {
 	private final BiFunction<JobVertexID, ExecutionAttemptID, CompletableFuture<SerializedInputSplit>> requestNextInputSplitFunction;
 
 	@Nonnull
-	private final BiFunction<IntermediateDataSetID, ResultPartitionID, CompletableFuture<ExecutionState>> requestPartitionStateFunction;
+	private final Function<ResultPartitionID, CompletableFuture<ExecutionState>> requestPartitionStateFunction;
 
 	@Nonnull
 	private final Function<ResultPartitionID, CompletableFuture<Acknowledge>> scheduleOrUpdateConsumersFunction;
@@ -168,7 +167,7 @@ public class TestingJobMasterGateway implements JobMasterGateway {
 			@Nonnull TriFunction<Collection<JobVertexID>, Integer, RescalingBehaviour, CompletableFuture<Acknowledge>> rescalingOperatorsFunction,
 			@Nonnull Function<TaskExecutionState, CompletableFuture<Acknowledge>> updateTaskExecutionStateFunction,
 			@Nonnull BiFunction<JobVertexID, ExecutionAttemptID, CompletableFuture<SerializedInputSplit>> requestNextInputSplitFunction,
-			@Nonnull BiFunction<IntermediateDataSetID, ResultPartitionID, CompletableFuture<ExecutionState>> requestPartitionStateFunction,
+			@Nonnull Function<ResultPartitionID, CompletableFuture<ExecutionState>> requestPartitionStateFunction,
 			@Nonnull Function<ResultPartitionID, CompletableFuture<Acknowledge>> scheduleOrUpdateConsumersFunction,
 			@Nonnull Function<ResourceID, CompletableFuture<Acknowledge>> disconnectTaskManagerFunction,
 			@Nonnull Consumer<ResourceManagerId> disconnectResourceManagerConsumer,
@@ -251,8 +250,8 @@ public class TestingJobMasterGateway implements JobMasterGateway {
 	}
 
 	@Override
-	public CompletableFuture<ExecutionState> requestPartitionState(IntermediateDataSetID intermediateResultId, ResultPartitionID partitionId) {
-		return requestPartitionStateFunction.apply(intermediateResultId, partitionId);
+	public CompletableFuture<ExecutionState> requestPartitionState(ResultPartitionID partitionId) {
+		return requestPartitionStateFunction.apply(partitionId);
 	}
 
 	@Override

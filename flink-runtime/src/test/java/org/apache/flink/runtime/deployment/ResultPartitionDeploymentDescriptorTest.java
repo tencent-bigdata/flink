@@ -21,7 +21,6 @@ package org.apache.flink.runtime.deployment;
 import org.apache.flink.core.testutils.CommonTestUtils;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionType;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
-import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
 
 import org.junit.Test;
 
@@ -40,14 +39,14 @@ public class ResultPartitionDeploymentDescriptorTest {
 	public void testSerialization() throws Exception {
 		// Expected values
 		IntermediateDataSetID resultId = new IntermediateDataSetID();
-		IntermediateResultPartitionID partitionId = new IntermediateResultPartitionID();
 		ResultPartitionType partitionType = ResultPartitionType.PIPELINED;
+		int partitionIndex = 3;
 		int numberOfSubpartitions = 24;
 
 		ResultPartitionDeploymentDescriptor orig =
 				new ResultPartitionDeploymentDescriptor(
 						resultId,
-						partitionId,
+						partitionIndex,
 						partitionType,
 						numberOfSubpartitions,
 						numberOfSubpartitions,
@@ -57,7 +56,7 @@ public class ResultPartitionDeploymentDescriptorTest {
 				CommonTestUtils.createCopySerializable(orig);
 
 		assertEquals(resultId, copy.getResultId());
-		assertEquals(partitionId, copy.getPartitionId());
+		assertEquals(partitionIndex, copy.getPartitionIndex());
 		assertEquals(partitionType, copy.getPartitionType());
 		assertEquals(numberOfSubpartitions, copy.getNumberOfSubpartitions());
 		assertTrue(copy.sendScheduleOrUpdateConsumersMessage());

@@ -48,7 +48,6 @@ import org.apache.flink.runtime.io.network.TaskEventDispatcher;
 import org.apache.flink.runtime.io.network.netty.PartitionProducerStateChecker;
 import org.apache.flink.runtime.io.network.partition.NoOpResultPartitionConsumableNotifier;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
-import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.jobgraph.tasks.InputSplitProvider;
@@ -270,7 +269,7 @@ public class JvmExitOnFatalErrorTest {
 
 			@Override
 			public CompletableFuture<ExecutionState> requestPartitionProducerState(
-					JobID jobId, IntermediateDataSetID intermediateDataSetId, ResultPartitionID r) {
+					JobID jobId, ResultPartitionID r) {
 				return null;
 			}
 		}

@@ -796,7 +796,7 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 
 					final ResourceID consumerTaskManager = consumerSlot.getTaskManagerLocation().getResourceID();
 
-					final ResultPartitionID partitionId = new ResultPartitionID(partition.getPartitionId(), attemptId);
+					final ResultPartitionID partitionId = new ResultPartitionID(partition.getResultId(), partition.getPartitionIndex(), attemptId);
 
 					final ResultPartitionLocation partitionLocation;
 

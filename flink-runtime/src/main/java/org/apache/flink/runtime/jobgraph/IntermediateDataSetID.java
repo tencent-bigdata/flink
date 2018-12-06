@@ -20,6 +20,7 @@ package org.apache.flink.runtime.jobgraph;
 
 import java.util.UUID;
 
+import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBuf;
 import org.apache.flink.util.AbstractID;
 
 public class IntermediateDataSetID extends AbstractID {
@@ -41,6 +42,16 @@ public class IntermediateDataSetID extends AbstractID {
 	public IntermediateDataSetID(AbstractID from) {
 		super(from);
 	}
+
+	/**
+	 * Creates a new intermediate data set ID with the lower part and the upper part.
+	 * 
+	 * @param lowerPart The lower part of this ID.
+	 * @param upperPart The upper part of this ID.
+	 */
+	public IntermediateDataSetID(long lowerPart, long upperPart) {
+		super(lowerPart, upperPart);
+	}
 	
 	/**
 	 * Creates a new intermediate data set ID with the bytes of the given UUID.
@@ -49,5 +60,16 @@ public class IntermediateDataSetID extends AbstractID {
 	 */
 	public IntermediateDataSetID(UUID from) {
 		super(from.getLeastSignificantBits(), from.getMostSignificantBits());
+	}
+	
+	public void writeTo(ByteBuf buf) {
+		buf.writeLong(this.lowerPart);
+		buf.writeLong(this.upperPart);
+	}
+	
+	public static IntermediateDataSetID fromByteBuf(ByteBuf buf) {
+		long lowerPart = buf.readLong();
+		long upperPart = buf.readLong();
+		return new IntermediateDataSetID(lowerPart, upperPart);
 	}
 }

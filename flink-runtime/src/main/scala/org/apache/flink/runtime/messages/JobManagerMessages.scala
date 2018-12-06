@@ -168,7 +168,6 @@ object JobManagerMessages {
     */
   case class RequestPartitionProducerState(
       jobId: JobID,
-      intermediateDataSetId: IntermediateDataSetID,
       resultPartitionId: ResultPartitionID)
     extends RequiresLeaderSessionID
 

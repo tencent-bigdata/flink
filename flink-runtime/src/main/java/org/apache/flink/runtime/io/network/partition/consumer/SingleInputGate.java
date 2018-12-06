@@ -38,7 +38,6 @@ import org.apache.flink.runtime.io.network.partition.ResultPartitionType;
 import org.apache.flink.runtime.io.network.partition.consumer.InputChannel.BufferAndAvailability;
 import org.apache.flink.runtime.jobgraph.DistributionPattern;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
-import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
 import org.apache.flink.runtime.metrics.groups.TaskIOMetricGroup;
 import org.apache.flink.runtime.taskmanager.TaskActions;
 
@@ -135,7 +134,7 @@ public class SingleInputGate implements InputGate {
 	 * Input channels. There is a one input channel for each consumed intermediate result partition.
 	 * We store this in a map for runtime updates of single channels.
 	 */
-	private final Map<IntermediateResultPartitionID, InputChannel> inputChannels;
+	private final Map<Integer, InputChannel> inputChannels;
 
 	/** Channels, which notified this input gate about available data. */
 	private final ArrayDeque<InputChannel> inputChannelsWithData = new ArrayDeque<>();
@@ -323,9 +322,9 @@ public class SingleInputGate implements InputGate {
 		networkBufferPool.recycleMemorySegments(segments);
 	}
 
-	public void setInputChannel(IntermediateResultPartitionID partitionId, InputChannel inputChannel) {
+	public void setInputChannel(int partitionIndex, InputChannel inputChannel) {
 		synchronized (requestLock) {
-			if (inputChannels.put(checkNotNull(partitionId), checkNotNull(inputChannel)) == null
+			if (inputChannels.put(partitionIndex, checkNotNull(inputChannel)) == null
 					&& inputChannel instanceof UnknownInputChannel) {
 
 				numberOfUninitializedChannels++;
@@ -340,9 +339,9 @@ public class SingleInputGate implements InputGate {
 				return;
 			}
 
-			final IntermediateResultPartitionID partitionId = icdd.getConsumedPartitionId().getPartitionId();
+			final int partitionIndex = icdd.getConsumedPartitionId().getPartitionIndex();
 
-			InputChannel current = inputChannels.get(partitionId);
+			InputChannel current = inputChannels.get(partitionIndex);
 
 			if (current instanceof UnknownInputChannel) {
 
@@ -371,7 +370,7 @@ public class SingleInputGate implements InputGate {
 
 				LOG.debug("{}: Updated unknown input channel to {}.", owningTaskName, newChannel);
 
-				inputChannels.put(partitionId, newChannel);
+				inputChannels.put(partitionIndex, newChannel);
 
 				if (requestedPartitionsFlag) {
 					newChannel.requestSubpartition(consumedSubpartitionIndex);
@@ -391,14 +390,14 @@ public class SingleInputGate implements InputGate {
 	/**
 	 * Retriggers a partition request.
 	 */
-	public void retriggerPartitionRequest(IntermediateResultPartitionID partitionId) throws IOException, InterruptedException {
+	public void retriggerPartitionRequest(int partitionIndex) throws IOException, InterruptedException {
 		synchronized (requestLock) {
 			if (!isReleased) {
-				final InputChannel ch = inputChannels.get(partitionId);
+				final InputChannel ch = inputChannels.get(partitionIndex);
 
-				checkNotNull(ch, "Unknown input channel with ID " + partitionId);
+				checkNotNull(ch, "Unknown input channel with ID " + consumedResultId + "-" + partitionIndex);
 
-				LOG.debug("{}: Retriggering partition request {}:{}.", owningTaskName, ch.partitionId, consumedSubpartitionIndex);
+				LOG.debug("{}: Retriggering partition request {}:{}.", owningTaskName, consumedResultId, partitionIndex, consumedSubpartitionIndex);
 
 				if (ch.getClass() == RemoteInputChannel.class) {
 					final RemoteInputChannel rch = (RemoteInputChannel) ch;
@@ -619,7 +618,7 @@ public class SingleInputGate implements InputGate {
 	}
 
 	void triggerPartitionStateCheck(ResultPartitionID partitionId) {
-		taskActions.triggerPartitionProducerStateCheck(jobId, consumedResultId, partitionId);
+		taskActions.triggerPartitionProducerStateCheck(jobId, partitionId);
 	}
 
 	private void queueChannel(InputChannel channel) {
@@ -649,7 +648,7 @@ public class SingleInputGate implements InputGate {
 
 	// ------------------------------------------------------------------------
 
-	Map<IntermediateResultPartitionID, InputChannel> getInputChannels() {
+	Map<Integer, InputChannel> getInputChannels() {
 		return inputChannels;
 	}
 
@@ -728,7 +727,7 @@ public class SingleInputGate implements InputGate {
 				throw new IllegalStateException("Unexpected partition location.");
 			}
 
-			inputGate.setInputChannel(partitionId.getPartitionId(), inputChannels[i]);
+			inputGate.setInputChannel(partitionId.getPartitionIndex(), inputChannels[i]);
 		}
 
 		LOG.debug("{}: Created {} input channels (local: {}, remote: {}, unknown: {}).",

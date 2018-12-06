@@ -1631,12 +1631,12 @@ public class ExecutionGraph implements AccessExecutionGraph {
 		final Execution execution = currentExecutions.get(partitionId.getProducerId());
 
 		if (execution == null) {
-			throw new ExecutionGraphException("Cannot find execution for execution Id " +
-				partitionId.getPartitionId() + '.');
+			throw new ExecutionGraphException("Cannot find execution for result partition " +
+				partitionId + '.');
 		}
 		else if (execution.getVertex() == null){
-			throw new ExecutionGraphException("Execution with execution Id " +
-				partitionId.getPartitionId() + " has no vertex assigned.");
+			throw new ExecutionGraphException("Execution for result partition " +
+				partitionId + " has no vertex assigned.");
 		} else {
 			execution.getVertex().scheduleOrUpdateConsumers(partitionId);
 		}

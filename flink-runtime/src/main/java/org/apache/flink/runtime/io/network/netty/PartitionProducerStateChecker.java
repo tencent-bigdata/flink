@@ -21,7 +21,6 @@ package org.apache.flink.runtime.io.network.netty;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
-import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -39,7 +38,6 @@ public interface PartitionProducerStateChecker {
 	 * Requests the execution state of the execution producing a result partition.
 	 *
 	 * @param jobId ID of the job the partition belongs to.
-	 * @param intermediateDataSetId ID of the parent intermediate data set.
 	 * @param resultPartitionId ID of the result partition to check. This
 	 * identifies the producing execution and partition.
 	 *
@@ -47,7 +45,6 @@ public interface PartitionProducerStateChecker {
 	 */
 	CompletableFuture<ExecutionState> requestPartitionProducerState(
 			JobID jobId,
-			IntermediateDataSetID intermediateDataSetId,
 			ResultPartitionID resultPartitionId);
 
 }

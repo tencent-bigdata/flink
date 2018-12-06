@@ -21,7 +21,7 @@ package org.apache.flink.runtime.executiongraph;
 import org.apache.flink.runtime.execution.SuppressRestartsException;
 import org.apache.flink.runtime.executiongraph.restart.InfiniteDelayRestartStrategy;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
-import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
+import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.util.TestLogger;
 
@@ -99,10 +99,9 @@ public class ExecutionGraphVariousFailuesTest extends TestLogger {
 
 		assertEquals(JobStatus.RUNNING, eg.getState());
 		ExecutionGraphTestUtils.switchAllVerticesToRunning(eg);
-
-		IntermediateResultPartitionID intermediateResultPartitionId = new IntermediateResultPartitionID();
+		
 		ExecutionAttemptID producerId = new ExecutionAttemptID();
-		ResultPartitionID resultPartitionId = new ResultPartitionID(intermediateResultPartitionId, producerId);
+		ResultPartitionID resultPartitionId = new ResultPartitionID(new IntermediateDataSetID(), 0, producerId);
 
 		// The execution attempt id does not exist and thus the scheduleOrUpdateConsumers call
 		// should fail

@@ -247,8 +247,8 @@ public class CreditBasedPartitionRequestClientHandlerTest {
 
 		final NetworkBufferPool networkBufferPool = new NetworkBufferPool(10, 32);
 		final SingleInputGate inputGate = createSingleInputGate();
-		final RemoteInputChannel inputChannel1 = createRemoteInputChannel(inputGate, client);
-		final RemoteInputChannel inputChannel2 = createRemoteInputChannel(inputGate, client);
+		final RemoteInputChannel inputChannel1 = createRemoteInputChannel(inputGate, 0, client);
+		final RemoteInputChannel inputChannel2 = createRemoteInputChannel(inputGate, 1, client);
 		try {
 			final BufferPool bufferPool = networkBufferPool.createBufferPool(6, 6);
 			inputGate.setBufferPool(bufferPool);
@@ -348,7 +348,7 @@ public class CreditBasedPartitionRequestClientHandlerTest {
 
 		final NetworkBufferPool networkBufferPool = new NetworkBufferPool(10, 32);
 		final SingleInputGate inputGate = createSingleInputGate();
-		final RemoteInputChannel inputChannel = createRemoteInputChannel(inputGate, client);
+		final RemoteInputChannel inputChannel = createRemoteInputChannel(inputGate, 0, client);
 		try {
 			final BufferPool bufferPool = networkBufferPool.createBufferPool(6, 6);
 			inputGate.setBufferPool(bufferPool);

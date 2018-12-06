@@ -93,7 +93,7 @@ public class PointwisePatternTest {
 			ExecutionEdge[] inEdges = ev.getInputEdges(0);
 			assertEquals(1, inEdges.length);
 			
-			assertEquals(ev.getParallelSubtaskIndex(), inEdges[0].getSource().getPartitionNumber());
+			assertEquals(ev.getParallelSubtaskIndex(), inEdges[0].getSource().getPartitionIndex());
 		}
 	}
 	
@@ -140,8 +140,8 @@ public class PointwisePatternTest {
 			ExecutionEdge[] inEdges = ev.getInputEdges(0);
 			assertEquals(2, inEdges.length);
 			
-			assertEquals(ev.getParallelSubtaskIndex() * 2, inEdges[0].getSource().getPartitionNumber());
-			assertEquals(ev.getParallelSubtaskIndex() * 2 + 1, inEdges[1].getSource().getPartitionNumber());
+			assertEquals(ev.getParallelSubtaskIndex() * 2, inEdges[0].getSource().getPartitionIndex());
+			assertEquals(ev.getParallelSubtaskIndex() * 2 + 1, inEdges[1].getSource().getPartitionIndex());
 		}
 	}
 	
@@ -188,9 +188,9 @@ public class PointwisePatternTest {
 			ExecutionEdge[] inEdges = ev.getInputEdges(0);
 			assertEquals(3, inEdges.length);
 			
-			assertEquals(ev.getParallelSubtaskIndex() * 3, inEdges[0].getSource().getPartitionNumber());
-			assertEquals(ev.getParallelSubtaskIndex() * 3 + 1, inEdges[1].getSource().getPartitionNumber());
-			assertEquals(ev.getParallelSubtaskIndex() * 3 + 2, inEdges[2].getSource().getPartitionNumber());
+			assertEquals(ev.getParallelSubtaskIndex() * 3, inEdges[0].getSource().getPartitionIndex());
+			assertEquals(ev.getParallelSubtaskIndex() * 3 + 1, inEdges[1].getSource().getPartitionIndex());
+			assertEquals(ev.getParallelSubtaskIndex() * 3 + 2, inEdges[2].getSource().getPartitionIndex());
 		}
 	}
 	
@@ -237,7 +237,7 @@ public class PointwisePatternTest {
 			ExecutionEdge[] inEdges = ev.getInputEdges(0);
 			assertEquals(1, inEdges.length);
 			
-			assertEquals(ev.getParallelSubtaskIndex() / 2, inEdges[0].getSource().getPartitionNumber());
+			assertEquals(ev.getParallelSubtaskIndex() / 2, inEdges[0].getSource().getPartitionIndex());
 		}
 	}
 	
@@ -284,7 +284,7 @@ public class PointwisePatternTest {
 			ExecutionEdge[] inEdges = ev.getInputEdges(0);
 			assertEquals(1, inEdges.length);
 			
-			assertEquals(ev.getParallelSubtaskIndex() / 7, inEdges[0].getSource().getPartitionNumber());
+			assertEquals(ev.getParallelSubtaskIndex() / 7, inEdges[0].getSource().getPartitionIndex());
 		}
 	}
 	
@@ -354,7 +354,7 @@ public class PointwisePatternTest {
 			assertEquals(1, inEdges.length);
 			
 			
-			timesUsed[inEdges[0].getSource().getPartitionNumber()]++;
+			timesUsed[inEdges[0].getSource().getPartitionIndex()]++;
 		}
 
 		for (int used : timesUsed) {
@@ -412,7 +412,7 @@ public class PointwisePatternTest {
 			assertTrue(inEdges.length >= factor && inEdges.length <= factor + delta);
 			
 			for (ExecutionEdge ee : inEdges) {
-				timesUsed[ee.getSource().getPartitionNumber()]++;
+				timesUsed[ee.getSource().getPartitionIndex()]++;
 			}
 		}
 

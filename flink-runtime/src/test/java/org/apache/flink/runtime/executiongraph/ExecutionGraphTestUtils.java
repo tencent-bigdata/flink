@@ -654,7 +654,7 @@ public class ExecutionGraphTestUtils {
 					int expectedPartitionNum = 0;
 					for (ExecutionEdge inEdge : inputEdges) {
 						assertEquals(i, inEdge.getInputNum());
-						assertEquals(expectedPartitionNum, inEdge.getSource().getPartitionNumber());
+						assertEquals(expectedPartitionNum, inEdge.getSource().getPartitionIndex());
 
 						expectedPartitionNum++;
 					}

@@ -358,7 +358,7 @@ public class Task implements Runnable, TaskActions, CheckpointListener {
 		int counter = 0;
 
 		for (ResultPartitionDeploymentDescriptor desc: resultPartitionDeploymentDescriptors) {
-			ResultPartitionID partitionId = new ResultPartitionID(desc.getPartitionId(), executionId);
+			ResultPartitionID partitionId = new ResultPartitionID(desc.getResultId(), desc.getPartitionIndex(), executionId);
 
 			this.producedPartitions[counter] = new ResultPartition(
 				taskNameWithSubtaskAndId,
@@ -1088,13 +1088,11 @@ public class Task implements Runnable, TaskActions, CheckpointListener {
 	@Override
 	public void triggerPartitionProducerStateCheck(
 		JobID jobId,
-		final IntermediateDataSetID intermediateDataSetId,
 		final ResultPartitionID resultPartitionId) {
 
 		CompletableFuture<ExecutionState> futurePartitionState =
 			partitionProducerStateChecker.requestPartitionProducerState(
 				jobId,
-				intermediateDataSetId,
 				resultPartitionId);
 
 		futurePartitionState.whenCompleteAsync(
@@ -1102,18 +1100,18 @@ public class Task implements Runnable, TaskActions, CheckpointListener {
 				try {
 					if (executionState != null) {
 						onPartitionStateUpdate(
-							intermediateDataSetId,
 							resultPartitionId,
 							executionState);
 					} else if (throwable instanceof TimeoutException) {
 						// our request timed out, assume we're still running and try again
 						onPartitionStateUpdate(
-							intermediateDataSetId,
 							resultPartitionId,
 							ExecutionState.RUNNING);
 					} else if (throwable instanceof PartitionProducerDisposedException) {
-						String msg = String.format("Producer %s of partition %s disposed. Cancelling execution.",
-							resultPartitionId.getProducerId(), resultPartitionId.getPartitionId());
+						String msg = String.format("Producer %s of partition %s-%s disposed. Cancelling execution.",
+							resultPartitionId.getProducerId(), 
+							resultPartitionId.getResultId(),
+							resultPartitionId.getPartitionIndex());
 						LOG.info(msg, throwable);
 						cancelExecution();
 					} else {
@@ -1230,12 +1228,11 @@ public class Task implements Runnable, TaskActions, CheckpointListener {
 	 */
 	@VisibleForTesting
 	void onPartitionStateUpdate(
-			IntermediateDataSetID intermediateDataSetId,
 			ResultPartitionID resultPartitionId,
 			ExecutionState producerState) throws IOException, InterruptedException {
 
 		if (executionState == ExecutionState.RUNNING) {
-			final SingleInputGate inputGate = inputGatesById.get(intermediateDataSetId);
+			final SingleInputGate inputGate = inputGatesById.get(resultPartitionId.getResultId());
 
 			if (inputGate != null) {
 				if (producerState == ExecutionState.SCHEDULED
@@ -1244,7 +1241,7 @@ public class Task implements Runnable, TaskActions, CheckpointListener {
 					|| producerState == ExecutionState.FINISHED) {
 
 					// Retrigger the partition request
-					inputGate.retriggerPartitionRequest(resultPartitionId.getPartitionId());
+					inputGate.retriggerPartitionRequest(resultPartitionId.getPartitionIndex());
 
 				} else if (producerState == ExecutionState.CANCELING
 					|| producerState == ExecutionState.CANCELED
@@ -1254,9 +1251,10 @@ public class Task implements Runnable, TaskActions, CheckpointListener {
 					// don't need to re-trigger the request since it cannot
 					// succeed.
 					if (LOG.isDebugEnabled()) {
-						LOG.debug("Cancelling task {} after the producer of partition {} with attempt ID {} has entered state {}.",
+						LOG.debug("Cancelling task {} after the producer of partition {}-{} with attempt ID {} has entered state {}.",
 							taskNameWithSubtask,
-							resultPartitionId.getPartitionId(),
+							resultPartitionId.getResultId(),
+							resultPartitionId.getPartitionIndex(),
 							resultPartitionId.getProducerId(),
 							producerState);
 					}
@@ -1267,16 +1265,17 @@ public class Task implements Runnable, TaskActions, CheckpointListener {
 					// state CREATED is left out of the checked states. If we
 					// see a producer in this state, something went wrong with
 					// scheduling in topological order.
-					String msg = String.format("Producer with attempt ID %s of partition %s in unexpected state %s.",
+					String msg = String.format("Producer with attempt ID %s of partition %s-%s in unexpected state %s.",
 						resultPartitionId.getProducerId(),
-						resultPartitionId.getPartitionId(),
+						resultPartitionId.getResultId(),
+						resultPartitionId.getPartitionIndex(),
 						producerState);
 
 					failExternally(new IllegalStateException(msg));
 				}
 			} else {
 				failExternally(new IllegalStateException("Received partition producer state for " +
-						"unknown input gate " + intermediateDataSetId + "."));
+						"unknown input gate " + resultPartitionId + "."));
 			}
 		} else {
 			LOG.debug("Task {} ignored a partition producer state notification, because it's not running.", taskNameWithSubtask);

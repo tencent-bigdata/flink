@@ -183,7 +183,7 @@ public class RescalePartitionerTest extends TestLogger {
 			assertEquals(1, mapTaskVertex.getInputEdges(0).length);
 			ExecutionEdge inputEdge = mapTaskVertex.getInputEdges(0)[0];
 			assertEquals(sourceVertex.getID(), inputEdge.getSource().getProducer().getJobvertexId());
-			int inputPartition = inputEdge.getSource().getPartitionNumber();
+			int inputPartition = inputEdge.getSource().getPartitionIndex();
 			if (!mapInputPartitionCounts.containsKey(inputPartition)) {
 				mapInputPartitionCounts.put(inputPartition, 1);
 			} else {
@@ -211,10 +211,10 @@ public class RescalePartitionerTest extends TestLogger {
 			assertEquals(mapVertex.getID(), inputEdge1.getSource().getProducer().getJobvertexId());
 			assertEquals(mapVertex.getID(), inputEdge2.getSource().getProducer().getJobvertexId());
 
-			int inputPartition1 = inputEdge1.getSource().getPartitionNumber();
+			int inputPartition1 = inputEdge1.getSource().getPartitionIndex();
 			assertFalse(mapSubpartitions.contains(inputPartition1));
 			mapSubpartitions.add(inputPartition1);
-			int inputPartition2 = inputEdge2.getSource().getPartitionNumber();
+			int inputPartition2 = inputEdge2.getSource().getPartitionIndex();
 			assertFalse(mapSubpartitions.contains(inputPartition2));
 			mapSubpartitions.add(inputPartition2);
 		}

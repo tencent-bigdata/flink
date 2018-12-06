@@ -20,60 +20,91 @@ package org.apache.flink.runtime.io.network.partition;
 
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.executiongraph.IntermediateResultPartition;
-import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
+import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
+
+import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBuf;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Runtime identifier of a produced {@link IntermediateResultPartition}.
  *
- * <p>In failure cases the {@link IntermediateResultPartitionID} is not enough to uniquely
- * identify a result partition. It needs to be associated with the producing task as well to ensure
- * correct tracking of failed/restarted tasks.
+ * <p>In failure cases the {@link IntermediateDataSetID} and {@code partitionIndex} is not enough to
+ * uniquely identify a result partition. It needs to be associated with the producing task as well
+ * to ensure correct tracking of failed/restarted tasks.
  */
 public final class ResultPartitionID implements Serializable {
 
 	private static final long serialVersionUID = -902516386203787826L;
 
-	private final IntermediateResultPartitionID partitionId;
+	private final IntermediateDataSetID resultId;
+
+	private final int partitionIndex;
 
 	private final ExecutionAttemptID producerId;
 
 	public ResultPartitionID() {
-		this(new IntermediateResultPartitionID(), new ExecutionAttemptID());
+		this(new IntermediateDataSetID(), 0, new ExecutionAttemptID());
 	}
 
-	public ResultPartitionID(IntermediateResultPartitionID partitionId, ExecutionAttemptID producerId) {
-		this.partitionId = partitionId;
+	public ResultPartitionID(IntermediateDataSetID resultId, int partitionIndex, ExecutionAttemptID producerId) {
+		this.resultId = resultId;
+		this.partitionIndex = partitionIndex;
 		this.producerId = producerId;
 	}
 
-	public IntermediateResultPartitionID getPartitionId() {
-		return partitionId;
+	public IntermediateDataSetID getResultId() {
+		return resultId;
+	}
+
+	public int getPartitionIndex() {
+		return partitionIndex;
 	}
 
 	public ExecutionAttemptID getProducerId() {
 		return producerId;
 	}
 
-	@Override
-	public boolean equals(Object obj) {
-		if (obj != null && obj.getClass() == ResultPartitionID.class) {
-			ResultPartitionID o = (ResultPartitionID) obj;
+	public void writeTo(ByteBuf buf) {
+		resultId.writeTo(buf);
+		buf.writeInt(partitionIndex);
+		producerId.writeTo(buf);
+	}
 
-			return o.getPartitionId().equals(partitionId) && o.getProducerId().equals(producerId);
+	public static ResultPartitionID fromByteBuf(ByteBuf buf) {
+		IntermediateDataSetID resultId = IntermediateDataSetID.fromByteBuf(buf);
+		int partitionIndex = buf.readInt();
+		ExecutionAttemptID producerId = ExecutionAttemptID.fromByteBuf(buf);
+		return new ResultPartitionID(resultId, partitionIndex, producerId);
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
 		}
 
-		return false;
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
+		ResultPartitionID that = (ResultPartitionID) o;
+		return partitionIndex == that.partitionIndex &&
+			Objects.equals(resultId, that.resultId) &&
+			Objects.equals(producerId, that.producerId);
 	}
 
 	@Override
 	public int hashCode() {
-		return partitionId.hashCode() ^ producerId.hashCode();
+		return Objects.hash(resultId, partitionIndex, producerId);
 	}
 
 	@Override
 	public String toString() {
-		return partitionId.toString() + "@" + producerId.toString();
+		return "ResultPartitionID{" +
+			"resultId=" + resultId +
+			", partitionIndex=" + partitionIndex +
+			", producerId=" + producerId +
+			'}';
 	}
 }

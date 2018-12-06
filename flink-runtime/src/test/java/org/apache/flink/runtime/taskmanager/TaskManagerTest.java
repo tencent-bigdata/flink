@@ -49,7 +49,6 @@ import org.apache.flink.runtime.io.network.partition.PartitionNotFoundException;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionType;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
-import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.jobmanager.Tasks;
@@ -676,17 +675,18 @@ public class TaskManagerTest extends TestLogger {
 						true);
 
 				final ActorGateway tm = taskManager;
-
-				IntermediateResultPartitionID partitionId = new IntermediateResultPartitionID();
+				
+				IntermediateDataSetID resultID = new IntermediateDataSetID();
+				int partitionIndex = 3;
 
 				List<ResultPartitionDeploymentDescriptor> irpdd = new ArrayList<ResultPartitionDeploymentDescriptor>();
-				irpdd.add(new ResultPartitionDeploymentDescriptor(new IntermediateDataSetID(), partitionId, ResultPartitionType.PIPELINED, 1, 1, true));
+				irpdd.add(new ResultPartitionDeploymentDescriptor(resultID, partitionIndex, ResultPartitionType.PIPELINED, 1, 1, true));
 
 				InputGateDeploymentDescriptor ircdd =
 						new InputGateDeploymentDescriptor(
 								new IntermediateDataSetID(), ResultPartitionType.PIPELINED,
 								0, new InputChannelDeploymentDescriptor[]{
-										new InputChannelDeploymentDescriptor(new ResultPartitionID(partitionId, eid1), ResultPartitionLocation.createLocal())
+										new InputChannelDeploymentDescriptor(new ResultPartitionID(resultID, partitionIndex, eid1), ResultPartitionLocation.createLocal())
 								}
 						);
 
@@ -826,16 +826,17 @@ public class TaskManagerTest extends TestLogger {
 
 				final ActorGateway tm = taskManager;
 
-				IntermediateResultPartitionID partitionId = new IntermediateResultPartitionID();
+				IntermediateDataSetID resultID = new IntermediateDataSetID();
+				int partitionIndex = 3;
 
 				List<ResultPartitionDeploymentDescriptor> irpdd = new ArrayList<ResultPartitionDeploymentDescriptor>();
-				irpdd.add(new ResultPartitionDeploymentDescriptor(new IntermediateDataSetID(), partitionId, ResultPartitionType.PIPELINED, 1, 1, true));
+				irpdd.add(new ResultPartitionDeploymentDescriptor(resultID, 3, ResultPartitionType.PIPELINED, 1, 1, true));
 
 				InputGateDeploymentDescriptor ircdd =
 						new InputGateDeploymentDescriptor(
 								new IntermediateDataSetID(), ResultPartitionType.PIPELINED,
 								0, new InputChannelDeploymentDescriptor[]{
-										new InputChannelDeploymentDescriptor(new ResultPartitionID(partitionId, eid1), ResultPartitionLocation.createLocal())
+										new InputChannelDeploymentDescriptor(new ResultPartitionID(resultID, 3, eid1), ResultPartitionLocation.createLocal())
 								}
 						);
 
@@ -979,7 +980,7 @@ public class TaskManagerTest extends TestLogger {
 				final JobVertexID vid = new JobVertexID();
 				final ExecutionAttemptID eid = new ExecutionAttemptID();
 
-				final ResultPartitionID partitionId = new ResultPartitionID();
+				final ResultPartitionID partitionId = new ResultPartitionID(resultId, 0, eid);
 
 				// Remote location (on the same TM though) for the partition
 				final ResultPartitionLocation loc = ResultPartitionLocation
@@ -1580,7 +1581,7 @@ public class TaskManagerTest extends TestLogger {
 
 			final ResultPartitionDeploymentDescriptor resultPartitionDeploymentDescriptor = new ResultPartitionDeploymentDescriptor(
 				new IntermediateDataSetID(),
-				new IntermediateResultPartitionID(),
+				0,
 				ResultPartitionType.PIPELINED,
 				1,
 				1,

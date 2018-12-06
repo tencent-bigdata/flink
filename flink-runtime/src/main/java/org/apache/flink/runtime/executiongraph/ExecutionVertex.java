@@ -38,7 +38,6 @@ import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionType;
 import org.apache.flink.runtime.jobgraph.DistributionPattern;
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
-import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
 import org.apache.flink.runtime.jobgraph.JobEdge;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobmanager.scheduler.CoLocationConstraint;
@@ -87,7 +86,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 	private final ExecutionJobVertex jobVertex;
 
-	private final Map<IntermediateResultPartitionID, IntermediateResultPartition> resultPartitions;
+	private final Map<IntermediateDataSetID, IntermediateResultPartition> resultPartitions;
 
 	private final ExecutionEdge[][] inputEdges;
 
@@ -159,7 +158,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 			IntermediateResultPartition irp = new IntermediateResultPartition(result, this, subTaskIndex);
 			result.setPartition(subTaskIndex, irp);
 
-			resultPartitions.put(irp.getPartitionId(), irp);
+			resultPartitions.put(irp.getResultId(), irp);
 		}
 
 		this.inputEdges = new ExecutionEdge[jobVertex.getJobVertex().getInputs().size()][];
@@ -336,7 +335,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 		return this.jobVertex.getGraph();
 	}
 
-	public Map<IntermediateResultPartitionID, IntermediateResultPartition> getProducedPartitions() {
+	public Map<IntermediateDataSetID, IntermediateResultPartition> getProducedPartitions() {
 		return resultPartitions;
 	}
 
@@ -678,7 +677,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 			return;
 		}
 
-		final IntermediateResultPartition partition = resultPartitions.get(partitionId.getPartitionId());
+		final IntermediateResultPartition partition = resultPartitions.get(partitionId.getResultId());
 
 		if (partition == null) {
 			throw new IllegalStateException("Unknown partition " + partitionId + ".");

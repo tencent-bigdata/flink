@@ -20,6 +20,7 @@ package org.apache.flink.runtime.io.network;
 
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.TaskManagerOptions;
+import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.network.partition.NoOpResultPartitionConsumableNotifier;
 import org.apache.flink.runtime.io.network.partition.ResultPartition;
@@ -81,10 +82,11 @@ public class NetworkEnvironmentTest {
 			numBuffers, memorySegmentSize, 0, 0, 2, 8, enableCreditBasedFlowControl);
 
 		// result partitions
-		ResultPartition rp1 = createResultPartition(ResultPartitionType.PIPELINED, 2);
-		ResultPartition rp2 = createResultPartition(ResultPartitionType.BLOCKING, 2);
-		ResultPartition rp3 = createResultPartition(ResultPartitionType.PIPELINED_BOUNDED, 2);
-		ResultPartition rp4 = createResultPartition(ResultPartitionType.PIPELINED_BOUNDED, 8);
+		IntermediateDataSetID resultID = new IntermediateDataSetID();
+		ResultPartition rp1 = createResultPartition(resultID, ResultPartitionType.PIPELINED, 0, 2);
+		ResultPartition rp2 = createResultPartition(resultID, ResultPartitionType.BLOCKING, 1, 2);
+		ResultPartition rp3 = createResultPartition(resultID, ResultPartitionType.PIPELINED_BOUNDED, 2, 2);
+		ResultPartition rp4 = createResultPartition(resultID, ResultPartitionType.PIPELINED_BOUNDED, 3, 8);
 		final ResultPartition[] resultPartitions = new ResultPartition[] {rp1, rp2, rp3, rp4};
 
 		// input gates
@@ -187,10 +189,11 @@ public class NetworkEnvironmentTest {
 		final ConnectionManager connManager = createDummyConnectionManager();
 
 		// result partitions
-		ResultPartition rp1 = createResultPartition(ResultPartitionType.PIPELINED, 2);
-		ResultPartition rp2 = createResultPartition(ResultPartitionType.BLOCKING, 2);
-		ResultPartition rp3 = createResultPartition(ResultPartitionType.PIPELINED_BOUNDED, 2);
-		ResultPartition rp4 = createResultPartition(ResultPartitionType.PIPELINED_BOUNDED, 4);
+		IntermediateDataSetID resultID = new IntermediateDataSetID();
+		ResultPartition rp1 = createResultPartition(resultID, ResultPartitionType.PIPELINED, 0, 2);
+		ResultPartition rp2 = createResultPartition(resultID, ResultPartitionType.BLOCKING, 1, 2);
+		ResultPartition rp3 = createResultPartition(resultID, ResultPartitionType.PIPELINED_BOUNDED, 2, 2);
+		ResultPartition rp4 = createResultPartition(resultID, ResultPartitionType.PIPELINED_BOUNDED, 3, 4);
 		final ResultPartition[] resultPartitions = new ResultPartition[] {rp1, rp2, rp3, rp4};
 
 		// input gates
@@ -204,9 +207,9 @@ public class NetworkEnvironmentTest {
 		// (note that this does not obey the partition types which is ok for the scope of the test)
 		if (enableCreditBasedFlowControl) {
 			createRemoteInputChannel(ig4, 0, rp1, connManager);
-			createRemoteInputChannel(ig4, 0, rp2, connManager);
-			createRemoteInputChannel(ig4, 0, rp3, connManager);
-			createRemoteInputChannel(ig4, 0, rp4, connManager);
+			createRemoteInputChannel(ig4, 1, rp2, connManager);
+			createRemoteInputChannel(ig4, 2, rp3, connManager);
+			createRemoteInputChannel(ig4, 3, rp4, connManager);
 
 			createRemoteInputChannel(ig1, 1, rp1, connManager);
 			createRemoteInputChannel(ig1, 1, rp4, connManager);
@@ -276,12 +279,16 @@ public class NetworkEnvironmentTest {
 	 * NetworkEnvironment#registerTask(Task)}
 	 */
 	private static ResultPartition createResultPartition(
-			final ResultPartitionType partitionType, final int channels) {
+		final IntermediateDataSetID resultID,
+		final ResultPartitionType partitionType,
+		final int partitionIndex,
+		final int channels
+	) {
 		return new ResultPartition(
 			"TestTask-" + partitionType + ":" + channels,
 			mock(TaskActions.class),
 			new JobID(),
-			new ResultPartitionID(),
+			new ResultPartitionID(resultID, partitionIndex, new ExecutionAttemptID()),
 			partitionType,
 			channels,
 			channels,
@@ -330,6 +337,6 @@ public class NetworkEnvironmentTest {
 			0,
 			0,
 			UnregisteredMetricGroups.createUnregisteredTaskMetricGroup().getIOMetricGroup());
-		inputGate.setInputChannel(resultPartition.getPartitionId().getPartitionId(), channel);
+		inputGate.setInputChannel(resultPartition.getPartitionId().getPartitionIndex(), channel);
 	}
 }

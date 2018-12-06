@@ -24,7 +24,6 @@ import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.instance.ActorGateway;
 import org.apache.flink.runtime.io.network.netty.PartitionProducerStateChecker;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
-import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.messages.JobManagerMessages;
 import org.apache.flink.util.Preconditions;
 
@@ -50,13 +49,10 @@ public class ActorGatewayPartitionProducerStateChecker implements PartitionProdu
 	@Override
 	public CompletableFuture<ExecutionState> requestPartitionProducerState(
 			JobID jobId,
-			IntermediateDataSetID intermediateDataSetId,
 			ResultPartitionID resultPartitionId) {
 
 		JobManagerMessages.RequestPartitionProducerState msg = new JobManagerMessages.RequestPartitionProducerState(
-			jobId,
-			intermediateDataSetId, resultPartitionId
-		);
+			jobId, resultPartitionId);
 
 		scala.concurrent.Future<ExecutionState> futureResponse = jobManager
 			.ask(msg, timeout)

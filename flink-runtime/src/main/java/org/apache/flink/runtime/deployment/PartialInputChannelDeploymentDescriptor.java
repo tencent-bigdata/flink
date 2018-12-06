@@ -99,7 +99,7 @@ public class PartialInputChannelDeploymentDescriptor {
 			Execution producer) {
 
 		final ResultPartitionID partitionId = new ResultPartitionID(
-				partition.getPartitionId(), producer.getAttemptId());
+				partition.getResultId(), partition.getPartitionIndex(), producer.getAttemptId());
 
 		final IntermediateResult result = partition.getIntermediateResult();
 

@@ -188,8 +188,9 @@ public class StreamNetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 	}
 
 	private void generatePartitionIds() throws Exception {
+		IntermediateDataSetID resultID = new IntermediateDataSetID();
 		for (int writer = 0; writer < partitionIds.length; writer++) {
-			partitionIds[writer] = new ResultPartitionID();
+			partitionIds[writer] = new ResultPartitionID(resultID, writer, new ExecutionAttemptID());
 		}
 	}
 
@@ -310,7 +311,6 @@ public class StreamNetworkBenchmarkEnvironment<T extends IOReadableWritable> {
 		@Override
 		public void triggerPartitionProducerStateCheck(
 			JobID jobId,
-			IntermediateDataSetID intermediateDataSetId,
 			ResultPartitionID resultPartitionId) {}
 
 		@Override
