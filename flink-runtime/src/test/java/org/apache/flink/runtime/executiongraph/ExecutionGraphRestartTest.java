@@ -217,7 +217,7 @@ public class ExecutionGraphRestartTest extends TestLogger {
 
 		assertEquals(JobStatus.CREATED, executionGraph.getState());
 
-		executionGraph.scheduleForExecution();
+		executionGraph.start();
 
 		assertEquals(JobStatus.RUNNING, executionGraph.getState());
 
@@ -344,7 +344,7 @@ public class ExecutionGraphRestartTest extends TestLogger {
 
 		assertEquals(JobStatus.CREATED, eg.getState());
 
-		eg.scheduleForExecution();
+		eg.start();
 		assertEquals(JobStatus.RUNNING, eg.getState());
 
 		Iterator<ExecutionVertex> executionVertices = eg.getAllExecutionVertices().iterator();
@@ -414,7 +414,7 @@ public class ExecutionGraphRestartTest extends TestLogger {
 
 		assertEquals(JobStatus.CREATED, eg.getState());
 
-		eg.scheduleForExecution();
+		eg.start();
 		assertEquals(JobStatus.RUNNING, eg.getState());
 
 		// Fail right after cancel (for example with concurrent slot release)
@@ -460,7 +460,7 @@ public class ExecutionGraphRestartTest extends TestLogger {
 
 		assertEquals(JobStatus.CREATED, eg.getState());
 
-		eg.scheduleForExecution();
+		eg.start();
 		assertEquals(JobStatus.RUNNING, eg.getState());
 
 		// Fail right after cancel (for example with concurrent slot release)
@@ -516,7 +516,7 @@ public class ExecutionGraphRestartTest extends TestLogger {
 
 		assertEquals(JobStatus.CREATED, eg.getState());
 
-		eg.scheduleForExecution();
+		eg.start();
 
 		assertEquals(JobStatus.RUNNING, eg.getState());
 
@@ -556,7 +556,7 @@ public class ExecutionGraphRestartTest extends TestLogger {
 		taskManagerGateway.setCancelConsumer(waitForTasksCancelled);
 
 		eg.setScheduleMode(ScheduleMode.EAGER);
-		eg.scheduleForExecution();
+		eg.start();
 
 		waitForTasks.getFuture().get(1000, TimeUnit.MILLISECONDS);
 
@@ -641,7 +641,7 @@ public class ExecutionGraphRestartTest extends TestLogger {
 		taskManagerGateway.setSubmitConsumer(waitForTasks);
 
 		eg.setScheduleMode(ScheduleMode.EAGER);
-		eg.scheduleForExecution();
+		eg.start();
 
 		waitForTasks.getFuture().get(1000, TimeUnit.MILLISECONDS);
 
@@ -706,7 +706,7 @@ public class ExecutionGraphRestartTest extends TestLogger {
 		taskManagerGateway.setSubmitConsumer(waitForTasks);
 
 		eg.setScheduleMode(ScheduleMode.EAGER);
-		eg.scheduleForExecution();
+		eg.start();
 
 		waitForTasks.getFuture().get(1000, TimeUnit.MILLISECONDS);
 
@@ -760,7 +760,7 @@ public class ExecutionGraphRestartTest extends TestLogger {
 				new JobID(), scheduler, new FixedDelayRestartStrategy(numRestarts, 0), executor, source, sink);
 
 		eg.setScheduleMode(ScheduleMode.EAGER);
-		eg.scheduleForExecution();
+		eg.start();
 
 		// wait until no more changes happen
 		while (eg.getNumberOfFullRestarts() < numRestarts) {
@@ -788,7 +788,7 @@ public class ExecutionGraphRestartTest extends TestLogger {
 		final ExecutionGraph executionGraph = createSimpleExecutionGraph(restartStrategy, new TestingSlotProvider(ignored -> new CompletableFuture<>()));
 
 		executionGraph.setQueuedSchedulingAllowed(true);
-		executionGraph.scheduleForExecution();
+		executionGraph.start();
 
 		assertThat(executionGraph.getState(), is(JobStatus.RUNNING));
 
@@ -929,7 +929,7 @@ public class ExecutionGraphRestartTest extends TestLogger {
 
 		assertEquals(JobStatus.CREATED, eg.getState());
 
-		eg.scheduleForExecution();
+		eg.start();
 		assertEquals(JobStatus.RUNNING, eg.getState());
 		return new Tuple2<>(eg, instance);
 	}

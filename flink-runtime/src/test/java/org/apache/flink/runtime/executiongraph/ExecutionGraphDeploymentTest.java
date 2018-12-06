@@ -175,6 +175,10 @@ public class ExecutionGraphDeploymentTest extends TestLogger {
 
 			eg.attachJobGraph(ordered);
 
+			for (ExecutionJobVertex ejv : eg.getVerticesTopologically()) {
+				ejv.resetForNewExecution(System.currentTimeMillis(), eg.getGlobalModVersion());
+			}
+
 			ExecutionJobVertex ejv = eg.getAllVertices().get(jid2);
 			ExecutionVertex vertex = ejv.getTaskVertices()[3];
 
@@ -462,7 +466,7 @@ public class ExecutionGraphDeploymentTest extends TestLogger {
 		assertEquals(dop1, scheduler.getNumberOfAvailableSlots());
 
 		// schedule, this triggers mock deployment
-		eg.scheduleForExecution();
+		eg.start();
 
 		ExecutionAttemptID attemptID = eg.getJobVertex(v1.getID()).getTaskVertices()[0].getCurrentExecutionAttempt().getAttemptId();
 		eg.updateState(new TaskExecutionState(jobId, attemptID, ExecutionState.RUNNING));
@@ -543,7 +547,7 @@ public class ExecutionGraphDeploymentTest extends TestLogger {
 		assertEquals(dop1 + dop2, scheduler.getNumberOfAvailableSlots());
 
 		// schedule, this triggers mock deployment
-		eg.scheduleForExecution();
+		eg.start();
 
 		Map<ExecutionAttemptID, Execution> executions = eg.getRegisteredExecutions();
 		assertEquals(dop1 + dop2, executions.size());
@@ -616,7 +620,7 @@ public class ExecutionGraphDeploymentTest extends TestLogger {
 			sinkVertex);
 
 		executionGraph.setScheduleMode(ScheduleMode.EAGER);
-		executionGraph.scheduleForExecution();
+		executionGraph.start();
 
 		// all tasks should be in state SCHEDULED
 		for (ExecutionVertex executionVertex : executionGraph.getAllExecutionVertices()) {

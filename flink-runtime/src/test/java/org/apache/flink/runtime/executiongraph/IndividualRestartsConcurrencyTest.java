@@ -37,6 +37,7 @@ import org.apache.flink.runtime.executiongraph.restart.FixedDelayRestartStrategy
 import org.apache.flink.runtime.executiongraph.restart.NoRestartStrategy;
 import org.apache.flink.runtime.executiongraph.restart.RestartStrategy;
 import org.apache.flink.runtime.executiongraph.utils.SimpleSlotProvider;
+import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.jobmaster.slotpool.SlotProvider;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobStatus;
@@ -115,7 +116,7 @@ public class IndividualRestartsConcurrencyTest extends TestLogger {
 		final ExecutionVertex vertex1 = ejv.getTaskVertices()[0];
 		final ExecutionVertex vertex2 = ejv.getTaskVertices()[1];
 
-		graph.scheduleForExecution();
+		graph.start();
 		assertEquals(JobStatus.RUNNING, graph.getState());
 
 		// let one of the vertices fail - that triggers a local recovery action
@@ -179,7 +180,7 @@ public class IndividualRestartsConcurrencyTest extends TestLogger {
 		final ExecutionVertex vertex1 = ejv.getTaskVertices()[0];
 		final ExecutionVertex vertex2 = ejv.getTaskVertices()[1];
 
-		graph.scheduleForExecution();
+		graph.start();
 		assertEquals(JobStatus.RUNNING, graph.getState());
 
 		// let one of the vertices fail - that triggers a local recovery action
@@ -243,7 +244,7 @@ public class IndividualRestartsConcurrencyTest extends TestLogger {
 		final ExecutionVertex vertex1 = ejv.getTaskVertices()[0];
 		final ExecutionVertex vertex2 = ejv.getTaskVertices()[1];
 
-		graph.scheduleForExecution();
+		graph.start();
 		assertEquals(JobStatus.RUNNING, graph.getState());
 
 		// let one of the vertices fail - that triggers a local recovery action
@@ -334,6 +335,7 @@ public class IndividualRestartsConcurrencyTest extends TestLogger {
 			allVertices,
 			allVertices,
 			allVertices,
+			SavepointRestoreSettings.none(),
 			Collections.emptyList(),
 			standaloneCheckpointIDCounter,
 			new StandaloneCompletedCheckpointStore(1),
@@ -350,7 +352,7 @@ public class IndividualRestartsConcurrencyTest extends TestLogger {
 		final ExecutionVertex vertex1 = ejv.getTaskVertices()[0];
 		final ExecutionVertex vertex2 = ejv.getTaskVertices()[1];
 
-		graph.scheduleForExecution();
+		graph.start();
 		assertEquals(JobStatus.RUNNING, graph.getState());
 
 		verify(taskManagerGateway, timeout(verifyTimeout).times(parallelism)).submitTask(any(TaskDeploymentDescriptor.class), any(Time.class));

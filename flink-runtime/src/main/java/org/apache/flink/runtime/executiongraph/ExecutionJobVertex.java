@@ -147,22 +147,12 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 	 * Convenience constructor for testing.
 	 */
 	@VisibleForTesting
-	ExecutionJobVertex(
+	public ExecutionJobVertex(
 		ExecutionGraph graph,
 		JobVertex jobVertex,
 		int defaultParallelism,
-		Time timeout) throws JobException {
-
-		this(graph, jobVertex, defaultParallelism, timeout, 1L, System.currentTimeMillis());
-	}
-
-	public ExecutionJobVertex(
-			ExecutionGraph graph,
-			JobVertex jobVertex,
-			int defaultParallelism,
-			Time timeout,
-			long initialGlobalModVersion,
-			long createTimestamp) throws JobException {
+		Time timeout
+	) throws JobException {
 
 		if (graph == null || jobVertex == null) {
 			throw new NullPointerException();
@@ -235,8 +225,6 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 					i,
 					producedDataSets,
 					timeout,
-					initialGlobalModVersion,
-					createTimestamp,
 					maxPriorAttemptsHistoryLength);
 
 			this.taskVertices[i] = vertex;

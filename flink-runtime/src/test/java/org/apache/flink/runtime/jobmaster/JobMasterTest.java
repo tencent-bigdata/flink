@@ -513,7 +513,7 @@ public class JobMasterTest extends TestLogger {
 				haServices,
 				new TestingJobManagerSharedServicesBuilder().build());
 			fail("Should fail because we cannot resume the changed JobGraph from the savepoint.");
-		} catch (IllegalStateException expected) {
+		} catch (Exception expected) {
 			// that was expected :-)
 		}
 

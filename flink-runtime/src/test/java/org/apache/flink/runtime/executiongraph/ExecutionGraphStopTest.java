@@ -110,6 +110,7 @@ public class ExecutionGraphStopTest extends TestLogger {
 
 		// deploy source 1
 		for (ExecutionVertex ev : eg.getJobVertex(source1.getID()).getTaskVertices()) {
+			ev.resetForNewExecution(System.currentTimeMillis(), 1);
 			SimpleSlot slot = ExecutionGraphTestUtils.createMockSimpleSlot(sourceGateway);
 			ev.getCurrentExecutionAttempt().tryAssignResource(slot);
 			ev.getCurrentExecutionAttempt().deploy();
@@ -117,6 +118,7 @@ public class ExecutionGraphStopTest extends TestLogger {
 
 		// deploy source 2
 		for (ExecutionVertex ev : eg.getJobVertex(source2.getID()).getTaskVertices()) {
+			ev.resetForNewExecution(System.currentTimeMillis(), 1);
 			SimpleSlot slot = ExecutionGraphTestUtils.createMockSimpleSlot(sourceGateway);
 			ev.getCurrentExecutionAttempt().tryAssignResource(slot);
 			ev.getCurrentExecutionAttempt().deploy();
@@ -124,6 +126,7 @@ public class ExecutionGraphStopTest extends TestLogger {
 
 		// deploy non-source 1
 		for (ExecutionVertex ev : eg.getJobVertex(nonSource1.getID()).getTaskVertices()) {
+			ev.resetForNewExecution(System.currentTimeMillis(), 1);
 			SimpleSlot slot = ExecutionGraphTestUtils.createMockSimpleSlot(nonSourceGateway);
 			ev.getCurrentExecutionAttempt().tryAssignResource(slot);
 			ev.getCurrentExecutionAttempt().deploy();
@@ -131,6 +134,7 @@ public class ExecutionGraphStopTest extends TestLogger {
 
 		// deploy non-source 2
 		for (ExecutionVertex ev : eg.getJobVertex(nonSource2.getID()).getTaskVertices()) {
+			ev.resetForNewExecution(System.currentTimeMillis(), 1);
 			SimpleSlot slot = ExecutionGraphTestUtils.createMockSimpleSlot(nonSourceGateway);
 			ev.getCurrentExecutionAttempt().tryAssignResource(slot);
 			ev.getCurrentExecutionAttempt().deploy();
@@ -155,7 +159,10 @@ public class ExecutionGraphStopTest extends TestLogger {
 		vertex.setParallelism(5);
 
 		final ExecutionGraph graph = ExecutionGraphTestUtils.createSimpleTestGraph(jid, vertex);
-		final Execution exec = graph.getJobVertex(vertex.getID()).getTaskVertices()[0].getCurrentExecutionAttempt();
+		final ExecutionVertex ev = graph.getJobVertex(vertex.getID()).getTaskVertices()[0];
+		ev.resetForNewExecution(System.currentTimeMillis(), 1);
+
+		final Execution exec = ev.getCurrentExecutionAttempt();
 
 		final TaskManagerGateway gateway = mock(TaskManagerGateway.class);
 		when(gateway.submitTask(any(TaskDeploymentDescriptor.class), any(Time.class)))

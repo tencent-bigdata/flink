@@ -77,7 +77,7 @@ class TaskManagerLossFailsTasksTest extends WordSpecLike with Matchers {
 
         eg.getState should equal(JobStatus.CREATED)
 
-        eg.scheduleForExecution()
+        eg.start()
         eg.getState should equal(JobStatus.RUNNING)
 
         instance1.markDead()

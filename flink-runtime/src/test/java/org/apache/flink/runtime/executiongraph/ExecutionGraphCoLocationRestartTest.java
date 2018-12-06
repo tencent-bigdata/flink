@@ -79,7 +79,7 @@ public class ExecutionGraphCoLocationRestartTest extends SchedulerTestBase {
 
 		assertEquals(JobStatus.CREATED, eg.getState());
 
-		eg.scheduleForExecution();
+		eg.start();
 
 		Predicate<Execution> isDeploying = ExecutionGraphTestUtils.isInExecutionState(ExecutionState.DEPLOYING);
 

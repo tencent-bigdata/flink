@@ -470,7 +470,11 @@ trait TestingJobManagerLike extends FlinkActor {
   def checkIfAllVerticesRunning(jobID: JobID): Boolean = {
     currentJobs.get(jobID) match {
       case Some((eg, _)) =>
-        eg.getAllExecutionVertices.asScala.forall( _.getExecutionState == ExecutionState.RUNNING)
+        eg.getAllExecutionVertices.asScala.forall {
+          case vertex =>
+            (vertex.getCurrentExecutionAttempt != null &&
+              vertex.getExecutionState == ExecutionState.RUNNING)
+        }
       case None => false
     }
   }
@@ -480,8 +484,9 @@ trait TestingJobManagerLike extends FlinkActor {
       case Some((eg, _)) =>
         eg.getAllExecutionVertices.asScala.forall {
           case vertex =>
-            (vertex.getExecutionState == ExecutionState.RUNNING
-              || vertex.getExecutionState == ExecutionState.FINISHED)
+            (vertex.getCurrentExecutionAttempt != null &&
+              (vertex.getExecutionState == ExecutionState.RUNNING ||
+                vertex.getExecutionState == ExecutionState.FINISHED))
         }
       case None => false
     }

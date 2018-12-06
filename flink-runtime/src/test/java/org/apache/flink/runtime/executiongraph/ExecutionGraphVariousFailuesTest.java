@@ -41,7 +41,7 @@ public class ExecutionGraphVariousFailuesTest extends TestLogger {
 	@Test
 	public void testFailureWhileRestarting() throws Exception {
 		final ExecutionGraph eg = ExecutionGraphTestUtils.createSimpleTestGraph(new InfiniteDelayRestartStrategy(2));
-		eg.scheduleForExecution();
+		eg.start();
 
 		assertEquals(JobStatus.RUNNING, eg.getState());
 		ExecutionGraphTestUtils.switchAllVerticesToRunning(eg);
@@ -71,7 +71,7 @@ public class ExecutionGraphVariousFailuesTest extends TestLogger {
 	@Test
 	public void testSuppressRestartFailureWhileRestarting() throws Exception {
 		final ExecutionGraph eg = ExecutionGraphTestUtils.createSimpleTestGraph(new InfiniteDelayRestartStrategy(10));
-		eg.scheduleForExecution();
+		eg.start();
 
 		assertEquals(JobStatus.RUNNING, eg.getState());
 		ExecutionGraphTestUtils.switchAllVerticesToRunning(eg);
@@ -95,7 +95,7 @@ public class ExecutionGraphVariousFailuesTest extends TestLogger {
 	@Test
 	public void testFailingScheduleOrUpdateConsumers() throws Exception {
 		final ExecutionGraph eg = ExecutionGraphTestUtils.createSimpleTestGraph(new InfiniteDelayRestartStrategy(10));
-		eg.scheduleForExecution();
+		eg.start();
 
 		assertEquals(JobStatus.RUNNING, eg.getState());
 		ExecutionGraphTestUtils.switchAllVerticesToRunning(eg);

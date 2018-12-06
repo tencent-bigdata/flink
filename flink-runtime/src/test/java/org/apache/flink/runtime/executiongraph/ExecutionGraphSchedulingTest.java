@@ -152,7 +152,7 @@ public class ExecutionGraphSchedulingTest extends TestLogger {
 
 		eg.setScheduleMode(ScheduleMode.EAGER);
 		eg.setQueuedSchedulingAllowed(true);
-		eg.scheduleForExecution();
+		eg.start();
 
 		// job should be running
 		assertEquals(JobStatus.RUNNING, eg.getState());
@@ -243,7 +243,7 @@ public class ExecutionGraphSchedulingTest extends TestLogger {
 
 		eg.setScheduleMode(ScheduleMode.EAGER);
 		eg.setQueuedSchedulingAllowed(true);
-		eg.scheduleForExecution();
+		eg.start();
 
 		verifyNothingDeployed(eg, sourceTaskManagers);
 
@@ -341,7 +341,7 @@ public class ExecutionGraphSchedulingTest extends TestLogger {
 
 		eg.setScheduleMode(ScheduleMode.EAGER);
 		eg.setQueuedSchedulingAllowed(true);
-		eg.scheduleForExecution();
+		eg.start();
 
 		// fail one slot
 		sourceFutures[1].completeExceptionally(new TestRuntimeException());
@@ -409,7 +409,7 @@ public class ExecutionGraphSchedulingTest extends TestLogger {
 
 		eg.setScheduleMode(ScheduleMode.EAGER);
 		eg.setQueuedSchedulingAllowed(true);
-		eg.scheduleForExecution();
+		eg.start();
 
 		//  we complete another future
 		slotFutures[2].complete(slots[2]);
@@ -450,7 +450,7 @@ public class ExecutionGraphSchedulingTest extends TestLogger {
 		slotProvider.addSlots(jobVertex.getID(), new CompletableFuture[]{slotFuture1, slotFuture2});
 		final ExecutionGraph executionGraph = createExecutionGraph(jobGraph, slotProvider);
 
-		executionGraph.scheduleForExecution();
+		executionGraph.start();
 
 		final CompletableFuture<?> releaseFuture = new CompletableFuture<>();
 
@@ -497,7 +497,7 @@ public class ExecutionGraphSchedulingTest extends TestLogger {
 
 		final ExecutionGraph executionGraph = createExecutionGraph(jobGraph, slotProvider);
 
-		executionGraph.scheduleForExecution();
+		executionGraph.start();
 
 		assertThat(executionGraph.getState(), is(JobStatus.RUNNING));
 
@@ -544,7 +544,7 @@ public class ExecutionGraphSchedulingTest extends TestLogger {
 
 		final ExecutionGraph executionGraph = createExecutionGraph(jobGraph, slotProvider);
 
-		executionGraph.scheduleForExecution();
+		executionGraph.start();
 
 		// wait until we have requested all slots
 		requestedSlotsLatch.await();

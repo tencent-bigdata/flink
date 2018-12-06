@@ -103,7 +103,7 @@ public class ExecutionGraphMetricsTest extends TestLogger {
 			executionGraph.attachJobGraph(jobGraph.getVerticesSortedTopologicallyFromSources());
 
 			// start execution
-			executionGraph.scheduleForExecution();
+			executionGraph.start();
 			assertEquals(0L, restartingTime.getValue().longValue());
 
 			List<ExecutionAttemptID> executionIDs = new ArrayList<>();

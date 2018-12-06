@@ -292,7 +292,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 		this.lastInternalSavepoint = null;
 
 		this.jobManagerJobMetricGroup = jobMetricGroupFactory.create(jobGraph);
-		this.executionGraph = createAndRestoreExecutionGraph(jobManagerJobMetricGroup);
+		this.executionGraph = createExecutionGraph(jobManagerJobMetricGroup);
 		this.jobStatusListener = null;
 
 		this.resourceManagerConnection = null;
@@ -1002,21 +1002,10 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 	//----------------------------------------------------------------------------------------------
 
 	//-- job starting and stopping  -----------------------------------------------------------------
-
 	private Acknowledge startJobExecution(JobMasterId newJobMasterId) throws Exception {
 		validateRunsInMainThread();
 
-		checkNotNull(newJobMasterId, "The new JobMasterId must not be null.");
-
-		if (Objects.equals(getFencingToken(), newJobMasterId)) {
-			log.info("Already started the job execution with JobMasterId {}.", newJobMasterId);
-
-			return Acknowledge.get();
-		}
-
-		setNewFencingToken(newJobMasterId);
-
-		startJobMasterServices();
+		startJobMasterServices(newJobMasterId);
 
 		log.info("Starting execution of job {} ({})", jobGraph.getName(), jobGraph.getJobID());
 
@@ -1025,7 +1014,18 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 		return Acknowledge.get();
 	}
 
-	private void startJobMasterServices() throws Exception {
+	private void startJobMasterServices(JobMasterId newJobMasterId) throws Exception {
+
+		checkNotNull(newJobMasterId, "The new JobMasterId must not be null.");
+
+		if (Objects.equals(getFencingToken(), newJobMasterId)) {
+			log.info("Already started the job execution with JobMasterId {}.", newJobMasterId);
+
+			return;
+		}
+
+		setNewFencingToken(newJobMasterId);
+
 		// start the slot pool make sure the slot pool now accepts messages for this leader
 		slotPool.start(getFencingToken(), getAddress());
 
@@ -1111,7 +1111,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 		} else {
 			suspendAndClearExecutionGraphFields(new FlinkException("ExecutionGraph is being reset in order to be rescheduled."));
 			final JobManagerJobMetricGroup newJobManagerJobMetricGroup = jobMetricGroupFactory.create(jobGraph);
-			final ExecutionGraph newExecutionGraph = createAndRestoreExecutionGraph(newJobManagerJobMetricGroup);
+			final ExecutionGraph newExecutionGraph = createExecutionGraph(newJobManagerJobMetricGroup);
 
 			executionGraphAssignedFuture = executionGraph.getTerminationFuture().handleAsync(
 				(JobStatus ignored, Throwable throwable) -> {
@@ -1131,32 +1131,10 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 		executionGraph.registerJobStatusListener(jobStatusListener);
 
 		try {
-			executionGraph.scheduleForExecution();
-		}
-		catch (Throwable t) {
+			executionGraph.start();
+		} catch (Throwable t) {
 			executionGraph.failGlobal(t);
 		}
-	}
-
-	private ExecutionGraph createAndRestoreExecutionGraph(JobManagerJobMetricGroup currentJobManagerJobMetricGroup) throws Exception {
-
-		ExecutionGraph newExecutionGraph = createExecutionGraph(currentJobManagerJobMetricGroup);
-
-		final CheckpointCoordinator checkpointCoordinator = newExecutionGraph.getCheckpointCoordinator();
-
-		if (checkpointCoordinator != null) {
-			// check whether we find a valid checkpoint
-			if (!checkpointCoordinator.restoreLatestCheckpointedState(
-				newExecutionGraph.getAllVertices(),
-				false,
-				false)) {
-
-				// check whether we can restore from a savepoint
-				tryRestoreExecutionGraphFromSavepoint(newExecutionGraph, jobGraph.getSavepointRestoreSettings());
-			}
-		}
-
-		return newExecutionGraph;
 	}
 
 	private ExecutionGraph createExecutionGraph(JobManagerJobMetricGroup currentJobManagerJobMetricGroup) throws JobExecutionException, JobException {

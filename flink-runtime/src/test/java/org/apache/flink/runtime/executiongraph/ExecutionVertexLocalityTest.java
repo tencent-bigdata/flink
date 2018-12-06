@@ -210,7 +210,7 @@ public class ExecutionVertexLocalityTest extends TestLogger {
 		JobGraph testJob = new JobGraph(jobId, "test job", source, target);
 
 		final Time timeout = Time.seconds(10L);
-		return ExecutionGraphBuilder.buildGraph(
+		ExecutionGraph executionGraph = ExecutionGraphBuilder.buildGraph(
 			null,
 			testJob,
 			new Configuration(),
@@ -226,13 +226,19 @@ public class ExecutionVertexLocalityTest extends TestLogger {
 			VoidBlobWriter.getInstance(),
 			timeout,
 			log);
+
+		for (ExecutionVertex ev : executionGraph.getAllExecutionVertices()) {
+			ev.resetForNewExecution(System.currentTimeMillis(), 1);
+		}
+
+		return executionGraph;
 	}
 
 	private void initializeLocation(ExecutionVertex vertex, TaskManagerLocation location) throws Exception {
 		// we need a bit of reflection magic to initialize the location without going through
 		// scheduling paths. we choose to do that, rather than the alternatives:
 		//  - mocking the scheduler created fragile tests that break whenever the scheduler is adjusted
-		//  - exposing test methods in the ExecutionVertex leads to undesirable setters 
+		//  - exposing test methods in the ExecutionVertex leads to undesirable setters
 
 		SlotContext slot = new SimpleSlotContext(
 			new AllocationID(),

@@ -71,6 +71,7 @@ public class ExecutionVertexDeploymentTest extends TestLogger {
 
 			final ExecutionVertex vertex = new ExecutionVertex(ejv, 0, new IntermediateResult[0],
 				AkkaUtils.getDefaultTimeout());
+			vertex.resetForNewExecution(System.currentTimeMillis(), 1);
 
 			assertEquals(ExecutionState.CREATED, vertex.getExecutionState());
 			vertex.deployToSlot(slot);
@@ -108,6 +109,7 @@ public class ExecutionVertexDeploymentTest extends TestLogger {
 
 			final ExecutionVertex vertex = new ExecutionVertex(ejv, 0, new IntermediateResult[0],
 				AkkaUtils.getDefaultTimeout());
+			vertex.resetForNewExecution(System.currentTimeMillis(), 1);
 
 			assertEquals(ExecutionState.CREATED, vertex.getExecutionState());
 
@@ -142,6 +144,7 @@ public class ExecutionVertexDeploymentTest extends TestLogger {
 
 			final ExecutionVertex vertex = new ExecutionVertex(ejv, 0, new IntermediateResult[0],
 				AkkaUtils.getDefaultTimeout());
+			vertex.resetForNewExecution(System.currentTimeMillis(), 1);
 
 			final Instance instance = getInstance(
 				new ActorTaskManagerGateway(
@@ -187,6 +190,7 @@ public class ExecutionVertexDeploymentTest extends TestLogger {
 
 			final ExecutionVertex vertex = new ExecutionVertex(ejv, 0, new IntermediateResult[0],
 				AkkaUtils.getDefaultTimeout());
+			vertex.resetForNewExecution(System.currentTimeMillis(), 1);
 
 			final Instance instance = getInstance(
 				new ActorTaskManagerGateway(
@@ -217,6 +221,7 @@ public class ExecutionVertexDeploymentTest extends TestLogger {
 			final ExecutionJobVertex ejv = getExecutionVertex(jid);
 			final ExecutionVertex vertex = new ExecutionVertex(ejv, 0, new IntermediateResult[0],
 				AkkaUtils.getDefaultTimeout());
+			vertex.resetForNewExecution(System.currentTimeMillis(), 1);
 
 			final Instance instance = getInstance(
 				new ActorTaskManagerGateway(
@@ -261,6 +266,7 @@ public class ExecutionVertexDeploymentTest extends TestLogger {
 
 			final ExecutionVertex vertex = new ExecutionVertex(ejv, 0, new IntermediateResult[0],
 				AkkaUtils.getDefaultTimeout());
+			vertex.resetForNewExecution(System.currentTimeMillis(), 1);
 
 			final Instance instance = getInstance(
 				new ActorTaskManagerGateway(
@@ -301,6 +307,7 @@ public class ExecutionVertexDeploymentTest extends TestLogger {
 			final ExecutionJobVertex ejv = getExecutionVertex(jid, context);
 			final ExecutionVertex vertex = new ExecutionVertex(ejv, 0, new IntermediateResult[0],
 				AkkaUtils.getDefaultTimeout());
+			vertex.resetForNewExecution(System.currentTimeMillis(), 1);
 
 			final ExecutionAttemptID eid = vertex.getCurrentExecutionAttempt().getAttemptId();
 
@@ -365,6 +372,7 @@ public class ExecutionVertexDeploymentTest extends TestLogger {
 
 		ExecutionVertex vertex =
 				new ExecutionVertex(jobVertex, 0, new IntermediateResult[]{result}, Time.minutes(1));
+		vertex.resetForNewExecution(System.currentTimeMillis(), 1);
 
 		ExecutionEdge mockEdge = createMockExecutionEdge(1);
 

@@ -154,7 +154,7 @@ public class FailoverRegionTest extends TestLogger {
 		ExecutionVertex ev32 = eg.getJobVertex(v3.getID()).getTaskVertices()[1];
 		ExecutionVertex ev4 = eg.getJobVertex(v3.getID()).getTaskVertices()[0];
 
-		eg.scheduleForExecution();
+		eg.start();
 
 		assertEquals(JobStatus.RUNNING, strategy.getFailoverRegion(ev11).getState());
 
@@ -265,7 +265,7 @@ public class FailoverRegionTest extends TestLogger {
 			e.printStackTrace();
 			fail("Job failed with exception: " + e.getMessage());
 		}
-		eg.scheduleForExecution();
+		eg.start();
 		RestartPipelinedRegionStrategy strategy = (RestartPipelinedRegionStrategy)eg.getFailoverStrategy();
 
 		ExecutionVertex ev11 = eg.getJobVertex(v1.getID()).getTaskVertices()[0];
@@ -447,7 +447,7 @@ public class FailoverRegionTest extends TestLogger {
 			fail("Job failed with exception: " + e.getMessage());
 		}
 
-		eg.scheduleForExecution();
+		eg.start();
 		return eg;
 	}
 

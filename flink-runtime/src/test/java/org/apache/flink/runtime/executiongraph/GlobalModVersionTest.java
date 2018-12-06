@@ -57,7 +57,7 @@ public class GlobalModVersionTest extends TestLogger {
 
 		final ExecutionVertex testVertex = getRandomVertex(graph);
 
-		graph.scheduleForExecution();
+		graph.start();
 		assertEquals(JobStatus.RUNNING, graph.getState());
 		assertEquals(1L, graph.getGlobalModVersion());
 
@@ -106,7 +106,7 @@ public class GlobalModVersionTest extends TestLogger {
 
 		final ExecutionVertex testVertex = getRandomVertex(graph);
 
-		graph.scheduleForExecution();
+		graph.start();
 		assertEquals(JobStatus.RUNNING, graph.getState());
 
 		// wait until everything is running

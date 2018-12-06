@@ -57,6 +57,7 @@ public class ExecutionVertexSchedulingTest {
 			final ExecutionJobVertex ejv = getExecutionVertex(new JobVertexID());
 			final ExecutionVertex vertex = new ExecutionVertex(ejv, 0, new IntermediateResult[0],
 					AkkaUtils.getDefaultTimeout());
+			vertex.resetForNewExecution(System.currentTimeMillis(), 1);
 
 			// a slot than cannot be deployed to
 			final Instance instance = getInstance(new ActorTaskManagerGateway(DummyActorGateway.INSTANCE));
@@ -89,6 +90,7 @@ public class ExecutionVertexSchedulingTest {
 			final ExecutionJobVertex ejv = getExecutionVertex(new JobVertexID());
 			final ExecutionVertex vertex = new ExecutionVertex(ejv, 0, new IntermediateResult[0],
 					AkkaUtils.getDefaultTimeout());
+			vertex.resetForNewExecution(System.currentTimeMillis(), 1);
 
 			// a slot than cannot be deployed to
 			final Instance instance = getInstance(new ActorTaskManagerGateway(DummyActorGateway.INSTANCE));
@@ -126,6 +128,7 @@ public class ExecutionVertexSchedulingTest {
 			final ExecutionJobVertex ejv = getExecutionVertex(new JobVertexID());
 			final ExecutionVertex vertex = new ExecutionVertex(ejv, 0, new IntermediateResult[0],
 					AkkaUtils.getDefaultTimeout());
+			vertex.resetForNewExecution(System.currentTimeMillis(), 1);
 
 			final Instance instance = getInstance(new ActorTaskManagerGateway(
 				new ExecutionGraphTestUtils.SimpleActorGateway(TestingUtils.defaultExecutionContext())));

@@ -351,6 +351,7 @@ public class ExecutionGraphBuilder {
 				triggerVertices,
 				ackVertices,
 				confirmVertices,
+				jobGraph.getSavepointRestoreSettings(),
 				hooks,
 				checkpointIdCounter,
 				completedCheckpoints,

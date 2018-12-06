@@ -54,7 +54,7 @@ public class FinalizeOnMasterTest extends TestLogger {
 		vertex2.setParallelism(2);
 
 		final ExecutionGraph eg = createSimpleTestGraph(jid, vertex1, vertex2);
-		eg.scheduleForExecution();
+		eg.start();
 		assertEquals(JobStatus.RUNNING, eg.getState());
 		
 		ExecutionGraphTestUtils.switchAllVerticesToRunning(eg);
@@ -78,7 +78,7 @@ public class FinalizeOnMasterTest extends TestLogger {
 		vertex.setParallelism(1);
 
 		final ExecutionGraph eg = createSimpleTestGraph(jid, vertex);
-		eg.scheduleForExecution();
+		eg.start();
 		assertEquals(JobStatus.RUNNING, eg.getState());
 
 		ExecutionGraphTestUtils.switchAllVerticesToRunning(eg);

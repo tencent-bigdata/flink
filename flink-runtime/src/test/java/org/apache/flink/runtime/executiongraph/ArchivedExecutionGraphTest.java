@@ -36,6 +36,7 @@ import org.apache.flink.runtime.checkpoint.StandaloneCheckpointIDCounter;
 import org.apache.flink.runtime.checkpoint.StandaloneCompletedCheckpointStore;
 import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.executiongraph.restart.NoRestartStrategy;
+import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.jobmaster.slotpool.SlotProvider;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertex;
@@ -112,6 +113,10 @@ public class ArchivedExecutionGraphTest extends TestLogger {
 
 		runtimeGraph.attachJobGraph(vertices);
 
+		for (ExecutionVertex ev : runtimeGraph.getAllExecutionVertices()) {
+			ev.resetForNewExecution(System.currentTimeMillis(), 1);
+		}
+
 		List<ExecutionJobVertex> jobVertices = new ArrayList<>();
 		jobVertices.add(runtimeGraph.getJobVertex(v1ID));
 		jobVertices.add(runtimeGraph.getJobVertex(v2ID));
@@ -131,6 +136,7 @@ public class ArchivedExecutionGraphTest extends TestLogger {
 			Collections.<ExecutionJobVertex>emptyList(),
 			Collections.<ExecutionJobVertex>emptyList(),
 			Collections.<ExecutionJobVertex>emptyList(),
+			SavepointRestoreSettings.none(),
 			Collections.<MasterTriggerRestoreHook<?>>emptyList(),
 			new StandaloneCheckpointIDCounter(),
 			new StandaloneCompletedCheckpointStore(1),

@@ -33,6 +33,7 @@ import org.apache.flink.runtime.executiongraph.JobStatusListener;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.OperatorID;
+import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.messages.checkpoint.AcknowledgeCheckpoint;
 import org.apache.flink.runtime.messages.checkpoint.DeclineCheckpoint;
 import org.apache.flink.runtime.state.CheckpointStorage;
@@ -975,6 +976,74 @@ public class CheckpointCoordinator {
 	// --------------------------------------------------------------------------------------------
 	//  Checkpoint State Restoring
 	// --------------------------------------------------------------------------------------------
+
+	/**
+	 * Initializes the checkpoint coordinator with the checkpoints in the completed checkpoint store
+	 * and the savepoint (if any).
+	 *
+	 * @param savepointRestoreSettings The settings for the savepoint.
+	 * @param tasks Map of job vertices to restore.
+	 * @param userClassLoader The class loader to resolve serialized classes in legacy savepoint
+	 *                        versions.
+	 */
+	public void initialize(
+		SavepointRestoreSettings savepointRestoreSettings,
+		Map<JobVertexID, ExecutionJobVertex> tasks,
+		ClassLoader userClassLoader
+	) {
+		synchronized (lock) {
+
+			if (shutdown) {
+				throw new IllegalStateException("CheckpointCoordinator is shut down");
+			}
+
+			try {
+				// We create a new shared state registry object, so that all pending async disposal requests from previous
+				// runs will go against the old object (were they can do no harm).
+				// This must happen under the checkpoint lock.
+				sharedStateRegistry.close();
+				sharedStateRegistry = sharedStateRegistryFactory.create(executor);
+
+				// Recover the checkpoints
+				completedCheckpointStore.recover();
+
+				// Add savepoint into the completed checkpoint store if it is empty.
+				List<CompletedCheckpoint> completedCheckpoints = completedCheckpointStore.getAllCheckpoints();
+				if (completedCheckpoints.isEmpty() && savepointRestoreSettings.restoreSavepoint()) {
+
+					String savepointPointer = savepointRestoreSettings.getRestorePath();
+					boolean allowNonRestored = savepointRestoreSettings.allowNonRestoredState();
+
+					LOG.info("Starting job {} from savepoint {} (allowNonRestored: {}).", job,
+						savepointPointer, allowNonRestored);
+
+					CompletedCheckpointStorageLocation checkpointStorageLocation =
+						checkpointStorage.resolveCheckpoint(savepointPointer);
+
+					CompletedCheckpoint savepoint =
+						Checkpoints.loadAndValidateCheckpoint(job, tasks, checkpointStorageLocation,
+								userClassLoader, allowNonRestored);
+
+					completedCheckpointStore.addCheckpoint(savepoint);
+
+					// Reset the checkpoint ID counter
+					long nextCheckpointId = savepoint.getCheckpointID() + 1;
+					checkpointIdCounter.setCount(nextCheckpointId);
+
+					LOG.info("Reset the checkpoint ID of job {} to {}.", job, nextCheckpointId);
+				}
+
+				// Now, we re-register all (shared) states from the checkpoint store with the new registry
+				for (CompletedCheckpoint completedCheckpoint : completedCheckpointStore.getAllCheckpoints()) {
+					completedCheckpoint.registerSharedStatesAfterRestored(sharedStateRegistry);
+				}
+
+				LOG.debug("Status of the shared state registry of job {} after restore: {}.", job, sharedStateRegistry);
+			} catch (Throwable t) {
+				throw new RuntimeException("Could not properly initialize the checkpoint coordinator.", t);
+			}
+		}
+	}
 
 	/**
 	 * Restores the latest checkpointed state.

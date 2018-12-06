@@ -121,8 +121,6 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 			subTaskIndex,
 			producedDataSets,
 			timeout,
-			1L,
-			System.currentTimeMillis(),
 			JobManagerOptions.MAX_ATTEMPTS_HISTORY_SIZE.defaultValue());
 	}
 
@@ -131,10 +129,6 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 	 *
 	 * @param timeout
 	 *            The RPC timeout to use for deploy / cancel calls
-	 * @param initialGlobalModVersion
-	 *            The global modification version to initialize the first Execution with.
-	 * @param createTimestamp
-	 *            The timestamp for the vertex creation, used to initialize the first Execution with.
 	 * @param maxPriorExecutionHistoryLength
 	 *            The number of prior Executions (= execution attempts) to keep.
 	 */
@@ -143,8 +137,6 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 			int subTaskIndex,
 			IntermediateResult[] producedDataSets,
 			Time timeout,
-			long initialGlobalModVersion,
-			long createTimestamp,
 			int maxPriorExecutionHistoryLength) {
 
 		this.jobVertex = jobVertex;
@@ -165,14 +157,6 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 		this.priorExecutions = new EvictingBoundedList<>(maxPriorExecutionHistoryLength);
 
-		this.currentExecution = new Execution(
-			getExecutionGraph().getFutureExecutor(),
-			this,
-			0,
-			initialGlobalModVersion,
-			createTimestamp,
-			timeout);
-
 		// create a co-location scheduling hint, if necessary
 		CoLocationGroup clg = jobVertex.getCoLocationGroup();
 		if (clg != null) {
@@ -181,8 +165,6 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 		else {
 			this.locationConstraint = null;
 		}
-
-		getExecutionGraph().registerExecution(currentExecution);
 
 		this.timeout = timeout;
 	}
@@ -574,15 +556,21 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 			}
 
 			final Execution oldExecution = currentExecution;
-			final ExecutionState oldState = oldExecution.getState();
+			final ExecutionState oldState = oldExecution == null ? null : oldExecution.getState();
 
-			if (oldState.isTerminal()) {
-				priorExecutions.add(oldExecution.archive());
+			if (oldState == null || oldState.isTerminal()) {
+
+				if (oldExecution != null) {
+					priorExecutions.add(oldExecution.archive());
+				}
+
+				int newExecutionAttemptNumber = oldExecution == null ? 0 :
+					oldExecution.getAttemptNumber() + 1;
 
 				final Execution newExecution = new Execution(
 					getExecutionGraph().getFutureExecutor(),
 					this,
-					oldExecution.getAttemptNumber() + 1,
+					newExecutionAttemptNumber,
 					originatingGlobalModVersion,
 					timestamp,
 					timeout);
@@ -653,6 +641,11 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 		// to avoid any case of mixup in the presence of concurrent calls,
 		// we copy a reference to the stack to make sure both calls go to the same Execution
 		final Execution exec = this.currentExecution;
+
+		if (exec == null) {
+			return CompletableFuture.completedFuture(null);
+		}
+
 		exec.cancel();
 		return exec.getReleaseFuture();
 	}

@@ -26,8 +26,10 @@ import org.apache.flink.runtime.executiongraph.failover.RestartAllStrategy;
 import org.apache.flink.runtime.executiongraph.restart.NoRestartStrategy;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertex;
+import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.jobmanager.scheduler.Scheduler;
+import org.apache.flink.runtime.jobmaster.slotpool.SlotProvider;
 import org.apache.flink.runtime.state.memory.MemoryStateBackend;
 import org.apache.flink.runtime.testingUtils.TestingUtils;
 
@@ -86,7 +88,7 @@ public class ExecutionGraphCheckpointCoordinatorTest {
 			timeout,
 			new NoRestartStrategy(),
 			new RestartAllStrategy.Factory(),
-			new Scheduler(TestingUtils.defaultExecutionContext()),
+			mock(SlotProvider.class),
 			ClassLoader.getSystemClassLoader(),
 			VoidBlobWriter.getInstance(),
 			timeout);
@@ -100,6 +102,7 @@ public class ExecutionGraphCheckpointCoordinatorTest {
 				Collections.emptyList(),
 				Collections.emptyList(),
 				Collections.emptyList(),
+				SavepointRestoreSettings.none(),
 				Collections.emptyList(),
 				counter,
 				store,

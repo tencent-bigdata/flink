@@ -24,6 +24,7 @@ import org.apache.flink.runtime.executiongraph.Execution;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.executiongraph.ExecutionGraph;
 import org.apache.flink.runtime.executiongraph.ExecutionGraphTestUtils;
+import org.apache.flink.runtime.executiongraph.ExecutionVertex;
 import org.apache.flink.runtime.instance.Instance;
 import org.apache.flink.runtime.jobmaster.LogicalSlot;
 import org.apache.flink.runtime.testingUtils.TestingUtils;
@@ -112,6 +113,10 @@ public class SchedulerTest extends TestLogger {
 		final Scheduler scheduler = new Scheduler(TestingUtils.defaultExecutor());
 
 		final ExecutionGraph executionGraph = ExecutionGraphTestUtils.createSimpleTestGraph();
+
+		for (ExecutionVertex executionVertex : executionGraph.getAllExecutionVertices()) {
+			executionVertex.resetForNewExecution(System.currentTimeMillis(), 1);
+		}
 
 		final Map<ExecutionAttemptID, Execution> registeredExecutions = executionGraph.getRegisteredExecutions();
 

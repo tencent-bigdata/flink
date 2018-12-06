@@ -56,6 +56,7 @@ import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
+import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.jobgraph.ScheduleMode;
 import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration;
 import org.apache.flink.runtime.jobmanager.scheduler.CoLocationGroup;
@@ -474,6 +475,7 @@ public class ExecutionGraph implements AccessExecutionGraph {
 			List<ExecutionJobVertex> verticesToTrigger,
 			List<ExecutionJobVertex> verticesToWaitFor,
 			List<ExecutionJobVertex> verticesToCommitTo,
+			SavepointRestoreSettings savepointRestoreSettings,
 			List<MasterTriggerRestoreHook<?>> masterHooks,
 			CheckpointIDCounter checkpointIDCounter,
 			CompletedCheckpointStore checkpointStore,
@@ -509,6 +511,9 @@ public class ExecutionGraph implements AccessExecutionGraph {
 			checkpointStateBackend,
 			ioExecutor,
 			SharedStateRegistry.DEFAULT_FACTORY);
+
+		// initialize the checkpoint coordinator
+		checkpointCoordinator.initialize(savepointRestoreSettings, tasks, userClassLoader);
 
 		// register the master hooks on the checkpoint coordinator
 		for (MasterTriggerRestoreHook<?> hook : masterHooks) {
@@ -818,7 +823,6 @@ public class ExecutionGraph implements AccessExecutionGraph {
 				topologiallySorted.size(), tasks.size(), intermediateResults.size());
 
 		final ArrayList<ExecutionJobVertex> newExecJobVertices = new ArrayList<>(topologiallySorted.size());
-		final long createTimestamp = System.currentTimeMillis();
 
 		for (JobVertex jobVertex : topologiallySorted) {
 
@@ -831,9 +835,7 @@ public class ExecutionGraph implements AccessExecutionGraph {
 				this,
 				jobVertex,
 				1,
-				rpcTimeout,
-				globalModVersion,
-				createTimestamp);
+				rpcTimeout);
 
 			ejv.connectToPredecessors(this.intermediateResults);
 
@@ -1196,6 +1198,43 @@ public class ExecutionGraph implements AccessExecutionGraph {
 			}
 
 			// else: concurrent change to execution state, retry
+		}
+	}
+
+	public void start() {
+		try {
+			synchronized (progressLock) {
+
+				final JobStatus current = state;
+				Preconditions.checkState(current == JobStatus.CREATED);
+
+				this.currentExecutions.clear();
+
+				final Collection<CoLocationGroup> colGroups = new HashSet<>();
+				final long resetTimestamp = System.currentTimeMillis();
+
+				for (ExecutionJobVertex jv : this.verticesInCreationOrder) {
+
+					CoLocationGroup cgroup = jv.getCoLocationGroup();
+					if (cgroup != null && !colGroups.contains(cgroup)){
+						cgroup.resetConstraints();
+						colGroups.add(cgroup);
+					}
+
+					jv.resetForNewExecution(resetTimestamp, globalModVersion);
+				}
+
+				// if we have checkpointed state, reload it into the executions
+				if (checkpointCoordinator != null) {
+					checkpointCoordinator.restoreLatestCheckpointedState(getAllVertices(), false, false);
+				}
+			}
+
+			scheduleForExecution();
+
+		} catch (Throwable t) {
+			LOG.warn("Failed to start the job.", t);
+			failGlobal(t);
 		}
 	}
 
