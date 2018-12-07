@@ -24,6 +24,8 @@ import org.apache.flink.runtime.io.network.partition.ResultPartitionConsumableNo
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.jobmaster.JobMasterGateway;
 import org.apache.flink.runtime.messages.Acknowledge;
+import org.apache.flink.runtime.taskexecutor.JobManagerConnection;
+import org.apache.flink.runtime.taskexecutor.JobManagerTable;
 import org.apache.flink.runtime.taskmanager.TaskActions;
 import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;
@@ -36,20 +38,31 @@ public class RpcResultPartitionConsumableNotifier implements ResultPartitionCons
 
 	private static final Logger LOG = LoggerFactory.getLogger(RpcResultPartitionConsumableNotifier.class);
 
-	private final JobMasterGateway jobMasterGateway;
+	private final JobManagerTable jobManagerTable;
+
 	private final Executor executor;
+
 	private final Time timeout;
 
 	public RpcResultPartitionConsumableNotifier(
-			JobMasterGateway jobMasterGateway,
-			Executor executor,
-			Time timeout) {
-		this.jobMasterGateway = Preconditions.checkNotNull(jobMasterGateway);
+		JobManagerTable jobManagerTable,
+		Executor executor,
+		Time timeout
+	) {
+		this.jobManagerTable = Preconditions.checkNotNull(jobManagerTable);
 		this.executor = Preconditions.checkNotNull(executor);
 		this.timeout = Preconditions.checkNotNull(timeout);
 	}
+
 	@Override
 	public void notifyPartitionConsumable(JobID jobId, ResultPartitionID partitionId, final TaskActions taskActions) {
+
+		JobManagerConnection jobManagerConnection = jobManagerTable.get(jobId);
+		if (jobManagerConnection == null) {
+			throw new RuntimeException("Could not notify JobManager to schedule or update consumers.");
+		}
+
+		JobMasterGateway jobMasterGateway = jobManagerConnection.getJobManagerGateway();
 		CompletableFuture<Acknowledge> acknowledgeFuture = jobMasterGateway.scheduleOrUpdateConsumers(partitionId, timeout);
 
 		acknowledgeFuture.whenCompleteAsync(

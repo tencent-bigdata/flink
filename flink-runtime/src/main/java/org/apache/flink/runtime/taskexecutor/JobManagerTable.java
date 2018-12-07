@@ -20,17 +20,16 @@ package org.apache.flink.runtime.taskexecutor;
 
 import org.apache.flink.api.common.JobID;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Container for multiple {@link JobManagerConnection} registered under their respective job id.
  */
 public class JobManagerTable {
-	private final Map<JobID, JobManagerConnection> jobManagerConnections;
+	private final ConcurrentHashMap<JobID, JobManagerConnection> jobManagerConnections;
 
 	public JobManagerTable() {
-		jobManagerConnections = new HashMap<>(4);
+		jobManagerConnections = new ConcurrentHashMap<>(4);
 	}
 
 	public boolean contains(JobID jobId) {

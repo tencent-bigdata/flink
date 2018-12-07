@@ -39,9 +39,9 @@ import scala.concurrent.duration.FiniteDuration;
 public class TaskInputSplitProvider implements InputSplitProvider {
 
 	private final ActorGateway jobManager;
-	
+
 	private final JobID jobID;
-	
+
 	private final JobVertexID vertexID;
 
 	private final ExecutionAttemptID executionID;

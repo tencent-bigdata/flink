@@ -53,6 +53,7 @@ import org.apache.flink.runtime.clusterframework.types.ResourceProfile;
 import org.apache.flink.runtime.deployment.ResultPartitionDeploymentDescriptor;
 import org.apache.flink.runtime.deployment.TaskDeploymentDescriptor;
 import org.apache.flink.runtime.execution.ExecutionState;
+import org.apache.flink.runtime.execution.librarycache.LibraryCacheManager;
 import org.apache.flink.runtime.executiongraph.ArchivedExecutionGraph;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.executiongraph.ExecutionGraph;
@@ -101,6 +102,8 @@ import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.state.OperatorStreamStateHandle;
 import org.apache.flink.runtime.state.StreamStateHandle;
 import org.apache.flink.runtime.state.memory.ByteStreamStateHandle;
+import org.apache.flink.runtime.taskexecutor.JobManagerConnection;
+import org.apache.flink.runtime.taskexecutor.JobManagerTable;
 import org.apache.flink.runtime.taskexecutor.TestingTaskExecutorGateway;
 import org.apache.flink.runtime.taskexecutor.TestingTaskExecutorGatewayBuilder;
 import org.apache.flink.runtime.taskexecutor.rpc.RpcCheckpointResponder;
@@ -165,6 +168,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 /**
  * Tests for {@link JobMaster}.
@@ -307,7 +311,11 @@ public class JobMasterTest extends TestLogger {
 			JobMasterGateway jobMasterGateway =
 				rpcService2.connect(jobMaster.getAddress(), jobMaster.getFencingToken(), JobMasterGateway.class).get();
 
-			RpcCheckpointResponder rpcCheckpointResponder = new RpcCheckpointResponder(jobMasterGateway);
+			JobManagerTable jobManagerTable = new JobManagerTable();
+			jobManagerTable.put(jobGraph.getJobID(),
+				new JobManagerConnection(jobGraph.getJobID(), jmResourceId, jobMasterGateway, mock(LibraryCacheManager.class)));
+
+			RpcCheckpointResponder rpcCheckpointResponder = new RpcCheckpointResponder(jobManagerTable);
 			rpcCheckpointResponder.declineCheckpoint(
 				jobGraph.getJobID(),
 				new ExecutionAttemptID(1, 1),

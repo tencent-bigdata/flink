@@ -46,13 +46,8 @@ public class TaskInputSplitProviderTest {
 
 		final ActorGateway gateway = new NullInputSplitGateway();
 
-
-		final TaskInputSplitProvider provider = new TaskInputSplitProvider(
-			gateway,
-			jobID,
-			vertexID,
-			executionID,
-			timeout);
+		final TaskInputSplitProvider provider =
+			new TaskInputSplitProvider(gateway, jobID, vertexID, executionID, timeout);
 
 		// The jobManager will return a
 		InputSplit nextInputSplit = provider.getNextInputSplit(getClass().getClassLoader());

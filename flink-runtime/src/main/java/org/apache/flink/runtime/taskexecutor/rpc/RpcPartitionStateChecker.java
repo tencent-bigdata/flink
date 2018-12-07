@@ -19,27 +19,37 @@
 package org.apache.flink.runtime.taskexecutor.rpc;
 
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.runtime.concurrent.FutureUtils;
 import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.io.network.netty.PartitionProducerStateChecker;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
 import org.apache.flink.runtime.jobmaster.JobMasterGateway;
+import org.apache.flink.runtime.taskexecutor.JobManagerConnection;
+import org.apache.flink.runtime.taskexecutor.JobManagerTable;
+import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.Preconditions;
 
 import java.util.concurrent.CompletableFuture;
 
 public class RpcPartitionStateChecker implements PartitionProducerStateChecker {
 
-	private final JobMasterGateway jobMasterGateway;
+	private final JobManagerTable jobManagerTable;
 
-	public RpcPartitionStateChecker(JobMasterGateway jobMasterGateway) {
-		this.jobMasterGateway = Preconditions.checkNotNull(jobMasterGateway);
+	public RpcPartitionStateChecker(JobManagerTable jobManagerTable) {
+		this.jobManagerTable = Preconditions.checkNotNull(jobManagerTable);
 	}
 
 	@Override
 	public CompletableFuture<ExecutionState> requestPartitionProducerState(
-			JobID jobId,
-			ResultPartitionID partitionId) {
+		JobID jobId,
+		ResultPartitionID partitionId
+	) {
+		JobManagerConnection jobManagerConnection = jobManagerTable.get(jobId);
+		if (jobManagerConnection == null) {
+			return FutureUtils.completedExceptionally(new FlinkException("Cannot find the connection to the job master."));
+		}
 
+		JobMasterGateway jobMasterGateway = jobManagerConnection.getJobManagerGateway();
 		return jobMasterGateway.requestPartitionState(partitionId);
 	}
 }

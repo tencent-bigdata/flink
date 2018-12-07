@@ -179,11 +179,19 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
 	private final Map<ResourceID, JobManagerConnection> jobManagerConnections;
 
+	private final JobManagerTable jobManagerTable;
+
+	private final TaskManagerActions taskManagerActions;
+
+	private final CheckpointResponder checkpointResponder;
+
+	private final ResultPartitionConsumableNotifier partitionConsumableNotifier;
+
+	private final PartitionProducerStateChecker partitionProducerStateChecker;
+
 	// --------- task slot allocation table -----------
 
 	private final TaskSlotTable taskSlotTable;
-
-	private final JobManagerTable jobManagerTable;
 
 	private final JobLeaderService jobLeaderService;
 
@@ -241,6 +249,15 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 		this.resourceManagerLeaderRetriever = haServices.getResourceManagerLeaderRetriever();
 
 		this.jobManagerConnections = new HashMap<>(4);
+		this.taskManagerActions = new TaskManagerActionsImpl();
+		this.checkpointResponder = new RpcCheckpointResponder(jobManagerTable);
+		this.partitionConsumableNotifier =
+			new RpcResultPartitionConsumableNotifier(
+				jobManagerTable,
+				getRpcService().getExecutor(),
+				taskManagerConfiguration.getTimeout()
+			);
+		this.partitionProducerStateChecker = new RpcPartitionStateChecker(jobManagerTable);
 
 		final ResourceID resourceId = taskExecutorServices.getTaskManagerLocation().getResourceID();
 
@@ -490,18 +507,14 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 				tdd.getSubtaskIndex(),
 				tdd.getAttemptNumber());
 
+			LibraryCacheManager libraryCacheManager = jobManagerConnection.getLibraryCacheManager();
+
 			InputSplitProvider inputSplitProvider = new RpcInputSplitProvider(
-				jobManagerConnection.getJobManagerGateway(),
+				jobManagerTable,
+				jobId,
 				taskInformation.getJobVertexId(),
 				tdd.getExecutionAttemptId(),
 				taskManagerConfiguration.getTimeout());
-
-			TaskManagerActions taskManagerActions = jobManagerConnection.getTaskManagerActions();
-			CheckpointResponder checkpointResponder = jobManagerConnection.getCheckpointResponder();
-
-			LibraryCacheManager libraryCache = jobManagerConnection.getLibraryCacheManager();
-			ResultPartitionConsumableNotifier resultPartitionConsumableNotifier = jobManagerConnection.getResultPartitionConsumableNotifier();
-			PartitionProducerStateChecker partitionStateChecker = jobManagerConnection.getPartitionStateChecker();
 
 			final TaskLocalStateStore localStateStore = localStateStoresManager.localStateStoreForSubtask(
 				jobId,
@@ -537,12 +550,12 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 				inputSplitProvider,
 				checkpointResponder,
 				blobCacheService,
-				libraryCache,
+				libraryCacheManager,
 				fileCache,
 				taskManagerConfiguration,
 				taskMetricGroup,
-				resultPartitionConsumableNotifier,
-				partitionStateChecker,
+				partitionConsumableNotifier,
+				partitionProducerStateChecker,
 				getRpcService().getExecutor());
 
 			log.info("Received task {}.", task.getTaskInfo().getTaskNameWithSubtasks());
@@ -1230,33 +1243,14 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 		checkNotNull(resourceID);
 		checkNotNull(jobMasterGateway);
 
-		TaskManagerActions taskManagerActions = new TaskManagerActionsImpl(jobMasterGateway);
-
-		CheckpointResponder checkpointResponder = new RpcCheckpointResponder(jobMasterGateway);
-
 		final LibraryCacheManager libraryCacheManager = new BlobLibraryCacheManager(
 			blobCacheService.getPermanentBlobService(),
 			taskManagerConfiguration.getClassLoaderResolveOrder(),
 			taskManagerConfiguration.getAlwaysParentFirstLoaderPatterns());
 
-		ResultPartitionConsumableNotifier resultPartitionConsumableNotifier = new RpcResultPartitionConsumableNotifier(
-			jobMasterGateway,
-			getRpcService().getExecutor(),
-			taskManagerConfiguration.getTimeout());
-
-		PartitionProducerStateChecker partitionStateChecker = new RpcPartitionStateChecker(jobMasterGateway);
-
 		registerQueryableState(jobID, jobMasterGateway);
 
-		return new JobManagerConnection(
-			jobID,
-			resourceID,
-			jobMasterGateway,
-			taskManagerActions,
-			checkpointResponder,
-			libraryCacheManager,
-			resultPartitionConsumableNotifier,
-			partitionStateChecker);
+		return new JobManagerConnection(jobID, resourceID, jobMasterGateway, libraryCacheManager);
 	}
 
 	private void disassociateFromJobManager(JobManagerConnection jobManagerConnection, Exception cause) throws IOException {
@@ -1564,11 +1558,6 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 	}
 
 	private final class TaskManagerActionsImpl implements TaskManagerActions {
-		private final JobMasterGateway jobMasterGateway;
-
-		private TaskManagerActionsImpl(JobMasterGateway jobMasterGateway) {
-			this.jobMasterGateway = checkNotNull(jobMasterGateway);
-		}
 
 		@Override
 		public void notifyFatalError(String message, Throwable cause) {
@@ -1587,10 +1576,32 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
 		@Override
 		public void updateTaskExecutionState(final TaskExecutionState taskExecutionState) {
+			JobID jobId = taskExecutionState.getJobID();
+
 			if (taskExecutionState.getExecutionState().isTerminal()) {
-				runAsync(() -> unregisterTaskAndNotifyFinalState(jobMasterGateway, taskExecutionState.getID()));
+				runAsync(() -> {
+					JobManagerConnection jobManagerConnection = jobManagerTable.get(jobId);
+					if (jobManagerConnection == null) {
+						log.error("Could not find the connection to the master of job {}.", jobId);
+						TaskExecutor.this.failTask(taskExecutionState.getID(), new FlinkException("Could not update the task state"));
+						return;
+					}
+
+					JobMasterGateway jobMasterGateway = jobManagerConnection.getJobManagerGateway();
+					unregisterTaskAndNotifyFinalState(jobMasterGateway, taskExecutionState.getID());
+				});
 			} else {
-				TaskExecutor.this.updateTaskExecutionState(jobMasterGateway, taskExecutionState);
+				runAsync(() -> {
+					JobManagerConnection jobManagerConnection = jobManagerTable.get(jobId);
+					if (jobManagerConnection == null) {
+						log.error("Could not find the connection to the master of job {}.", jobId);
+						TaskExecutor.this.failTask(taskExecutionState.getID(), new FlinkException("Could not update the task state"));
+						return;
+					}
+
+					JobMasterGateway jobMasterGateway = jobManagerConnection.getJobManagerGateway();
+					TaskExecutor.this.updateTaskExecutionState(jobMasterGateway, taskExecutionState);
+				});
 			}
 		}
 	}

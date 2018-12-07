@@ -21,12 +21,8 @@ package org.apache.flink.runtime.taskexecutor;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.clusterframework.types.ResourceID;
 import org.apache.flink.runtime.execution.librarycache.LibraryCacheManager;
-import org.apache.flink.runtime.io.network.netty.PartitionProducerStateChecker;
-import org.apache.flink.runtime.io.network.partition.ResultPartitionConsumableNotifier;
 import org.apache.flink.runtime.jobmaster.JobMasterGateway;
 import org.apache.flink.runtime.jobmaster.JobMasterId;
-import org.apache.flink.runtime.taskmanager.CheckpointResponder;
-import org.apache.flink.runtime.taskmanager.TaskManagerActions;
 import org.apache.flink.util.Preconditions;
 
 /**
@@ -43,38 +39,19 @@ public class JobManagerConnection {
 	// Gateway to the job master
 	private final JobMasterGateway jobMasterGateway;
 
-	// Task manager actions with respect to the connected job manager
-	private final TaskManagerActions taskManagerActions;
-
-	// Checkpoint responder for the specific job manager
-	private final CheckpointResponder checkpointResponder;
-
 	// Library cache manager connected to the specific job manager
 	private final LibraryCacheManager libraryCacheManager;
 
-	// Result partition consumable notifier for the specific job manager
-	private final ResultPartitionConsumableNotifier resultPartitionConsumableNotifier;
-
-	// Partition state checker for the specific job manager
-	private final PartitionProducerStateChecker partitionStateChecker;
-
 	public JobManagerConnection(
-				JobID jobID,
-				ResourceID resourceID,
-				JobMasterGateway jobMasterGateway,
-				TaskManagerActions taskManagerActions,
-				CheckpointResponder checkpointResponder,
-				LibraryCacheManager libraryCacheManager,
-				ResultPartitionConsumableNotifier resultPartitionConsumableNotifier,
-				PartitionProducerStateChecker partitionStateChecker) {
+		JobID jobID,
+		ResourceID resourceID,
+		JobMasterGateway jobMasterGateway,
+		LibraryCacheManager libraryCacheManager
+	) {
 		this.jobID = Preconditions.checkNotNull(jobID);
 		this.resourceID = Preconditions.checkNotNull(resourceID);
 		this.jobMasterGateway = Preconditions.checkNotNull(jobMasterGateway);
-		this.taskManagerActions = Preconditions.checkNotNull(taskManagerActions);
-		this.checkpointResponder = Preconditions.checkNotNull(checkpointResponder);
 		this.libraryCacheManager = Preconditions.checkNotNull(libraryCacheManager);
-		this.resultPartitionConsumableNotifier = Preconditions.checkNotNull(resultPartitionConsumableNotifier);
-		this.partitionStateChecker = Preconditions.checkNotNull(partitionStateChecker);
 	}
 
 	public JobID getJobID() {
@@ -93,23 +70,7 @@ public class JobManagerConnection {
 		return jobMasterGateway;
 	}
 
-	public TaskManagerActions getTaskManagerActions() {
-		return taskManagerActions;
-	}
-
-	public CheckpointResponder getCheckpointResponder() {
-		return checkpointResponder;
-	}
-
 	public LibraryCacheManager getLibraryCacheManager() {
 		return libraryCacheManager;
-	}
-
-	public ResultPartitionConsumableNotifier getResultPartitionConsumableNotifier() {
-		return resultPartitionConsumableNotifier;
-	}
-
-	public PartitionProducerStateChecker getPartitionStateChecker() {
-		return partitionStateChecker;
 	}
 }
