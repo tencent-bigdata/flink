@@ -83,6 +83,7 @@ public class TaskDeploymentDescriptorTest {
 				new TaskDeploymentDescriptor.NonOffloaded<>(serializedJobVertexInformation),
 				execId,
 				allocationId,
+				vertexID,
 				indexInSubtaskGroup,
 				attemptNumber,
 				targetSlotNumber,

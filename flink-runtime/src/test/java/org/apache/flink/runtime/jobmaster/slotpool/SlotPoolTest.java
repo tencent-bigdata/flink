@@ -137,7 +137,8 @@ public class SlotPoolTest extends TestLogger {
 			final SlotOffer slotOffer = new SlotOffer(
 				slotRequest.getAllocationId(),
 				0,
-				DEFAULT_TESTING_PROFILE);
+				DEFAULT_TESTING_PROFILE,
+				Collections.emptyList());
 
 			assertTrue(slotPoolGateway.offerSlot(taskManagerLocation, taskManagerGateway, slotOffer).get());
 
@@ -191,7 +192,8 @@ public class SlotPoolTest extends TestLogger {
 			final SlotOffer slotOffer = new SlotOffer(
 				slotRequests.get(0).getAllocationId(),
 				0,
-				DEFAULT_TESTING_PROFILE);
+				DEFAULT_TESTING_PROFILE,
+				Collections.emptyList());
 
 			assertTrue(slotPoolGateway.offerSlot(taskManagerLocation, taskManagerGateway, slotOffer).get());
 
@@ -241,7 +243,8 @@ public class SlotPoolTest extends TestLogger {
 			final SlotOffer slotOffer = new SlotOffer(
 				slotRequest.getAllocationId(),
 				0,
-				DEFAULT_TESTING_PROFILE);
+				DEFAULT_TESTING_PROFILE,
+				Collections.emptyList());
 
 			assertTrue(slotPoolGateway.offerSlot(taskManagerLocation, taskManagerGateway, slotOffer).get());
 
@@ -297,7 +300,8 @@ public class SlotPoolTest extends TestLogger {
 			final SlotOffer slotOffer = new SlotOffer(
 				slotRequest.getAllocationId(),
 				0,
-				DEFAULT_TESTING_PROFILE);
+				DEFAULT_TESTING_PROFILE,
+				Collections.emptyList());
 
 			final TaskManagerLocation invalidTaskManagerLocation = new LocalTaskManagerLocation();
 
@@ -307,7 +311,8 @@ public class SlotPoolTest extends TestLogger {
 			final SlotOffer nonRequestedSlotOffer = new SlotOffer(
 				new AllocationID(),
 				0,
-				DEFAULT_TESTING_PROFILE);
+				DEFAULT_TESTING_PROFILE,
+				Collections.emptyList());
 
 			// we'll also accept non requested slots
 			assertTrue(slotPoolGateway.offerSlot(taskManagerLocation, taskManagerGateway, nonRequestedSlotOffer).get());
@@ -324,7 +329,8 @@ public class SlotPoolTest extends TestLogger {
 			final SlotOffer anotherSlotOfferWithSameAllocationId = new SlotOffer(
 					slotRequest.getAllocationId(),
 					1,
-					DEFAULT_TESTING_PROFILE);
+					DEFAULT_TESTING_PROFILE,
+					Collections.emptyList());
 			assertFalse(slotPoolGateway.offerSlot(taskManagerLocation, taskManagerGateway, anotherSlotOfferWithSameAllocationId).get());
 
 			TaskManagerLocation anotherTaskManagerLocation = new LocalTaskManagerLocation();
@@ -371,7 +377,8 @@ public class SlotPoolTest extends TestLogger {
 			final SlotOffer slotOffer = new SlotOffer(
 				slotRequest.getAllocationId(),
 				0,
-				DEFAULT_TESTING_PROFILE);
+				DEFAULT_TESTING_PROFILE,
+				Collections.emptyList());
 
 			assertTrue(slotPoolGateway.offerSlot(taskManagerLocation, taskManagerGateway, slotOffer).get());
 
@@ -518,7 +525,7 @@ public class SlotPoolTest extends TestLogger {
 
 			assertEquals(allocationId1, canceledAllocations.take());
 
-			final SlotOffer slotOffer = new SlotOffer(allocationId1, 0, ResourceProfile.UNKNOWN);
+			final SlotOffer slotOffer = new SlotOffer(allocationId1, 0, ResourceProfile.UNKNOWN, Collections.emptyList());
 
 			slotPoolGateway.registerTaskManager(taskManagerLocation.getResourceID()).get();
 
@@ -555,7 +562,8 @@ public class SlotPoolTest extends TestLogger {
 					new SlotOffer(
 						new AllocationID(),
 						i,
-						ResourceProfile.UNKNOWN));
+						ResourceProfile.UNKNOWN,
+						Collections.emptyList()));
 			}
 
 			final ArrayBlockingQueue<AllocationID> freedSlotQueue = new ArrayBlockingQueue<>(numSlotOffers);
@@ -621,8 +629,8 @@ public class SlotPoolTest extends TestLogger {
 
 			final AllocationID expiredSlotID = new AllocationID();
 			final AllocationID freshSlotID = new AllocationID();
-			final SlotOffer slotToExpire = new SlotOffer(expiredSlotID, 0, ResourceProfile.UNKNOWN);
-			final SlotOffer slotToNotExpire = new SlotOffer(freshSlotID, 1, ResourceProfile.UNKNOWN);
+			final SlotOffer slotToExpire = new SlotOffer(expiredSlotID, 0, ResourceProfile.UNKNOWN, Collections.emptyList());
+			final SlotOffer slotToNotExpire = new SlotOffer(freshSlotID, 1, ResourceProfile.UNKNOWN, Collections.emptyList());
 
 			assertThat(
 				slotPoolGateway.registerTaskManager(taskManagerLocation.getResourceID()).get(),
@@ -670,7 +678,7 @@ public class SlotPoolTest extends TestLogger {
 			final SlotPoolGateway slotPoolGateway = setupSlotPool(slotPool, resourceManagerGateway);
 
 			final AllocationID expiredAllocationId = new AllocationID();
-			final SlotOffer slotToExpire = new SlotOffer(expiredAllocationId, 0, ResourceProfile.UNKNOWN);
+			final SlotOffer slotToExpire = new SlotOffer(expiredAllocationId, 0, ResourceProfile.UNKNOWN, Collections.emptyList());
 
 			final ArrayDeque<CompletableFuture<Acknowledge>> responseQueue = new ArrayDeque<>(2);
 			taskManagerGateway.setFreeSlotFunction((AllocationID allocationId, Throwable cause) -> {
@@ -760,7 +768,7 @@ public class SlotPoolTest extends TestLogger {
 			final List<SlotOffer> slotOffers = new ArrayList<>(parallelism);
 
 			for (int i = 0; i < parallelism; i++) {
-				slotOffers.add(new SlotOffer(allocationIds.take(), i, ResourceProfile.UNKNOWN));
+				slotOffers.add(new SlotOffer(allocationIds.take(), i, ResourceProfile.UNKNOWN, Collections.emptyList()));
 			}
 
 			slotPoolGateway.registerTaskManager(taskManagerLocation.getResourceID());

@@ -798,10 +798,11 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 
 	@Override
 	public CompletableFuture<Collection<SlotOffer>> offerSlots(
-			final ResourceID taskManagerId,
-			final Collection<SlotOffer> slots,
-			final Time timeout) {
-
+		final ResourceID taskManagerId,
+		final Collection<SlotOffer> allocatedSlotOffers,
+		final Collection<SlotOffer> activeSlotOffers,
+		final Time timeout
+	) {
 		Tuple2<TaskManagerLocation, TaskExecutorGateway> taskManager = registeredTaskManagers.get(taskManagerId);
 
 		if (taskManager == null) {
@@ -813,10 +814,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 
 		final RpcTaskManagerGateway rpcTaskManagerGateway = new RpcTaskManagerGateway(taskExecutorGateway, getFencingToken());
 
-		return slotPoolGateway.offerSlots(
-			taskManagerLocation,
-			rpcTaskManagerGateway,
-			slots);
+		return slotPoolGateway.offerSlots(taskManagerLocation, rpcTaskManagerGateway, allocatedSlotOffers);
 	}
 
 	@Override

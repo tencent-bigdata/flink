@@ -20,9 +20,11 @@ package org.apache.flink.runtime.taskexecutor.slot;
 
 import org.apache.flink.runtime.clusterframework.types.AllocationID;
 import org.apache.flink.runtime.clusterframework.types.ResourceProfile;
+import org.apache.flink.runtime.taskmanager.TaskExecutionState;
 import org.apache.flink.util.Preconditions;
 
 import java.io.Serializable;
+import java.util.Collection;
 
 /**
  * Describe the slot offering to job manager provided by task manager.
@@ -40,11 +42,24 @@ public class SlotOffer implements Serializable {
 	/** The resource profile of the offered slot */
 	private final ResourceProfile resourceProfile;
 
-	public SlotOffer(final AllocationID allocationID, final int index, final ResourceProfile resourceProfile) {
-		Preconditions.checkArgument(0 <= index, "The index must be greater than 0.");
-		this.allocationId = Preconditions.checkNotNull(allocationID);
-		this.slotIndex = index;
-		this.resourceProfile = Preconditions.checkNotNull(resourceProfile);
+	/** The execution states of the tasks in the slot (if any). */
+	private final Collection<TaskExecutionState> taskExecutionStates;
+
+	public SlotOffer(
+		final AllocationID allocationID,
+		final int slotIndex,
+		final ResourceProfile resourceProfile,
+		final Collection<TaskExecutionState> taskExecutionStates
+	) {
+		Preconditions.checkNotNull(allocationID);
+		Preconditions.checkArgument(0 <= slotIndex, "The slotIndex must be greater than 0.");
+		Preconditions.checkNotNull(resourceProfile);
+		Preconditions.checkNotNull(taskExecutionStates);
+
+		this.allocationId = allocationID;
+		this.slotIndex = slotIndex;
+		this.resourceProfile = resourceProfile;
+		this.taskExecutionStates = taskExecutionStates;
 	}
 
 	public AllocationID getAllocationId() {
@@ -59,11 +74,16 @@ public class SlotOffer implements Serializable {
 		return resourceProfile;
 	}
 
+	public Collection<TaskExecutionState> getTaskExecutionStates() {
+		return taskExecutionStates;
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) {
 			return true;
 		}
+
 		if (o == null || getClass() != o.getClass()) {
 			return false;
 		}

@@ -68,6 +68,7 @@ import java.io.File;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -180,6 +181,7 @@ public class TaskExecutorITCase extends TestLogger {
 		when(jmGateway.offerSlots(
 			eq(taskManagerResourceId),
 			any(Collection.class),
+			any(Collection.class),
 			any(Time.class))).thenReturn(mock(CompletableFuture.class, RETURNS_MOCKS));
 		when(jmGateway.getFencingToken()).thenReturn(jobMasterId);
 
@@ -190,7 +192,7 @@ public class TaskExecutorITCase extends TestLogger {
 
 		final AllocationID allocationId = new AllocationID();
 		final SlotRequest slotRequest = new SlotRequest(jobId, allocationId, resourceProfile, jmAddress);
-		final SlotOffer slotOffer = new SlotOffer(allocationId, 0, resourceProfile);
+		final SlotOffer slotOffer = new SlotOffer(allocationId, 0, resourceProfile, Collections.emptyList());
 
 		try {
 			resourceManager.start();
@@ -225,6 +227,7 @@ public class TaskExecutorITCase extends TestLogger {
 			verify(jmGateway, Mockito.timeout(timeout.toMilliseconds())).offerSlots(
 				eq(taskManagerResourceId),
 				(Collection<SlotOffer>)argThat(Matchers.contains(slotOffer)),
+				any(Collection.class),
 				any(Time.class));
 		} finally {
 			if (testingFatalErrorHandler.hasExceptionOccurred()) {

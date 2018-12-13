@@ -186,7 +186,8 @@ public class StreamTaskTest extends TestLogger {
 		final Task task = createTask(SourceStreamTask.class, cfg, new Configuration(), taskManagerActions);
 
 		final TaskExecutionState state = new TaskExecutionState(
-			task.getJobID(), task.getExecutionId(), ExecutionState.RUNNING);
+			task.getJobID(), task.getExecutionId(), task.getJobVertexId(), task.getSubtaskIndex(),
+			task.getAttemptNumber(), ExecutionState.RUNNING);
 
 		task.startTaskThread();
 

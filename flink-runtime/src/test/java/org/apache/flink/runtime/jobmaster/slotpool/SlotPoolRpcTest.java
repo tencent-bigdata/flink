@@ -57,6 +57,7 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -276,7 +277,8 @@ public class SlotPoolRpcTest extends TestLogger {
 			final SlotOffer slotOffer = new SlotOffer(
 				allocationId,
 				0,
-				DEFAULT_TESTING_PROFILE);
+				DEFAULT_TESTING_PROFILE,
+				Collections.emptyList());
 			final TaskManagerLocation taskManagerLocation = new LocalTaskManagerLocation();
 			final TaskManagerGateway taskManagerGateway = new SimpleAckingTaskManagerGateway();
 

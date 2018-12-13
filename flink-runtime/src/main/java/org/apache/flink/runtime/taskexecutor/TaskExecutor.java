@@ -1063,25 +1063,35 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 		if (jobManagerConnection == null) {
 			log.debug("There is no job manager connection to the leader of job {}.", jobId);
 		} else {
-			if (taskSlotTable.hasAllocatedSlots(jobId)) {
-				log.info("Offer reserved slots to the leader of job {}.", jobId);
+
+			Iterator<TaskSlot> allocatedSlots = taskSlotTable.getAllocatedSlots(jobId);
+			Iterator<TaskSlot> activeSlots = taskSlotTable.getActiveSlots(jobId);
+
+			if (allocatedSlots.hasNext() || activeSlots.hasNext()) {
+				log.info("Offer slots to the leader of job {}.", jobId);
 
 				final JobMasterGateway jobMasterGateway = jobManagerConnection.getJobManagerGateway();
-
-				final Iterator<TaskSlot> reservedSlotsIterator = taskSlotTable.getAllocatedSlots(jobId);
 				final JobMasterId jobMasterId = jobManagerConnection.getJobMasterId();
 
-				final Collection<SlotOffer> reservedSlots = new HashSet<>(2);
-
-				while (reservedSlotsIterator.hasNext()) {
-					SlotOffer offer = reservedSlotsIterator.next().generateSlotOffer();
-					reservedSlots.add(offer);
+				final Collection<SlotOffer> allocatedSlotOffers = new HashSet<>(2);
+				while (allocatedSlots.hasNext()) {
+					SlotOffer offer = allocatedSlots.next().generateSlotOffer();
+					allocatedSlotOffers.add(offer);
 				}
 
-				CompletableFuture<Collection<SlotOffer>> acceptedSlotsFuture = jobMasterGateway.offerSlots(
-					getResourceID(),
-					reservedSlots,
-					taskManagerConfiguration.getTimeout());
+				final Collection<SlotOffer> activeSlotOffers = new HashSet<>(2);
+				while (activeSlots.hasNext()) {
+					SlotOffer offer = activeSlots.next().generateSlotOffer();
+					activeSlotOffers.add(offer);
+				}
+
+				CompletableFuture<Collection<SlotOffer>> acceptedSlotsFuture =
+					jobMasterGateway.offerSlots(
+						getResourceID(),
+						allocatedSlotOffers,
+						activeSlotOffers,
+						taskManagerConfiguration.getTimeout()
+					);
 
 				acceptedSlotsFuture.whenCompleteAsync(
 					(Iterable<SlotOffer> acceptedSlots, Throwable throwable) -> {
@@ -1095,8 +1105,8 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 									"and returning them to the ResourceManager.", throwable);
 
 								// We encountered an exception. Free the slots and return them to the RM.
-								for (SlotOffer reservedSlot: reservedSlots) {
-									freeSlotInternal(reservedSlot.getAllocationId(), throwable);
+								for (SlotOffer allocatedSlot: allocatedSlotOffers) {
+									freeSlotInternal(allocatedSlot.getAllocationId(), throwable);
 								}
 							}
 						} else {
@@ -1122,12 +1132,12 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 											new FlinkException(message));
 									}
 
-									reservedSlots.remove(acceptedSlot);
+									allocatedSlotOffers.remove(acceptedSlot);
 								}
 
 								final Exception e = new Exception("The slot was rejected by the JobManager.");
 
-								for (SlotOffer rejectedSlot : reservedSlots) {
+								for (SlotOffer rejectedSlot : allocatedSlotOffers) {
 									freeSlotInternal(rejectedSlot.getAllocationId(), e);
 								}
 							} else {
@@ -1203,12 +1213,12 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 		}
 
 		// 2. Move the active slots to state allocated (possible to time out again)
-		Iterator<AllocationID> activeSlots = taskSlotTable.getActiveSlots(jobId);
+		Iterator<TaskSlot> activeSlots = taskSlotTable.getActiveSlots(jobId);
 
 		final FlinkException freeingCause = new FlinkException("Slot could not be marked inactive.");
 
 		while (activeSlots.hasNext()) {
-			AllocationID activeSlot = activeSlots.next();
+			AllocationID activeSlot = activeSlots.next().getAllocationId();
 
 			try {
 				if (!taskSlotTable.markSlotInactive(activeSlot, taskManagerConfiguration.getTimeout())) {
@@ -1350,6 +1360,9 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 					new TaskExecutionState(
 						task.getJobID(),
 						task.getExecutionId(),
+						task.getJobVertexId(),
+						task.getSubtaskIndex(),
+						task.getAttemptNumber(),
 						task.getExecutionState(),
 						task.getFailureCause(),
 						accumulatorSnapshot,

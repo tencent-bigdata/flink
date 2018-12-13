@@ -23,9 +23,11 @@ import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.executiongraph.IOMetrics;
+import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.util.SerializedThrowable;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * This class represents an update about a task's execution state.
@@ -45,6 +47,12 @@ public class TaskExecutionState implements Serializable {
 
 	private final ExecutionAttemptID executionId;
 
+	private final JobVertexID vertexId;
+
+	private final int subtaskIndex;
+
+	private final int attemptNumber;
+
 	private final ExecutionState executionState;
 
 	private final SerializedThrowable throwable;
@@ -61,11 +69,24 @@ public class TaskExecutionState implements Serializable {
 	 *        the ID of the job the task belongs to
 	 * @param executionId
 	 *        the ID of the task execution whose state is to be reported
+	 * @param vertexId
+	 *        the ID of the vertex the task belongs to
+	 * @param subtaskIndex
+	 *        the index of the task
+	 * @param attemptNumber
+	 *        the attempt number of the task execution
 	 * @param executionState
 	 *        the execution state to be reported
 	 */
-	public TaskExecutionState(JobID jobID, ExecutionAttemptID executionId, ExecutionState executionState) {
-		this(jobID, executionId, executionState, null, null, null);
+	public TaskExecutionState(
+		JobID jobID,
+		ExecutionAttemptID executionId,
+		JobVertexID vertexId,
+		int subtaskIndex,
+		int attemptNumber,
+		ExecutionState executionState
+	) {
+		this(jobID, executionId, vertexId, subtaskIndex, attemptNumber, executionState, null, null, null);
 	}
 
 	/**
@@ -75,12 +96,25 @@ public class TaskExecutionState implements Serializable {
 	 *        the ID of the job the task belongs to
 	 * @param executionId
 	 *        the ID of the task execution whose state is to be reported
+	 * @param vertexId
+	 *        the ID of the vertex the task belongs to
+	 * @param subtaskIndex
+	 *        the index of the task
+	 * @param attemptNumber
+	 *        the attempt number of the task execution
 	 * @param executionState
 	 *        the execution state to be reported
 	 */
-	public TaskExecutionState(JobID jobID, ExecutionAttemptID executionId,
-							ExecutionState executionState, Throwable error) {
-		this(jobID, executionId, executionState, error, null, null);
+	public TaskExecutionState(
+		JobID jobID,
+		ExecutionAttemptID executionId,
+		JobVertexID vertexId,
+		int subtaskIndex,
+		int attemptNumber,
+		ExecutionState executionState,
+		Throwable error
+	) {
+		this(jobID, executionId, vertexId, subtaskIndex, attemptNumber, executionState, error, null, null);
 	}
 
 	/**
@@ -91,6 +125,12 @@ public class TaskExecutionState implements Serializable {
 	 *        the ID of the job the task belongs to
 	 * @param executionId
 	 *        the ID of the task execution whose state is to be reported
+	 * @param vertexId
+	 *        the ID of the vertex the task belongs to
+	 * @param subtaskIndex
+	 *        the index of the task
+	 * @param attemptNumber
+	 *        the attempt number of the task execution
 	 * @param executionState
 	 *        the execution state to be reported
 	 * @param error
@@ -98,9 +138,17 @@ public class TaskExecutionState implements Serializable {
 	 * @param accumulators
 	 *        The flink and user-defined accumulators which may be null.
 	 */
-	public TaskExecutionState(JobID jobID, ExecutionAttemptID executionId,
-			ExecutionState executionState, Throwable error,
-			AccumulatorSnapshot accumulators, IOMetrics ioMetrics) {
+	public TaskExecutionState(
+		JobID jobID,
+		ExecutionAttemptID executionId,
+		JobVertexID vertexId,
+		int subtaskIndex,
+		int attemptNumber,
+		ExecutionState executionState,
+		Throwable error,
+		AccumulatorSnapshot accumulators,
+		IOMetrics ioMetrics
+	) {
 
 		if (jobID == null || executionId == null || executionState == null) {
 			throw new NullPointerException();
@@ -108,6 +156,9 @@ public class TaskExecutionState implements Serializable {
 
 		this.jobID = jobID;
 		this.executionId = executionId;
+		this.vertexId = vertexId;
+		this.subtaskIndex = subtaskIndex;
+		this.attemptNumber = attemptNumber;
 		this.executionState = executionState;
 		if (error != null) {
 			this.throwable = new SerializedThrowable(error);
@@ -146,6 +197,33 @@ public class TaskExecutionState implements Serializable {
 	}
 
 	/**
+	 * Returns the ID of the vertex this task belongs to
+	 *
+	 * @return the ID of the vertex this task belongs to
+	 */
+	public JobVertexID getVertexId() {
+		return vertexId;
+	}
+
+	/**
+	 * Returns the index of the task.
+	 *
+	 * @return the index of the task.
+	 */
+	public int getSubtaskIndex() {
+		return subtaskIndex;
+	}
+
+	/**
+	 * Returns the attempt number of this execution.
+	 *
+	 * @return The attempt number of this execution.
+	 */
+	public int getAttemptNumber() {
+		return attemptNumber;
+	}
+
+	/**
 	 * Returns the new execution state of the task.
 	 * 
 	 * @return the new execution state of the task
@@ -176,29 +254,45 @@ public class TaskExecutionState implements Serializable {
 
 	// --------------------------------------------------------------------------------------------
 
+
 	@Override
-	public boolean equals(Object obj) {
-		if (obj instanceof TaskExecutionState) {
-			TaskExecutionState other = (TaskExecutionState) obj;
-			return other.jobID.equals(this.jobID) &&
-					other.executionId.equals(this.executionId) &&
-					other.executionState == this.executionState &&
-					(other.throwable == null) == (this.throwable == null);
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
 		}
-		else {
+
+		if (o == null || getClass() != o.getClass()) {
 			return false;
 		}
+
+		TaskExecutionState that = (TaskExecutionState) o;
+
+		return Objects.equals(jobID, that.jobID) &&
+			Objects.equals(executionId, that.executionId) &&
+			Objects.equals(vertexId, that.vertexId) &&
+			subtaskIndex == that.subtaskIndex &&
+			attemptNumber == that.attemptNumber &&
+			executionState == that.executionState &&
+			(throwable == null) == (that.throwable == null);
 	}
-	
+
 	@Override
 	public int hashCode() {
-		return jobID.hashCode() + executionId.hashCode() + executionState.ordinal();
+		return Objects.hash(jobID, executionId, vertexId, subtaskIndex, attemptNumber, executionState);
 	}
-	
+
 	@Override
 	public String toString() {
-		return String.format("TaskExecutionState jobId=%s, executionId=%s, state=%s, error=%s",
-				jobID, executionId, executionState,
-				throwable == null ? "(null)" : throwable.toString());
+		return "TaskExecutionState{" +
+			"jobID=" + jobID +
+			", executionId=" + executionId +
+			", vertexId=" + vertexId +
+			", subtaskIndex=" + subtaskIndex +
+			", attemptNumber=" + attemptNumber +
+			", executionState=" + executionState +
+			", throwable=" + throwable +
+			", accumulators=" + accumulators +
+			", ioMetrics=" + ioMetrics +
+			'}';
 	}
 }

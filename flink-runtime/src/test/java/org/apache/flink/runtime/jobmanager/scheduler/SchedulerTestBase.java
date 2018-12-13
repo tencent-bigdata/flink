@@ -56,6 +56,7 @@ import javax.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -159,10 +160,13 @@ public class SchedulerTestBase extends TestLogger {
 			final Collection<SlotOffer> slotOffers = new ArrayList<>(numberSlots);
 
 			for (int i = 0; i < numberSlots; i++) {
-				final SlotOffer slotOffer = new SlotOffer(
-					new AllocationID(),
-					i,
-					ResourceProfile.UNKNOWN);
+				final SlotOffer slotOffer =
+					new SlotOffer(
+						new AllocationID(),
+						i,
+						ResourceProfile.UNKNOWN,
+						Collections.emptyList()
+					);
 
 				slotOffers.add(slotOffer);
 			}

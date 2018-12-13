@@ -206,12 +206,14 @@ public class TaskManagerTest extends TestLogger {
 
 				final JobID jid = new JobID();
 				final JobVertexID vid = new JobVertexID();
+				final int subtaskIndex = 2;
+				final int attemptNumber = 0;
 				final ExecutionAttemptID eid = new ExecutionAttemptID();
 				final SerializedValue<ExecutionConfig> executionConfig = new SerializedValue<>(new ExecutionConfig());
 
 				final TaskDeploymentDescriptor tdd = createTaskDeploymentDescriptor(
 					jid, "TestJob", vid, eid, executionConfig,
-					"TestTask", 7, 2, 7, 0, new Configuration(), new Configuration(),
+					"TestTask", 7, subtaskIndex, 7, attemptNumber, new Configuration(), new Configuration(),
 					TestInvokableCorrect.class.getName(),
 					Collections.<ResultPartitionDeploymentDescriptor>emptyList(),
 					Collections.<InputGateDeploymentDescriptor>emptyList(),
@@ -235,11 +237,11 @@ public class TaskManagerTest extends TestLogger {
 
 						// task should have switched to running
 						Object toRunning = new TaskMessages.UpdateTaskExecutionState(
-										new TaskExecutionState(jid, eid, ExecutionState.RUNNING));
+										new TaskExecutionState(jid, eid, vid, subtaskIndex, attemptNumber, ExecutionState.RUNNING));
 
 						// task should have switched to finished
 						Object toFinished = new TaskMessages.UpdateTaskExecutionState(
-										new TaskExecutionState(jid, eid, ExecutionState.FINISHED));
+										new TaskExecutionState(jid, eid, vid, subtaskIndex, attemptNumber, ExecutionState.FINISHED));
 
 						deadline = System.currentTimeMillis() + 10000;
 						do {
@@ -2174,6 +2176,7 @@ public class TaskManagerTest extends TestLogger {
 			new TaskDeploymentDescriptor.NonOffloaded<>(serializedJobVertexInformation),
 			executionAttemptId,
 			new AllocationID(),
+			jobVertexId,
 			subtaskIndex,
 			attemptNumber,
 			targetSlotNumber,

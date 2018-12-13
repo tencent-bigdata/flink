@@ -143,6 +143,12 @@ public class Task implements Runnable, TaskActions, CheckpointListener {
 	/** The vertex in the JobGraph whose code the task executes. */
 	private final JobVertexID vertexId;
 
+	/** The index of the task. */
+	private final int subtaskIndex;
+
+	/* The attempt number of the execution. */
+	private final int attemptNumber;
+
 	/** The execution attempt of the parallel subtask. */
 	private final ExecutionAttemptID executionId;
 
@@ -313,6 +319,8 @@ public class Task implements Runnable, TaskActions, CheckpointListener {
 
 		this.jobId = jobInformation.getJobId();
 		this.vertexId = taskInformation.getJobVertexId();
+		this.subtaskIndex = subtaskIndex;
+		this.attemptNumber = attemptNumber;
 		this.executionId  = Preconditions.checkNotNull(executionAttemptID);
 		this.allocationId = Preconditions.checkNotNull(slotAllocationId);
 		this.taskNameWithSubtask = taskInfo.getTaskNameWithSubtasks();
@@ -414,6 +422,14 @@ public class Task implements Runnable, TaskActions, CheckpointListener {
 
 	public JobVertexID getJobVertexId() {
 		return vertexId;
+	}
+
+	public int getSubtaskIndex() {
+		return subtaskIndex;
+	}
+
+	public int getAttemptNumber() {
+		return attemptNumber;
 	}
 
 	public ExecutionAttemptID getExecutionId() {
@@ -695,7 +711,8 @@ public class Task implements Runnable, TaskActions, CheckpointListener {
 			}
 
 			// notify everyone that we switched to running
-			taskManagerActions.updateTaskExecutionState(new TaskExecutionState(jobId, executionId, ExecutionState.RUNNING));
+			taskManagerActions.updateTaskExecutionState(new TaskExecutionState(jobId, executionId,
+					vertexId, subtaskIndex, attemptNumber, ExecutionState.RUNNING));
 
 			// make sure the user code classloader is accessible thread-locally
 			executingThread.setContextClassLoader(userCodeClassLoader);
@@ -869,7 +886,8 @@ public class Task implements Runnable, TaskActions, CheckpointListener {
 
 	private void notifyFinalState() {
 		checkState(executionState.isTerminal());
-		taskManagerActions.updateTaskExecutionState(new TaskExecutionState(jobId, executionId, executionState, failureCause));
+		taskManagerActions.updateTaskExecutionState(new TaskExecutionState(jobId, executionId,
+				vertexId, subtaskIndex, attemptNumber, executionState, failureCause));
 	}
 
 	private void notifyFatalError(String message, Throwable cause) {

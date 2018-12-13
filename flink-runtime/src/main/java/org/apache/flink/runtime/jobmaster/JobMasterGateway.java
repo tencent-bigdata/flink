@@ -179,13 +179,15 @@ public interface JobMasterGateway extends
 	 * Offers the given slots to the job manager. The response contains the set of accepted slots.
 	 *
 	 * @param taskManagerId identifying the task manager
-	 * @param slots         to offer to the job manager
+	 * @param allocatedSlots The slots reserved by the job manager.
+	 * @param activeSlots The slots used by the job manager.
 	 * @param timeout       for the rpc call
 	 * @return Future set of accepted slots.
 	 */
 	CompletableFuture<Collection<SlotOffer>> offerSlots(
 			final ResourceID taskManagerId,
-			final Collection<SlotOffer> slots,
+			final Collection<SlotOffer> allocatedSlots,
+			final Collection<SlotOffer> activeSlots,
 			@RpcTimeout final Time timeout);
 
 	/**

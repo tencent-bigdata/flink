@@ -327,7 +327,9 @@ public class ExecutionGraphDeploymentTest extends TestLogger {
 		accumulators.put("acc", new IntCounter(4));
 		AccumulatorSnapshot accumulatorSnapshot = new AccumulatorSnapshot(graph.getJobID(), execution1.getAttemptId(), accumulators);
 		
-		TaskExecutionState state = new TaskExecutionState(graph.getJobID(), execution1.getAttemptId(), ExecutionState.CANCELED, null, accumulatorSnapshot, ioMetrics);
+		TaskExecutionState state = new TaskExecutionState(graph.getJobID(), execution1.getAttemptId(),
+			execution1.getVertex().getJobvertexId(), execution1.getVertex().getParallelSubtaskIndex(),
+			execution1.getAttemptNumber(), ExecutionState.CANCELED, null, accumulatorSnapshot, ioMetrics);
 		
 		graph.updateState(state);
 		
@@ -343,7 +345,9 @@ public class ExecutionGraphDeploymentTest extends TestLogger {
 		accumulators2.put("acc", new IntCounter(8));
 		AccumulatorSnapshot accumulatorSnapshot2 = new AccumulatorSnapshot(graph.getJobID(), execution2.getAttemptId(), accumulators2);
 
-		TaskExecutionState state2 = new TaskExecutionState(graph.getJobID(), execution2.getAttemptId(), ExecutionState.FAILED, null, accumulatorSnapshot2, ioMetrics2);
+		TaskExecutionState state2 = new TaskExecutionState(graph.getJobID(), execution2.getAttemptId(),
+			execution2.getVertex().getJobvertexId(), execution2.getVertex().getParallelSubtaskIndex(),
+			execution2.getAttemptNumber(), ExecutionState.FAILED, null, accumulatorSnapshot2, ioMetrics2);
 
 		graph.updateState(state2);
 
@@ -469,8 +473,11 @@ public class ExecutionGraphDeploymentTest extends TestLogger {
 		eg.start();
 
 		ExecutionAttemptID attemptID = eg.getJobVertex(v1.getID()).getTaskVertices()[0].getCurrentExecutionAttempt().getAttemptId();
-		eg.updateState(new TaskExecutionState(jobId, attemptID, ExecutionState.RUNNING));
-		eg.updateState(new TaskExecutionState(jobId, attemptID, ExecutionState.FINISHED, null));
+		JobVertexID vertexID = v1.getID();
+		int subtaskIndex = 0;
+		int attemptNumber = eg.getJobVertex(v1.getID()).getTaskVertices()[0].getCurrentExecutionAttempt().getAttemptNumber();
+		eg.updateState(new TaskExecutionState(jobId, attemptID, vertexID, subtaskIndex, attemptNumber, ExecutionState.RUNNING));
+		eg.updateState(new TaskExecutionState(jobId, attemptID, vertexID, subtaskIndex, attemptNumber, ExecutionState.FINISHED, null));
 
 		assertEquals(JobStatus.FAILED, eg.getState());
 	}

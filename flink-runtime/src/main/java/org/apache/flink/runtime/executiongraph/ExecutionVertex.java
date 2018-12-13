@@ -842,6 +842,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 			serializedTaskInformation,
 			executionId,
 			targetSlot.getAllocationId(),
+			getJobvertexId(),
 			subTaskIndex,
 			attemptNumber,
 			targetSlot.getPhysicalSlotNumber(),

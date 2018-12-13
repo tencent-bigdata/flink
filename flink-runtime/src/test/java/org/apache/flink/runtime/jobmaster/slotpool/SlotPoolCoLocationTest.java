@@ -41,6 +41,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -135,7 +136,8 @@ public class SlotPoolCoLocationTest extends TestLogger {
 			new SlotOffer(
 				allocationId1,
 				0,
-				ResourceProfile.UNKNOWN));
+				ResourceProfile.UNKNOWN,
+				Collections.emptyList()));
 
 		CompletableFuture<Boolean> slotOfferFuture2 = slotPoolGateway.offerSlot(
 			taskManagerLocation,
@@ -143,7 +145,8 @@ public class SlotPoolCoLocationTest extends TestLogger {
 			new SlotOffer(
 				allocationId2,
 				0,
-				ResourceProfile.UNKNOWN));
+				ResourceProfile.UNKNOWN,
+				Collections.emptyList()));
 
 		assertTrue(slotOfferFuture1.get());
 		assertTrue(slotOfferFuture2.get());

@@ -692,9 +692,9 @@ public class JobMasterTest extends TestLogger {
 
 			assertThat(submittedTaskFuture.isDone(), is(false));
 
-			final SlotOffer slotOffer = new SlotOffer(slotRequest.getAllocationId(), 0, ResourceProfile.UNKNOWN);
+			final SlotOffer slotOffer = new SlotOffer(slotRequest.getAllocationId(), 0, ResourceProfile.UNKNOWN, Collections.emptyList());
 
-			final CompletableFuture<Collection<SlotOffer>> acceptedSlotsFuture = jobMasterGateway.offerSlots(taskManagerLocation.getResourceID(), Collections.singleton(slotOffer), testingTimeout);
+			final CompletableFuture<Collection<SlotOffer>> acceptedSlotsFuture = jobMasterGateway.offerSlots(taskManagerLocation.getResourceID(), Collections.singleton(slotOffer), Collections.emptyList(), testingTimeout);
 
 			final Collection<SlotOffer> acceptedSlots = acceptedSlotsFuture.get();
 
@@ -1271,9 +1271,9 @@ public class JobMasterTest extends TestLogger {
 			final LocalTaskManagerLocation taskManagerLocation = new LocalTaskManagerLocation();
 			jobMasterGateway.registerTaskManager(testingTaskExecutorGateway.getAddress(), taskManagerLocation, testingTimeout).get();
 
-			final SlotOffer slotOffer = new SlotOffer(allocationId, 0, ResourceProfile.UNKNOWN);
+			final SlotOffer slotOffer = new SlotOffer(allocationId, 0, ResourceProfile.UNKNOWN, Collections.emptyList());
 
-			final Collection<SlotOffer> slotOffers = jobMasterGateway.offerSlots(taskManagerLocation.getResourceID(), Collections.singleton(slotOffer), testingTimeout).get();
+			final Collection<SlotOffer> slotOffers = jobMasterGateway.offerSlots(taskManagerLocation.getResourceID(), Collections.singleton(slotOffer), Collections.emptyList(), testingTimeout).get();
 
 			assertThat(slotOffers, hasSize(1));
 			assertThat(slotOffers, contains(slotOffer));
@@ -1288,7 +1288,8 @@ public class JobMasterTest extends TestLogger {
 			final ExecutionAttemptID copiedExecutionAttemptId = new ExecutionAttemptID(executionAttemptId.getLowerPart(), executionAttemptId.getUpperPart());
 
 			// finish the producer task
-			jobMasterGateway.updateTaskExecutionState(new TaskExecutionState(producerConsumerJobGraph.getJobID(), executionAttemptId, ExecutionState.FINISHED)).get();
+			jobMasterGateway.updateTaskExecutionState(new TaskExecutionState(producerConsumerJobGraph.getJobID(),
+				executionAttemptId, tdd.getVertexId(), tdd.getSubtaskIndex(), tdd.getAttemptNumber(), ExecutionState.FINISHED)).get();
 
 			// request the state of the result partition of the producer
 			final ResultPartitionID partitionId = new ResultPartitionID(partition.getResultId(), partition.getPartitionIndex(), copiedExecutionAttemptId);
@@ -1429,8 +1430,8 @@ public class JobMasterTest extends TestLogger {
 
 			jobMasterGateway.registerTaskManager(testingTaskExecutorGateway.getAddress(), taskManagerLocation, testingTimeout).get();
 
-			final SlotOffer slotOffer = new SlotOffer(allocationId, 0, ResourceProfile.UNKNOWN);
-			final CompletableFuture<Collection<SlotOffer>> acceptedSlotOffers = jobMasterGateway.offerSlots(taskManagerLocation.getResourceID(), Collections.singleton(slotOffer), testingTimeout);
+			final SlotOffer slotOffer = new SlotOffer(allocationId, 0, ResourceProfile.UNKNOWN, Collections.emptyList());
+			final CompletableFuture<Collection<SlotOffer>> acceptedSlotOffers = jobMasterGateway.offerSlots(taskManagerLocation.getResourceID(), Collections.singleton(slotOffer), Collections.emptyList(), testingTimeout);
 
 			final Collection<SlotOffer> slotOffers = acceptedSlotOffers.get();
 

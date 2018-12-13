@@ -44,8 +44,8 @@ import org.apache.flink.util.TestLogger;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -106,15 +106,18 @@ public class ExecutionGraphMetricsTest extends TestLogger {
 			executionGraph.start();
 			assertEquals(0L, restartingTime.getValue().longValue());
 
-			List<ExecutionAttemptID> executionIDs = new ArrayList<>();
+			Map<ExecutionAttemptID, Execution> executions = new HashMap<>();
 
 			for (ExecutionVertex executionVertex: executionGraph.getAllExecutionVertices()) {
-				executionIDs.add(executionVertex.getCurrentExecutionAttempt().getAttemptId());
+				Execution execution = executionVertex.getCurrentExecutionAttempt();
+				executions.put(execution.getAttemptId(), execution);
 			}
 
 			// tell execution graph that the tasks are in state running --> job status switches to state running
-			for (ExecutionAttemptID executionID : executionIDs) {
-				executionGraph.updateState(new TaskExecutionState(jobGraph.getJobID(), executionID, ExecutionState.RUNNING));
+			for (Execution execution : executions.values()) {
+				executionGraph.updateState(new TaskExecutionState(jobGraph.getJobID(), execution.getAttemptId(),
+					execution.getVertex().getJobvertexId(), execution.getParallelSubtaskIndex(),
+					execution.getAttemptNumber(), ExecutionState.RUNNING));
 			}
 
 			assertEquals(JobStatus.RUNNING, executionGraph.getState());
@@ -124,8 +127,10 @@ public class ExecutionGraphMetricsTest extends TestLogger {
 			Thread.sleep(1L);
 
 			// fail the job so that it goes into state restarting
-			for (ExecutionAttemptID executionID : executionIDs) {
-				executionGraph.updateState(new TaskExecutionState(jobGraph.getJobID(), executionID, ExecutionState.FAILED, new Exception()));
+			for (Execution execution : executions.values()) {
+				executionGraph.updateState(new TaskExecutionState(jobGraph.getJobID(), execution.getAttemptId(),
+					execution.getVertex().getJobvertexId(), execution.getParallelSubtaskIndex(),
+					execution.getAttemptNumber(), ExecutionState.FAILED, new Exception()));
 			}
 
 			assertEquals(JobStatus.RESTARTING, executionGraph.getState());
@@ -151,14 +156,17 @@ public class ExecutionGraphMetricsTest extends TestLogger {
 			// restart job
 			testingRestartStrategy.restartExecutionGraph();
 
-			executionIDs.clear();
+			executions.clear();
 
 			for (ExecutionVertex executionVertex: executionGraph.getAllExecutionVertices()) {
-				executionIDs.add(executionVertex.getCurrentExecutionAttempt().getAttemptId());
+				Execution execution = executionVertex.getCurrentExecutionAttempt();
+				executions.put(execution.getAttemptId(), execution);
 			}
 
-			for (ExecutionAttemptID executionID : executionIDs) {
-				executionGraph.updateState(new TaskExecutionState(jobGraph.getJobID(), executionID, ExecutionState.RUNNING));
+			for (Execution execution : executions.values()) {
+				executionGraph.updateState(new TaskExecutionState(jobGraph.getJobID(), execution.getAttemptId(),
+					execution.getVertex().getJobvertexId(), execution.getParallelSubtaskIndex(),
+					execution.getAttemptNumber(), ExecutionState.RUNNING));
 			}
 
 			assertEquals(JobStatus.RUNNING, executionGraph.getState());
@@ -179,8 +187,10 @@ public class ExecutionGraphMetricsTest extends TestLogger {
 			Thread.sleep(1L);
 
 			// fail job again
-			for (ExecutionAttemptID executionID : executionIDs) {
-				executionGraph.updateState(new TaskExecutionState(jobGraph.getJobID(), executionID, ExecutionState.FAILED, new Exception()));
+			for (Execution execution : executions.values()) {
+				executionGraph.updateState(new TaskExecutionState(jobGraph.getJobID(), execution.getAttemptId(),
+					execution.getVertex().getJobvertexId(), execution.getParallelSubtaskIndex(),
+					execution.getAttemptNumber(), ExecutionState.FAILED, new Exception()));
 			}
 
 			assertEquals(JobStatus.RESTARTING, executionGraph.getState());

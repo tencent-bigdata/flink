@@ -26,6 +26,7 @@ import org.apache.flink.runtime.clusterframework.types.AllocationID;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.executiongraph.JobInformation;
 import org.apache.flink.runtime.executiongraph.TaskInformation;
+import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.SerializedValue;
 
@@ -127,6 +128,9 @@ public final class TaskDeploymentDescriptor implements Serializable {
 	/** The allocation ID of the slot in which the task shall be run. */
 	private final AllocationID allocationId;
 
+	/** The ID of the vertex this task belongs to. */
+	private final JobVertexID vertexId;
+
 	/** The task's index in the subtask group. */
 	private final int subtaskIndex;
 
@@ -152,6 +156,7 @@ public final class TaskDeploymentDescriptor implements Serializable {
 		MaybeOffloaded<TaskInformation> serializedTaskInformation,
 		ExecutionAttemptID executionAttemptId,
 		AllocationID allocationId,
+		JobVertexID vertexId,
 		int subtaskIndex,
 		int attemptNumber,
 		int targetSlotNumber,
@@ -166,6 +171,7 @@ public final class TaskDeploymentDescriptor implements Serializable {
 
 		this.executionId = Preconditions.checkNotNull(executionAttemptId);
 		this.allocationId = Preconditions.checkNotNull(allocationId);
+		this.vertexId = Preconditions.checkNotNull(vertexId);
 
 		Preconditions.checkArgument(0 <= subtaskIndex, "The subtask index must be positive.");
 		this.subtaskIndex = subtaskIndex;
@@ -229,6 +235,15 @@ public final class TaskDeploymentDescriptor implements Serializable {
 
 	public ExecutionAttemptID getExecutionAttemptId() {
 		return executionId;
+	}
+
+	/**
+	 * Returns the ID of the vertex this task belongs to.
+	 *
+	 * @return the ID of the vertex this task belongs to.
+	 */
+	public JobVertexID getVertexId() {
+		return vertexId;
 	}
 
 	/**

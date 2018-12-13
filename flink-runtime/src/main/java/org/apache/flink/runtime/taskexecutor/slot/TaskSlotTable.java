@@ -428,13 +428,13 @@ public class TaskSlotTable implements TimeoutListener<AllocationID> {
 	}
 
 	/**
-	 * Return an iterator of active slots (their application ids) for the given job id.
+	 * Return an iterator of active slots for the given job id.
 	 *
 	 * @param jobId for which to return the active slots
 	 * @return Iterator of allocation ids of active slots
 	 */
-	public Iterator<AllocationID> getActiveSlots(JobID jobId) {
-		return new AllocationIDIterator(jobId, TaskSlotState.ACTIVE);
+	public Iterator<TaskSlot> getActiveSlots(JobID jobId) {
+		return new TaskSlotIterator(jobId, TaskSlotState.ACTIVE);
 	}
 
 	/**
@@ -573,7 +573,7 @@ public class TaskSlotTable implements TimeoutListener<AllocationID> {
 	// ---------------------------------------------------------------------
 
 	@Nullable
-	private TaskSlot getTaskSlot(AllocationID allocationId) {
+	TaskSlot getTaskSlot(AllocationID allocationId) {
 		Preconditions.checkNotNull(allocationId);
 
 		return allocationIDTaskSlotMap.get(allocationId);

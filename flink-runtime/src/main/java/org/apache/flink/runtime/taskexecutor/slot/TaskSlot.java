@@ -23,10 +23,13 @@ import org.apache.flink.runtime.clusterframework.types.AllocationID;
 import org.apache.flink.runtime.clusterframework.types.ResourceProfile;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.taskmanager.Task;
+import org.apache.flink.runtime.taskmanager.TaskExecutionState;
 import org.apache.flink.util.Preconditions;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -297,7 +300,22 @@ public class TaskSlot {
 				"The task slot is not in state active or allocated.");
 		Preconditions.checkState(allocationId != null, "The task slot are not allocated");
 
-		return new SlotOffer(allocationId, index, resourceProfile);
+		List<TaskExecutionState> taskExecutionStates = new ArrayList<>();
+		for (Task task : tasks.values()) {
+			TaskExecutionState taskExecutionState =
+				new TaskExecutionState(
+					task.getJobID(),
+					task.getExecutionId(),
+					task.getJobVertexId(),
+					task.getSubtaskIndex(),
+					task.getAttemptNumber(),
+					task.getExecutionState()
+				);
+
+			taskExecutionStates.add(taskExecutionState);
+		}
+
+		return new SlotOffer(allocationId, index, resourceProfile, taskExecutionStates);
 	}
 
 	@Override

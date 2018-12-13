@@ -690,6 +690,7 @@ public class TaskExecutorTest extends TestLogger {
 				new TaskDeploymentDescriptor.NonOffloaded<>(serializedJobVertexInformation),
 				new ExecutionAttemptID(),
 				allocationId,
+				new JobVertexID(),
 				0,
 				0,
 				0,
@@ -812,6 +813,7 @@ public class TaskExecutorTest extends TestLogger {
 		when(jobMasterGateway.offerSlots(
 			any(ResourceID.class),
 			any(Collection.class),
+			any(Collection.class),
 			any(Time.class))).thenReturn(mock(CompletableFuture.class, RETURNS_MOCKS));
 
 		rpc.registerGateway(resourceManagerAddress, resourceManagerGateway);
@@ -819,7 +821,7 @@ public class TaskExecutorTest extends TestLogger {
 
 		final AllocationID allocationId = new AllocationID();
 		final SlotID slotId = new SlotID(taskManagerLocation.getResourceID(), 0);
-		final SlotOffer slotOffer = new SlotOffer(allocationId, 0, ResourceProfile.UNKNOWN);
+		final SlotOffer slotOffer = new SlotOffer(allocationId, 0, ResourceProfile.UNKNOWN, Collections.emptyList());
 
 		TaskExecutorLocalStateStoresManager localStateStoresManager = new TaskExecutorLocalStateStoresManager(
 			false,
@@ -874,6 +876,7 @@ public class TaskExecutorTest extends TestLogger {
 			verify(jobMasterGateway, Mockito.timeout(timeout.toMilliseconds())).offerSlots(
 					any(ResourceID.class),
 					(Collection<SlotOffer>) MockitoHamcrest.argThat(contains(slotOffer)),
+					any(Collection.class),
 					any(Time.class));
 		} finally {
 			RpcUtils.terminateRpcEndpoint(taskManager, timeout);
@@ -918,7 +921,7 @@ public class TaskExecutorTest extends TestLogger {
 		final AllocationID allocationId1 = new AllocationID();
 		final AllocationID allocationId2 = new AllocationID();
 
-		final SlotOffer offer1 = new SlotOffer(allocationId1, 0, ResourceProfile.UNKNOWN);
+		final SlotOffer offer1 = new SlotOffer(allocationId1, 0, ResourceProfile.UNKNOWN, Collections.emptyList());
 
 		final JobMasterGateway jobMasterGateway = mock(JobMasterGateway.class);
 
@@ -930,7 +933,7 @@ public class TaskExecutorTest extends TestLogger {
 		when(jobMasterGateway.getHostname()).thenReturn(jobManagerAddress);
 
 		when(jobMasterGateway.offerSlots(
-				any(ResourceID.class), any(Collection.class), any(Time.class)))
+				any(ResourceID.class), any(Collection.class), any(Collection.class), any(Time.class)))
 			.thenReturn(CompletableFuture.completedFuture((Collection<SlotOffer>) Collections.singleton(offer1)));
 
 		rpc.registerGateway(resourceManagerAddress, resourceManagerGateway);
@@ -1005,7 +1008,7 @@ public class TaskExecutorTest extends TestLogger {
 		final AllocationID allocationId1 = new AllocationID();
 		final AllocationID allocationId2 = new AllocationID();
 
-		final SlotOffer offer1 = new SlotOffer(allocationId1, 0, ResourceProfile.UNKNOWN);
+		final SlotOffer offer1 = new SlotOffer(allocationId1, 0, ResourceProfile.UNKNOWN, Collections.emptyList());
 
 		final OneShotLatch offerSlotsLatch = new OneShotLatch();
 		final OneShotLatch taskInTerminalState = new OneShotLatch();
@@ -1090,6 +1093,7 @@ public class TaskExecutorTest extends TestLogger {
 				new TaskDeploymentDescriptor.NonOffloaded<>(serializedJobVertexInformation),
 				new ExecutionAttemptID(),
 				allocationId1,
+				jobVertexId,
 				0,
 				0,
 				0,

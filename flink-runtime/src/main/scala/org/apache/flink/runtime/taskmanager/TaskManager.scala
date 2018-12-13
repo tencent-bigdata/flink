@@ -1377,6 +1377,9 @@ class TaskManager(
           new TaskExecutionState(
             task.getJobID,
             task.getExecutionId,
+            task.getJobVertexId,
+            task.getSubtaskIndex,
+            task.getAttemptNumber,
             task.getExecutionState,
             task.getFailureCause,
             accumulators,

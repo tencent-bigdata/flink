@@ -275,8 +275,8 @@ public class TestingJobMasterGateway implements JobMasterGateway {
 	}
 
 	@Override
-	public CompletableFuture<Collection<SlotOffer>> offerSlots(ResourceID taskManagerId, Collection<SlotOffer> slots, Time timeout) {
-		return offerSlotsFunction.apply(taskManagerId, slots);
+	public CompletableFuture<Collection<SlotOffer>> offerSlots(ResourceID taskManagerId, Collection<SlotOffer> allocatedSlots, Collection<SlotOffer> activeSlots, Time timeout) {
+		return offerSlotsFunction.apply(taskManagerId, allocatedSlots);
 	}
 
 	@Override

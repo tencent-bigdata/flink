@@ -73,13 +73,13 @@ public class TaskSlotTableTest extends TestLogger {
 			assertThat(taskSlotTable.isAllocated(1, jobId1, allocationId2), is(true));
 			assertThat(taskSlotTable.isAllocated(2, jobId2, allocationId3), is(true));
 
-			assertThat(IteratorUtils.toList(taskSlotTable.getActiveSlots(jobId1)), is(equalTo(Arrays.asList(allocationId1))));
+			assertThat(IteratorUtils.toList(taskSlotTable.getActiveSlots(jobId1)), is(equalTo(Arrays.asList(taskSlotTable.getTaskSlot(allocationId1)))));
 
 			assertThat(taskSlotTable.tryMarkSlotActive(jobId1, allocationId1), is(true));
 			assertThat(taskSlotTable.tryMarkSlotActive(jobId1, allocationId2), is(true));
 			assertThat(taskSlotTable.tryMarkSlotActive(jobId1, allocationId3), is(false));
 
-			assertThat(Sets.newHashSet(taskSlotTable.getActiveSlots(jobId1)), is(equalTo(new HashSet<>(Arrays.asList(allocationId2, allocationId1)))));
+			assertThat(Sets.newHashSet(taskSlotTable.getActiveSlots(jobId1)), is(equalTo(new HashSet<>(Arrays.asList(taskSlotTable.getTaskSlot(allocationId2), taskSlotTable.getTaskSlot(allocationId1))))));
 		} finally {
 			taskSlotTable.stop();
 		}
