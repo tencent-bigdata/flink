@@ -18,6 +18,7 @@
 
 package org.apache.flink.table.plan.nodes.datastream
 
+import grizzled.slf4j.Logger
 import org.apache.calcite.plan._
 import org.apache.calcite.rel.RelNode
 import org.apache.calcite.rel.`type`.RelDataType
@@ -32,8 +33,9 @@ import org.apache.flink.table.plan.nodes.PhysicalTableSourceScan
 import org.apache.flink.table.plan.schema.RowSchema
 import org.apache.flink.table.runtime.types.CRow
 import org.apache.flink.table.sources._
-import org.apache.flink.table.sources.wmstrategies.{PeriodicWatermarkAssigner, PunctuatedWatermarkAssigner, PreserveWatermarks}
+import org.apache.flink.table.sources.wmstrategies.{PeriodicWatermarkAssigner, PreserveWatermarks, PunctuatedWatermarkAssigner}
 import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo
+import org.slf4j.{Logger, LoggerFactory}
 
 /** Flink RelNode to read data from an external source defined by a [[StreamTableSource]]. */
 class StreamTableSourceScan(
@@ -158,10 +160,40 @@ private class PeriodicWatermarkAssignerWrapper(
     assigner: PeriodicWatermarkAssigner)
   extends AssignerWithPeriodicWatermarks[CRow] {
 
-  override def getCurrentWatermark: Watermark = assigner.getWatermark
+  @transient lazy val LOG = LoggerFactory.getLogger(getClass)
+
+  import org.apache.flink.table.util.LogCounter
+
+  private val logPrinter = new LogCounter(10, 50000, 60 * 1000)
+
+  override def getCurrentWatermark: Watermark = {
+    val currentWatermark = assigner.getWatermark
+
+    val realWatermark = currentWatermark.getTimestamp - 1000L * 3600 * 8
+
+    if (System.currentTimeMillis() - realWatermark > 1000L * 60 * 30 ) {
+      if (logPrinter.shouldPrint()) {
+        LOG.info("Current watermark is less than current processing time, the timestamp is : " + realWatermark)
+      }
+    }
+
+    if (realWatermark - System.currentTimeMillis() > 1000L * 60 * 10) {
+        LOG.info("Current watermark is larger than current processing time, the timestamp is : " + realWatermark)
+    }
+
+    currentWatermark
+  }
 
   override def extractTimestamp(crow: CRow, previousElementTimestamp: Long): Long = {
     val timestamp: Long = crow.row.getField(timeFieldIdx).asInstanceOf[Long]
+
+    if (System.currentTimeMillis() - timestamp > 1000L * 60 * 30 ) {
+      if (logPrinter.shouldPrint()) {
+        LOG.info("Current row info : " + crow.row.toString)
+        LOG.info("Current watermark's timestamp is : {}" + timestamp)
+      }
+    }
+
     assigner.nextTimestamp(timestamp)
     0L
   }
