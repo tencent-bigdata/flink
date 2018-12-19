@@ -114,6 +114,8 @@ public class StreamingJobGraphGenerator {
 	private final StreamGraphHasher defaultStreamGraphHasher;
 	private final List<StreamGraphHasher> legacyStreamGraphHashers;
 
+	private final Map<String, String> operatorIDNames;
+
 	private StreamingJobGraphGenerator(StreamGraph streamGraph) {
 		this(streamGraph, null);
 	}
@@ -131,6 +133,7 @@ public class StreamingJobGraphGenerator {
 		this.chainedMinResources = new HashMap<>();
 		this.chainedPreferredResources = new HashMap<>();
 		this.physicalEdgesInOrder = new ArrayList<>();
+		this.operatorIDNames = new HashMap<>();
 
 		jobGraph = new JobGraph(jobID, streamGraph.getJobName());
 	}
@@ -143,6 +146,12 @@ public class StreamingJobGraphGenerator {
 		// Generate deterministic hashes for the nodes in order to identify them across
 		// submission iff they didn't change.
 		Map<Integer, byte[]> hashes = defaultStreamGraphHasher.traverseStreamGraphAndGenerateHashes(streamGraph);
+
+		for (Entry<Integer, byte[]> entry : hashes.entrySet()) {
+			StreamNode node = streamGraph.getStreamNode(entry.getKey());
+			String operatorID = org.apache.flink.util.StringUtils.byteToHexString(entry.getValue());
+			operatorIDNames.put(operatorID, node.getOperatorName());
+		}
 
 		// Generate legacy version hashes for backwards compatibility
 		List<Map<Integer, byte[]>> legacyHashes = new ArrayList<>(legacyStreamGraphHashers.size());
@@ -170,6 +179,8 @@ public class StreamingJobGraphGenerator {
 			throw new IllegalConfigurationException("Could not serialize the ExecutionConfig." +
 					"This indicates that non-serializable types (like custom serializers) were registered");
 		}
+
+		jobGraph.setLogicalOperatorIDNames(this.operatorIDNames);
 
 		return jobGraph;
 	}
@@ -408,7 +419,9 @@ public class StreamingJobGraphGenerator {
 		builtVertices.add(streamNodeId);
 		jobGraph.addVertex(jobVertex);
 
-		return new StreamConfig(jobVertex.getConfiguration());
+		StreamConfig streamConfig = new StreamConfig(jobVertex.getConfiguration());
+
+		return streamConfig;
 	}
 
 	@SuppressWarnings("unchecked")

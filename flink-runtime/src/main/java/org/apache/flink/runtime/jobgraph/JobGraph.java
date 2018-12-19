@@ -108,6 +108,8 @@ public class JobGraph implements Serializable {
 	/** List of classpaths required to run this job. */
 	private List<URL> classpaths = Collections.emptyList();
 
+	private Map<String, String> operatorIDNames;
+
 	// --------------------------------------------------------------------------------------------
 
 	/**
@@ -323,6 +325,14 @@ public class JobGraph implements Serializable {
 	 */
 	public int getNumberOfVertices() {
 		return this.taskVertices.size();
+	}
+
+	public Map<String, String> getLogicalOperatorIDNames() {
+		return this.operatorIDNames;
+	}
+
+	public void setLogicalOperatorIDNames(Map<String, String> operatorIDNames) {
+		this.operatorIDNames = operatorIDNames;
 	}
 
 	/**
