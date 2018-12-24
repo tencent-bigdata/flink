@@ -1033,7 +1033,9 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 		capability.setMemory(clusterSpecification.getMasterMemoryMB());
 		capability.setVirtualCores(1);
 
-		final String customApplicationName = customName != null ? customName : applicationName;
+		ConfigOption<String> jobNameStr = ConfigOptions.key("oceanus.job.id").noDefaultValue();
+		String jobName = flinkConfiguration.getString(jobNameStr);
+		final String customApplicationName = customName != null ? customName : jobName != null ? jobName : applicationName;
 
 		appContext.setApplicationName(customApplicationName);
 		appContext.setApplicationType("Oceanus+Flink");
