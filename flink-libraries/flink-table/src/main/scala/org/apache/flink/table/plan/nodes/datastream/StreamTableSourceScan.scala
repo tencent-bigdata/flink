@@ -169,16 +169,14 @@ private class PeriodicWatermarkAssignerWrapper(
   override def getCurrentWatermark: Watermark = {
     val currentWatermark = assigner.getWatermark
 
-    val realWatermark = currentWatermark.getTimestamp - 1000L * 3600 * 8
-
-    if (System.currentTimeMillis() - realWatermark > 1000L * 60 * 30 ) {
+    if (System.currentTimeMillis() - currentWatermark.getTimestamp > 1000L * 60 * 30 ) {
       if (logPrinter.shouldPrint()) {
-        LOG.info("Current watermark is less than current processing time, the timestamp is : " + realWatermark)
+        LOG.info("Current watermark is less than current processing time, the timestamp is : " + currentWatermark.getTimestamp)
       }
     }
 
-    if (realWatermark - System.currentTimeMillis() > 1000L * 60 * 10) {
-        LOG.info("Current watermark is larger than current processing time, the timestamp is : " + realWatermark)
+    if (currentWatermark.getTimestamp - System.currentTimeMillis() > 1000L * 60 * 10) {
+        LOG.info("Current watermark is larger than current processing time, the timestamp is : " + currentWatermark.getTimestamp)
     }
 
     currentWatermark
