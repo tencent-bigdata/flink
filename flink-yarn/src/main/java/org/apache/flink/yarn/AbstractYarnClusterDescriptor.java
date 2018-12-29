@@ -24,25 +24,17 @@ import org.apache.flink.client.deployment.ClusterDescriptor;
 import org.apache.flink.client.deployment.ClusterRetrieveException;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.ClusterClient;
-import org.apache.flink.configuration.ConfigConstants;
-import org.apache.flink.configuration.ConfigOption;
-import org.apache.flink.configuration.ConfigOptions;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.configuration.CoreOptions;
-import org.apache.flink.configuration.HighAvailabilityOptions;
-import org.apache.flink.configuration.IllegalConfigurationException;
-import org.apache.flink.configuration.JobManagerOptions;
-import org.apache.flink.configuration.ResourceManagerOptions;
-import org.apache.flink.configuration.RestOptions;
-import org.apache.flink.configuration.SecurityOptions;
-import org.apache.flink.configuration.TaskManagerOptions;
+import org.apache.flink.configuration.*;
 import org.apache.flink.runtime.akka.AkkaUtils;
 import org.apache.flink.runtime.clusterframework.BootstrapTools;
 import org.apache.flink.runtime.clusterframework.ContaineredTaskManagerParameters;
 import org.apache.flink.runtime.entrypoint.ClusterEntrypoint;
 import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.runtime.jobgraph.JobVertex;
+import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.runtime.jobmanager.HighAvailabilityMode;
 import org.apache.flink.runtime.taskexecutor.TaskManagerServices;
+import org.apache.flink.util.FileUtils;
 import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.ShutdownHookUtil;
@@ -697,6 +689,15 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 			YarnClientApplication yarnApplication,
 			ClusterSpecification clusterSpecification) throws Exception {
 
+		// ------------------ update reporters ------------------------
+
+		ConfigOption<String> jobNameStr = ConfigOptions.key("oceanus.job.id").noDefaultValue();
+		String jobName = flinkConfiguration.getString(jobNameStr);
+
+		Map<String, String> vertexNames = generateVertexNames(jobGraph);
+		updateMetricsConfig(flinkConfiguration, Long.valueOf(jobName), vertexNames);
+
+
 		// ------------------ Initialize the file systems -------------------------
 
 		try {
@@ -725,7 +726,21 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 		ApplicationSubmissionContext appContext = yarnApplication.getApplicationSubmissionContext();
 		Set<File> systemShipFiles = new HashSet<>(shipFiles.size());
 		for (File file : shipFiles) {
-			systemShipFiles.add(file.getAbsoluteFile());
+			// for client command submit
+			if (file.isDirectory()) {
+				Collection<File> files =
+					org.apache.commons.io.FileUtils.listFiles(file, null, true);
+				for (File shipFile : files) {
+					if (GlobalConfiguration.FLINK_CONF_FILENAME
+						.equals(shipFile.getName()) || "log4j-cli.properties"
+						.equals(shipFile.getName())) {
+						continue;
+					}
+					systemShipFiles.add(shipFile.getAbsoluteFile());
+				}
+			} else {
+				systemShipFiles.add(file.getAbsoluteFile());
+			}
 		}
 
 		//check if there is a logback or log4j file
@@ -1033,10 +1048,7 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 		capability.setMemory(clusterSpecification.getMasterMemoryMB());
 		capability.setVirtualCores(1);
 
-		ConfigOption<String> jobNameStr = ConfigOptions.key("oceanus.job.id").noDefaultValue();
-		String jobName = flinkConfiguration.getString(jobNameStr);
 		final String customApplicationName = customName != null ? customName : jobName != null ? jobName : applicationName;
-
 		appContext.setApplicationName(customApplicationName);
 		appContext.setApplicationType("Oceanus+Flink");
 		appContext.setAMContainerSpec(amContainer);
@@ -1660,6 +1672,55 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 				configuredUserJarInclusion,
 				YarnConfigOptions.CLASSPATH_INCLUDE_USER_JAR.defaultValue());
 			return YarnConfigOptions.UserJarInclusion.valueOf(YarnConfigOptions.CLASSPATH_INCLUDE_USER_JAR.defaultValue());
+		}
+	}
+
+	/**
+	 * for metrics latency:
+	 * 10-254-89-152.
+	 * taskmanager.container_1531299332237_0207_01_000002.90210_201808251048.
+	 * latency.
+	 * source_id.cbc357ccb763df2852fee8c4fc7d55f2
+	 * .source_subtask_index.0
+	 * .operator_id.1005f03a37a9d727782a1597ca596a1c
+	 * .operator_subtask_index.0.latency
+	 * @return
+	 */
+	private static Map<String, String> generateVertexNames(JobGraph jobGraph) {
+		JobVertex[] vertexes = jobGraph.getVerticesAsArray();
+		Map<String, String> ret = new HashMap<>();
+		StringBuffer ids = new StringBuffer();
+		for (JobVertex vertex : vertexes) {
+			List<OperatorID> operIds = vertex.getOperatorIDs();
+			for (OperatorID operId : operIds) {
+				if (ids.length() > 0) {
+					ids.append(",");
+				}
+				ids.append(operId.toString());
+				ret.put(operId.toString(), vertex.getName());
+			}
+		}
+		ret.put("ids", ids.toString());
+		return ret;
+	}
+
+	private static void updateMetricsConfig(Configuration flinkConfiguration,
+		long jobId, Map<String, String> vertexNames) {
+		String reporters =
+			flinkConfiguration.getString(MetricOptions.REPORTERS_LIST);
+		if (reporters == null) {
+			return;
+		}
+		String[] reporterArr = reporters.split(",");
+		for (String reporter : reporterArr) {
+			String jobIdKey =
+				ConfigConstants.METRICS_REPORTER_PREFIX + reporter + ".jobid";
+			flinkConfiguration.setString(jobIdKey, String.valueOf(jobId));
+			for (Map.Entry<String, String> entry : vertexNames.entrySet()) {
+				String key = ConfigConstants.METRICS_REPORTER_PREFIX + reporter
+					+ ".vertex." + entry.getKey();
+				flinkConfiguration.setString(key, entry.getValue());
+			}
 		}
 	}
 

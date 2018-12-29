@@ -269,7 +269,15 @@ public class FlinkYarnSessionCli extends AbstractCustomCommandLine<ApplicationId
 			YarnConfiguration yarnConfiguration,
 			String configurationDirectory,
 			CommandLine cmd) {
-
+		final Properties properties =
+			cmd.getOptionProperties(dynamicproperties.getOpt());
+		String fsDefaultName = properties.getProperty("fs.default.name");
+		String defaultName = StringUtils.isNotEmpty(fsDefaultName) ?
+			fsDefaultName :
+			properties.getProperty("fs.defaultFs");
+		if (StringUtils.isNotEmpty(defaultName)) {
+			yarnConfiguration.set("fs.default.name", defaultName);
+		}
 		AbstractYarnClusterDescriptor yarnClusterDescriptor = getClusterDescriptor(
 			configuration,
 			yarnConfiguration,
@@ -311,14 +319,16 @@ public class FlinkYarnSessionCli extends AbstractCustomCommandLine<ApplicationId
 		}
 
 		List<File> shipFiles = new ArrayList<>();
-		// path to directory to ship
+		// path to directories to ship
 		if (cmd.hasOption(shipPath.getOpt())) {
-			String shipPath = cmd.getOptionValue(this.shipPath.getOpt());
-			File shipDir = new File(shipPath);
-			if (shipDir.isDirectory()) {
-				shipFiles.add(shipDir);
-			} else {
-				LOG.warn("Ship directory is not a directory. Ignoring it.");
+			String[] shipPaths = cmd.getOptionValues(this.shipPath.getOpt());
+			for (String shipPath : shipPaths) {
+				File shipDir = new File(shipPath);
+				if (shipDir.isDirectory()) {
+					shipFiles.add(shipDir);
+				} else {
+					LOG.warn("Ship directory {} is not a directory. Ignoring it.", shipDir);
+				}
 			}
 		}
 
@@ -329,8 +339,7 @@ public class FlinkYarnSessionCli extends AbstractCustomCommandLine<ApplicationId
 			yarnClusterDescriptor.setQueue(cmd.getOptionValue(queue.getOpt()));
 		}
 
-		final Properties properties = cmd.getOptionProperties(dynamicproperties.getOpt());
-
+		LOG.info("properties is {}", properties);
 		String[] dynamicProperties = properties.stringPropertyNames().stream()
 			.flatMap(
 				(String key) -> {
@@ -792,6 +801,7 @@ public class FlinkYarnSessionCli extends AbstractCustomCommandLine<ApplicationId
 	}
 
 	public static void main(final String[] args) {
+		LOG.info("entry flink yarn session cli main");
 		final String configurationDirectory = CliFrontend.getConfigurationDirectoryFromEnv();
 
 		final Configuration flinkConfiguration = GlobalConfiguration.loadConfiguration();
