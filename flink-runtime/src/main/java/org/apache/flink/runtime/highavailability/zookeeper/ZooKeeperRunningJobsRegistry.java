@@ -24,6 +24,7 @@ import org.apache.flink.configuration.HighAvailabilityOptions;
 import org.apache.flink.runtime.highavailability.RunningJobsRegistry;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
@@ -44,9 +45,14 @@ public class ZooKeeperRunningJobsRegistry implements RunningJobsRegistry {
 
 	private final String runningJobPath;
 
-	public ZooKeeperRunningJobsRegistry(final CuratorFramework client, final Configuration configuration) {
+	public ZooKeeperRunningJobsRegistry(
+		final CuratorFramework client,
+		final Configuration configuration,
+		final String namespace) {
 		this.client = checkNotNull(client, "client");
-		this.runningJobPath = configuration.getString(HighAvailabilityOptions.ZOOKEEPER_RUNNING_JOB_REGISTRY_PATH);
+		this.runningJobPath = ZKPaths.makePath(
+			namespace,
+			configuration.getString(HighAvailabilityOptions.ZOOKEEPER_RUNNING_JOB_REGISTRY_PATH));
 	}
 
 	@Override
@@ -118,7 +124,7 @@ public class ZooKeeperRunningJobsRegistry implements RunningJobsRegistry {
 	}
 
 	private String createZkPath(JobID jobID) {
-		return runningJobPath + jobID.toString();
+		return ZKPaths.makePath(runningJobPath, jobID.toString());
 	}
 
 	private void writeEnumToZooKeeper(JobID jobID, JobSchedulingStatus status) throws Exception {

@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.util;
 
+import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.HighAvailabilityOptions;
@@ -42,6 +43,7 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.api.ACLProvider;
 import org.apache.curator.framework.imps.DefaultACLProvider;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
@@ -163,12 +165,10 @@ public class ZooKeeperUtils {
 	 * @param client        The {@link CuratorFramework} ZooKeeper client to use
 	 * @param configuration {@link Configuration} object containing the configuration values
 	 * @return {@link ZooKeeperLeaderRetrievalService} instance.
-	 * @throws Exception
 	 */
 	public static ZooKeeperLeaderRetrievalService createLeaderRetrievalService(
 		final CuratorFramework client,
-		final Configuration configuration) throws Exception
-	{
+		final Configuration configuration) {
 		return createLeaderRetrievalService(client, configuration, "");
 	}
 
@@ -177,16 +177,16 @@ public class ZooKeeperUtils {
 	 *
 	 * @param client        The {@link CuratorFramework} ZooKeeper client to use
 	 * @param configuration {@link Configuration} object containing the configuration values
-	 * @param pathSuffix    The path suffix which we want to append
+	 * @param namespace    The namespace which we use
 	 * @return {@link ZooKeeperLeaderRetrievalService} instance.
-	 * @throws Exception
 	 */
 	public static ZooKeeperLeaderRetrievalService createLeaderRetrievalService(
 		final CuratorFramework client,
 		final Configuration configuration,
-		final String pathSuffix) {
-		String leaderPath = configuration.getString(
-			HighAvailabilityOptions.HA_ZOOKEEPER_LEADER_PATH) + pathSuffix;
+		final String namespace) {
+		String leaderPath = ZKPaths.makePath(
+			namespace,
+			configuration.getString(HighAvailabilityOptions.HA_ZOOKEEPER_LEADER_PATH));
 
 		return new ZooKeeperLeaderRetrievalService(client, leaderPath);
 	}
@@ -198,9 +198,10 @@ public class ZooKeeperUtils {
 	 * @param configuration {@link Configuration} object containing the configuration values
 	 * @return {@link ZooKeeperLeaderElectionService} instance.
 	 */
+	@VisibleForTesting
 	public static ZooKeeperLeaderElectionService createLeaderElectionService(
 			CuratorFramework client,
-			Configuration configuration) throws Exception {
+			Configuration configuration) {
 
 		return createLeaderElectionService(client, configuration, "");
 	}
@@ -210,19 +211,29 @@ public class ZooKeeperUtils {
 	 *
 	 * @param client        The {@link CuratorFramework} ZooKeeper client to use
 	 * @param configuration {@link Configuration} object containing the configuration values
-	 * @param pathSuffix    The path suffix which we want to append
+	 * @param namespace    The namespace which we use
 	 * @return {@link ZooKeeperLeaderElectionService} instance.
 	 */
 	public static ZooKeeperLeaderElectionService createLeaderElectionService(
 			final CuratorFramework client,
 			final Configuration configuration,
-			final String pathSuffix) {
-		final String latchPath = configuration.getString(
-			HighAvailabilityOptions.HA_ZOOKEEPER_LATCH_PATH) + pathSuffix;
-		final String leaderPath = configuration.getString(
-			HighAvailabilityOptions.HA_ZOOKEEPER_LEADER_PATH) + pathSuffix;
+			final String namespace) {
+		final String latchPath = ZKPaths.makePath(
+			namespace,
+			configuration.getString(HighAvailabilityOptions.HA_ZOOKEEPER_LATCH_PATH));
+
+		final String leaderPath = ZKPaths.makePath(
+			namespace,
+			configuration.getString(HighAvailabilityOptions.HA_ZOOKEEPER_LEADER_PATH));
 
 		return new ZooKeeperLeaderElectionService(client, latchPath, leaderPath);
+	}
+
+	@VisibleForTesting
+	public static ZooKeeperSubmittedJobGraphStore createSubmittedJobGraphs(
+			CuratorFramework client,
+			Configuration configuration) throws Exception {
+		return createSubmittedJobGraphs(client, configuration, "/dispatcher");
 	}
 
 	/**
@@ -234,15 +245,17 @@ public class ZooKeeperUtils {
 	 * @throws Exception if the submitted job graph store cannot be created
 	 */
 	public static ZooKeeperSubmittedJobGraphStore createSubmittedJobGraphs(
-			CuratorFramework client,
-			Configuration configuration) throws Exception {
-
+		CuratorFramework client,
+		Configuration configuration,
+		String namespace) throws Exception {
 		checkNotNull(configuration, "Configuration");
 
 		RetrievableStateStorageHelper<SubmittedJobGraph> stateStorage = createFileSystemStateStorage(configuration, "submittedJobGraph");
 
 		// ZooKeeper submitted jobs root dir
-		String zooKeeperSubmittedJobsPath = configuration.getString(HighAvailabilityOptions.HA_ZOOKEEPER_JOBGRAPHS_PATH);
+		String zooKeeperSubmittedJobsPath = ZKPaths.makePath(
+			namespace,
+			configuration.getString(HighAvailabilityOptions.HA_ZOOKEEPER_JOBGRAPHS_PATH));
 
 		return new ZooKeeperSubmittedJobGraphStore(
 			client,
@@ -270,14 +283,13 @@ public class ZooKeeperUtils {
 
 		checkNotNull(configuration, "Configuration");
 
-		String checkpointsPath = configuration.getString(
-			HighAvailabilityOptions.HA_ZOOKEEPER_CHECKPOINTS_PATH);
+		String checkpointsPath = ZKPaths.makePath(
+			jobId.toString(),
+			configuration.getString(HighAvailabilityOptions.HA_ZOOKEEPER_CHECKPOINTS_PATH));
 
 		RetrievableStateStorageHelper<CompletedCheckpoint> stateStorage = createFileSystemStateStorage(
 			configuration,
 			"completedCheckpoint");
-
-		checkpointsPath += ZooKeeperSubmittedJobGraphStore.getPathForJob(jobId);
 
 		return new ZooKeeperCompletedCheckpointStore(
 			maxNumberOfCheckpointsToRetain,
@@ -300,10 +312,9 @@ public class ZooKeeperUtils {
 			Configuration configuration,
 			JobID jobId) {
 
-		String checkpointIdCounterPath = configuration.getString(
-				HighAvailabilityOptions.HA_ZOOKEEPER_CHECKPOINT_COUNTER_PATH);
-
-		checkpointIdCounterPath += ZooKeeperSubmittedJobGraphStore.getPathForJob(jobId);
+		String checkpointIdCounterPath = ZKPaths.makePath(
+			jobId.toString(),
+			configuration.getString(HighAvailabilityOptions.HA_ZOOKEEPER_CHECKPOINT_COUNTER_PATH));
 
 		return new ZooKeeperCheckpointIDCounter(client, checkpointIdCounterPath);
 	}
