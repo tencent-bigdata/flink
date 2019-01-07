@@ -694,8 +694,12 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 		ConfigOption<String> jobNameStr = ConfigOptions.key("oceanus.job.id").noDefaultValue();
 		String jobName = flinkConfiguration.getString(jobNameStr);
 
-		Map<String, String> vertexNames = generateVertexNames(jobGraph);
-		updateMetricsConfig(flinkConfiguration, Long.valueOf(jobName), vertexNames);
+		ConfigOption<String> updateReportersConfigStr = ConfigOptions.key("update.reporters.config").noDefaultValue();
+		String updateReportersConfig = flinkConfiguration.getString(updateReportersConfigStr);
+		if ("true".equalsIgnoreCase(updateReportersConfig)) {
+			Map<String, String> vertexNames = generateVertexNames(jobGraph);
+			updateMetricsConfig(flinkConfiguration, Long.valueOf(jobName), vertexNames);
+		}
 
 
 		// ------------------ Initialize the file systems -------------------------
