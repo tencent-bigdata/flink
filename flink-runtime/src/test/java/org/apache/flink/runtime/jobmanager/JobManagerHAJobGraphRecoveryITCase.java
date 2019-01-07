@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.jobmanager;
 
+import org.apache.curator.utils.ZKPaths;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.configuration.ConfigConstants;
@@ -426,8 +427,9 @@ public class JobManagerHAJobGraphRecoveryITCase extends TestLogger {
 		}
 
 		// ZooKeeper
-		String currentJobsPath = config.getString(
-			HighAvailabilityOptions.HA_ZOOKEEPER_JOBGRAPHS_PATH);
+		String currentJobsPath = ZKPaths.makePath(
+			"dispatcher",
+			config.getString(HighAvailabilityOptions.HA_ZOOKEEPER_JOBGRAPHS_PATH));
 
 		Stat stat = ZooKeeper.getClient().checkExists().forPath(currentJobsPath);
 
