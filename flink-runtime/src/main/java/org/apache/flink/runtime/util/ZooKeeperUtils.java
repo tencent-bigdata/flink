@@ -233,7 +233,8 @@ public class ZooKeeperUtils {
 	public static ZooKeeperSubmittedJobGraphStore createSubmittedJobGraphs(
 			CuratorFramework client,
 			Configuration configuration) throws Exception {
-		return createSubmittedJobGraphs(client, configuration, "/dispatcher");
+		String namespace = configuration.getString(HighAvailabilityOptions.HA_ZOOKEEPER_DISPATCHER_PATH);
+		return createSubmittedJobGraphs(client, configuration, namespace);
 	}
 
 	/**
