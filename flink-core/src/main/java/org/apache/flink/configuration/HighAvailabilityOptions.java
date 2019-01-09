@@ -162,6 +162,26 @@ public class HighAvailabilityOptions {
 				.text("The ZooKeeper root path for persisting the Mesos worker information.")
 				.build());
 
+	public static final ConfigOption<String> HA_ZOOKEEPER_RUNNING_JOB_REGISTRY_PATH =
+		key("high-availability.zookeeper.path.running-registry")
+			.defaultValue("/running_job_registry");
+
+	public static final ConfigOption<String> HA_ZOOKEEPER_DISPATCHER_PATH =
+		key("high-availability.zookeeper.path.dispatcher")
+			.defaultValue("/dispatcher");
+
+	public static final ConfigOption<String> HA_ZOOKEEPER_JOB_MANAGER_PATH =
+		key("high-availability.zookeeper.path.jobmanager")
+			.defaultValue("/job_manager");
+
+	public static final ConfigOption<String> HA_ZOOKEEPER_RESOUCE_MANAGER_PATH =
+		key("high-availability.zookeeper.path.resourcemanager")
+			.defaultValue("/resource_manager");
+
+	public static final ConfigOption<String> HA_ZOOKEEPER_REST_SERVER_PATH =
+		key("high-availability.zookeeper.path.rest-server")
+			.defaultValue("/rest_server");
+
 	// ------------------------------------------------------------------------
 	//  ZooKeeper Client Settings
 	// ------------------------------------------------------------------------
@@ -189,10 +209,6 @@ public class HighAvailabilityOptions {
 			.defaultValue(3)
 			.withDeprecatedKeys("recovery.zookeeper.client.max-retry-attempts")
 			.withDescription("Defines the number of connection retries before the client gives up.");
-
-	public static final ConfigOption<String> ZOOKEEPER_RUNNING_JOB_REGISTRY_PATH =
-			key("high-availability.zookeeper.path.running-registry")
-			.defaultValue("/running_job_registry/");
 
 	public static final ConfigOption<String> ZOOKEEPER_CLIENT_ACL =
 			key("high-availability.zookeeper.client.acl")

@@ -428,7 +428,7 @@ public class JobManagerHAJobGraphRecoveryITCase extends TestLogger {
 
 		// ZooKeeper
 		String currentJobsPath = ZKPaths.makePath(
-			"dispatcher",
+			config.getString(HighAvailabilityOptions.HA_ZOOKEEPER_DISPATCHER_PATH),
 			config.getString(HighAvailabilityOptions.HA_ZOOKEEPER_JOBGRAPHS_PATH));
 
 		Stat stat = ZooKeeper.getClient().checkExists().forPath(currentJobsPath);

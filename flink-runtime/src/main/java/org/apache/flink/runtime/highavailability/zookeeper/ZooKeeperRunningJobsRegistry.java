@@ -52,7 +52,7 @@ public class ZooKeeperRunningJobsRegistry implements RunningJobsRegistry {
 		this.client = checkNotNull(client, "client");
 		this.runningJobPath = ZKPaths.makePath(
 			namespace,
-			configuration.getString(HighAvailabilityOptions.ZOOKEEPER_RUNNING_JOB_REGISTRY_PATH));
+			configuration.getString(HighAvailabilityOptions.HA_ZOOKEEPER_RUNNING_JOB_REGISTRY_PATH));
 	}
 
 	@Override

@@ -41,6 +41,10 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.concurrent.Executor;
 
+import static org.apache.flink.configuration.HighAvailabilityOptions.HA_ZOOKEEPER_DISPATCHER_PATH;
+import static org.apache.flink.configuration.HighAvailabilityOptions.HA_ZOOKEEPER_JOB_MANAGER_PATH;
+import static org.apache.flink.configuration.HighAvailabilityOptions.HA_ZOOKEEPER_RESOUCE_MANAGER_PATH;
+import static org.apache.flink.configuration.HighAvailabilityOptions.HA_ZOOKEEPER_REST_SERVER_PATH;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
@@ -85,16 +89,7 @@ public class ZooKeeperHaServices implements HighAvailabilityServices {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperHaServices.class);
 
-	private static final String RESOURCE_MANAGER_NAMESPACE = "/resource_manager";
-
-	private static final String DISPATCHER_NAMESPACE = "/dispatcher";
-
-	private static final String JOB_MANAGER_NAMESPACE = "/job_manager";
-
-	private static final String REST_SERVER_NAMESPACE = "/rest_server";
-
 	// ------------------------------------------------------------------------
-	
 	
 	/** The ZooKeeper client to use */
 	private final CuratorFramework client;
@@ -111,6 +106,12 @@ public class ZooKeeperHaServices implements HighAvailabilityServices {
 	/** Store for arbitrary blobs */
 	private final BlobStoreService blobStoreService;
 
+	/** Namespaces of components */
+	private final String dispatcherNamespace;
+	private final String jobManagerNamespace;
+	private final String resourceManagerNamespace;
+	private final String restServerNamespace;
+
 	public ZooKeeperHaServices(
 			CuratorFramework client,
 			Executor executor,
@@ -119,8 +120,14 @@ public class ZooKeeperHaServices implements HighAvailabilityServices {
 		this.client = checkNotNull(client);
 		this.executor = checkNotNull(executor);
 		this.configuration = checkNotNull(configuration);
-		this.runningJobsRegistry = new ZooKeeperRunningJobsRegistry(client, configuration, DISPATCHER_NAMESPACE);
 		this.blobStoreService = checkNotNull(blobStoreService);
+
+		this.dispatcherNamespace = configuration.getString(HA_ZOOKEEPER_DISPATCHER_PATH);
+		this.jobManagerNamespace = configuration.getString(HA_ZOOKEEPER_JOB_MANAGER_PATH);
+		this.resourceManagerNamespace = configuration.getString(HA_ZOOKEEPER_RESOUCE_MANAGER_PATH);
+		this.restServerNamespace = configuration.getString(HA_ZOOKEEPER_REST_SERVER_PATH);
+
+		this.runningJobsRegistry = new ZooKeeperRunningJobsRegistry(client, configuration, dispatcherNamespace);
 	}
 
 	// ------------------------------------------------------------------------
@@ -129,12 +136,12 @@ public class ZooKeeperHaServices implements HighAvailabilityServices {
 
 	@Override
 	public LeaderRetrievalService getResourceManagerLeaderRetriever() {
-		return ZooKeeperUtils.createLeaderRetrievalService(client, configuration, RESOURCE_MANAGER_NAMESPACE);
+		return ZooKeeperUtils.createLeaderRetrievalService(client, configuration, resourceManagerNamespace);
 	}
 
 	@Override
 	public LeaderRetrievalService getDispatcherLeaderRetriever() {
-		return ZooKeeperUtils.createLeaderRetrievalService(client, configuration, DISPATCHER_NAMESPACE);
+		return ZooKeeperUtils.createLeaderRetrievalService(client, configuration, dispatcherNamespace);
 	}
 
 	@Override
@@ -149,17 +156,17 @@ public class ZooKeeperHaServices implements HighAvailabilityServices {
 
 	@Override
 	public LeaderRetrievalService getWebMonitorLeaderRetriever() {
-		return ZooKeeperUtils.createLeaderRetrievalService(client, configuration, REST_SERVER_NAMESPACE);
+		return ZooKeeperUtils.createLeaderRetrievalService(client, configuration, restServerNamespace);
 	}
 
 	@Override
 	public LeaderElectionService getResourceManagerLeaderElectionService() {
-		return ZooKeeperUtils.createLeaderElectionService(client, configuration, RESOURCE_MANAGER_NAMESPACE);
+		return ZooKeeperUtils.createLeaderElectionService(client, configuration, resourceManagerNamespace);
 	}
 
 	@Override
 	public LeaderElectionService getDispatcherLeaderElectionService() {
-		return ZooKeeperUtils.createLeaderElectionService(client, configuration, DISPATCHER_NAMESPACE);
+		return ZooKeeperUtils.createLeaderElectionService(client, configuration, dispatcherNamespace);
 	}
 
 	@Override
@@ -169,7 +176,7 @@ public class ZooKeeperHaServices implements HighAvailabilityServices {
 
 	@Override
 	public LeaderElectionService getWebMonitorLeaderElectionService() {
-		return ZooKeeperUtils.createLeaderElectionService(client, configuration, REST_SERVER_NAMESPACE);
+		return ZooKeeperUtils.createLeaderElectionService(client, configuration, restServerNamespace);
 	}
 
 	@Override
@@ -179,7 +186,7 @@ public class ZooKeeperHaServices implements HighAvailabilityServices {
 
 	@Override
 	public SubmittedJobGraphStore getSubmittedJobGraphStore() throws Exception {
-		return ZooKeeperUtils.createSubmittedJobGraphs(client, configuration, DISPATCHER_NAMESPACE);
+		return ZooKeeperUtils.createSubmittedJobGraphs(client, configuration, dispatcherNamespace);
 	}
 
 	@Override
@@ -243,7 +250,7 @@ public class ZooKeeperHaServices implements HighAvailabilityServices {
 	//  Utilities
 	// ------------------------------------------------------------------------
 
-	private static String getPathForJobManager(final JobID jobID) {
-		return ZKPaths.makePath(jobID.toString(), JOB_MANAGER_NAMESPACE);
+	private String getPathForJobManager(final JobID jobID) {
+		return ZKPaths.makePath(jobID.toString(), jobManagerNamespace);
 	}
 }
