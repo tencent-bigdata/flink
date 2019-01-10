@@ -585,7 +585,7 @@ public class ExecutionGraphTestUtils {
 			new NoRestartStrategy(),
 			new Scheduler(ExecutionContext$.MODULE$.fromExecutor(executor)));
 
-		return spy(new ExecutionJobVertex(graph, ajv, 1, AkkaUtils.getDefaultTimeout()));
+		return spy(new ExecutionJobVertex(graph, ajv, 0, 1, AkkaUtils.getDefaultTimeout()));
 	}
 	
 	public static ExecutionJobVertex getExecutionVertex(JobVertexID id) throws Exception {

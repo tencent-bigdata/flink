@@ -834,6 +834,7 @@ public class ExecutionGraph implements AccessExecutionGraph {
 			ExecutionJobVertex ejv = new ExecutionJobVertex(
 				this,
 				jobVertex,
+				verticesInCreationOrder.size(),
 				1,
 				rpcTimeout);
 

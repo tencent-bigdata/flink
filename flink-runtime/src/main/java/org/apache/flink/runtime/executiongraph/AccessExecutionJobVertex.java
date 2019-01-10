@@ -54,6 +54,13 @@ public interface AccessExecutionJobVertex {
 	JobVertexID getJobVertexId();
 
 	/**
+	 * Returns the index for this job vertex in the topology.
+	 *
+	 * @return The index for this job vertex in the topology.
+	 */
+	int getTopologyId();
+
+	/**
 	 * Returns all execution vertices for this job vertex.
 	 *
 	 * @return all execution vertices for this job vertex

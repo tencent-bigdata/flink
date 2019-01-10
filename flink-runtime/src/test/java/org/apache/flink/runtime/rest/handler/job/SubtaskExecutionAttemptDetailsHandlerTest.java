@@ -110,6 +110,7 @@ public class SubtaskExecutionAttemptDetailsHandlerTest extends TestLogger {
 				)
 			},
 			jobVertexId,
+			0,
 			"test",
 			1,
 			1,

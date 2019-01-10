@@ -32,6 +32,8 @@ public class ArchivedExecutionJobVertex implements AccessExecutionJobVertex, Ser
 
 	private final JobVertexID id;
 
+	private final int topologyId;
+
 	private final String name;
 
 	private final int parallelism;
@@ -49,6 +51,7 @@ public class ArchivedExecutionJobVertex implements AccessExecutionJobVertex, Ser
 		archivedUserAccumulators = jobVertex.getAggregatedUserAccumulatorsStringified();
 
 		this.id = jobVertex.getJobVertexId();
+		this.topologyId = jobVertex.getTopologyId();
 		this.name = jobVertex.getJobVertex().getName();
 		this.parallelism = jobVertex.getParallelism();
 		this.maxParallelism = jobVertex.getMaxParallelism();
@@ -57,12 +60,14 @@ public class ArchivedExecutionJobVertex implements AccessExecutionJobVertex, Ser
 	public ArchivedExecutionJobVertex(
 			ArchivedExecutionVertex[] taskVertices,
 			JobVertexID id,
+			int topologyId,
 			String name,
 			int parallelism,
 			int maxParallelism,
 			StringifiedAccumulatorResult[] archivedUserAccumulators) {
 		this.taskVertices = taskVertices;
 		this.id = id;
+		this.topologyId = topologyId;
 		this.name = name;
 		this.parallelism = parallelism;
 		this.maxParallelism = maxParallelism;
@@ -91,6 +96,11 @@ public class ArchivedExecutionJobVertex implements AccessExecutionJobVertex, Ser
 	@Override
 	public JobVertexID getJobVertexId() {
 		return id;
+	}
+
+	@Override
+	public int getTopologyId() {
+		return topologyId;
 	}
 
 	@Override

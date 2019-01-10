@@ -75,6 +75,7 @@ public class ArchivedExecutionJobVertexBuilder {
 		return new ArchivedExecutionJobVertex(
 			taskVertices,
 			id != null ? id : new JobVertexID(),
+			0,
 			name != null ? name : "task_" + RANDOM.nextInt(),
 			parallelism,
 			maxParallelism,

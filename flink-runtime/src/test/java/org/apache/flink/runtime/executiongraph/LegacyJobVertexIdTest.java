@@ -63,7 +63,7 @@ public class LegacyJobVertexIdTest {
 			mock(SlotProvider.class));
 
 		ExecutionJobVertex executionJobVertex =
-				new ExecutionJobVertex(executionGraph, jobVertex, 1, Time.seconds(1));
+				new ExecutionJobVertex(executionGraph, jobVertex, 0, 1, Time.seconds(1));
 
 		Map<JobVertexID, ExecutionJobVertex> idToVertex = new HashMap<>();
 		idToVertex.put(executionJobVertex.getJobVertexId(), executionJobVertex);

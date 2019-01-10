@@ -55,13 +55,13 @@ public class AllVerticesIteratorTest {
 			Mockito.when(eg.getFutureExecutor()).thenReturn(TestingUtils.directExecutionContext());
 			Mockito.when(eg.getJobConfiguration()).thenReturn(jobConf);
 
-			ExecutionJobVertex ejv1 = new ExecutionJobVertex(eg, v1, 1,
+			ExecutionJobVertex ejv1 = new ExecutionJobVertex(eg, v1, 0, 1,
 					AkkaUtils.getDefaultTimeout());
-			ExecutionJobVertex ejv2 = new ExecutionJobVertex(eg, v2, 1,
+			ExecutionJobVertex ejv2 = new ExecutionJobVertex(eg, v2, 1, 1,
 					AkkaUtils.getDefaultTimeout());
-			ExecutionJobVertex ejv3 = new ExecutionJobVertex(eg, v3, 1,
+			ExecutionJobVertex ejv3 = new ExecutionJobVertex(eg, v3, 2, 1,
 					AkkaUtils.getDefaultTimeout());
-			ExecutionJobVertex ejv4 = new ExecutionJobVertex(eg, v4, 1,
+			ExecutionJobVertex ejv4 = new ExecutionJobVertex(eg, v4, 3, 1,
 					AkkaUtils.getDefaultTimeout());
 			
 			AllVerticesIterator iter = new AllVerticesIterator(Arrays.asList(ejv1, ejv2, ejv3, ejv4).iterator());

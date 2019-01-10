@@ -89,6 +89,8 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 
 	private final JobVertex jobVertex;
 
+	private final int topologyId;
+
 	/**
 	 * The IDs of all operators contained in this execution job vertex.
 	 *
@@ -150,6 +152,7 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 	public ExecutionJobVertex(
 		ExecutionGraph graph,
 		JobVertex jobVertex,
+		int topologyId,
 		int defaultParallelism,
 		Time timeout
 	) throws JobException {
@@ -160,6 +163,7 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 
 		this.graph = graph;
 		this.jobVertex = jobVertex;
+		this.topologyId = topologyId;
 
 		int vertexParallelism = jobVertex.getParallelism();
 		int numTaskVertices = vertexParallelism > 0 ? vertexParallelism : defaultParallelism;
@@ -339,6 +343,11 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 	@Override
 	public JobVertexID getJobVertexId() {
 		return jobVertex.getID();
+	}
+
+	@Override
+	public int getTopologyId() {
+		return topologyId;
 	}
 
 	@Override

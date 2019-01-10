@@ -137,7 +137,7 @@ public class ExecutionJobVertexTest {
 		ExecutionGraph executionGraphMock = mock(ExecutionGraph.class);
 		when(executionGraphMock.getFutureExecutor()).thenReturn(Executors.directExecutor());
 		ExecutionJobVertex executionJobVertex =
-				new ExecutionJobVertex(executionGraphMock, jobVertex, 1, Time.seconds(10));
+				new ExecutionJobVertex(executionGraphMock, jobVertex, 0, 1, Time.seconds(10));
 
 		return executionJobVertex;
 	}
