@@ -69,7 +69,6 @@ import org.apache.flink.runtime.messages.TaskManagerMessages.Heartbeat
 import org.apache.flink.runtime.messages.TaskMessages.UpdateTaskExecutionState
 import org.apache.flink.runtime.messages.accumulators._
 import org.apache.flink.runtime.messages.checkpoint.{AbstractCheckpointMessage, AcknowledgeCheckpoint, DeclineCheckpoint}
-import org.apache.flink.runtime.messages.webmonitor.JobIdsWithStatusOverview.JobIdWithStatus
 import org.apache.flink.runtime.messages.webmonitor.{InfoMessage, _}
 import org.apache.flink.runtime.messages.{Acknowledge, FlinkJobNotFoundException, StackTrace}
 import org.apache.flink.runtime.metrics.groups.JobManagerMetricGroup
@@ -78,6 +77,7 @@ import org.apache.flink.runtime.metrics.{MetricRegistryConfiguration, MetricRegi
 import org.apache.flink.runtime.process.ProcessReaper
 import org.apache.flink.runtime.query.KvStateMessage.{LookupKvStateLocation, NotifyKvStateRegistered, NotifyKvStateUnregistered}
 import org.apache.flink.runtime.query.{KvStateMessage, UnknownKvStateLocation}
+import org.apache.flink.runtime.rest.messages.job.{JobSummaryInfo, JobsOverviewInfo}
 import org.apache.flink.runtime.security.{SecurityConfiguration, SecurityUtils}
 import org.apache.flink.runtime.taskexecutor.TaskExecutor
 import org.apache.flink.runtime.taskmanager.TaskManager
@@ -1617,64 +1617,15 @@ class JobManager(
 
         case _ : RequestJobsOverview =>
           // get our own overview
-          val ourJobs = createJobStatusOverview()
+          val runningOverview = createJobsOverview()
 
           // get the overview from the archive
-          val future = (archive ? RequestJobsOverview.getInstance())(timeout)
+          val archivedOverviewFuture = (archive ? RequestJobsOverview.getInstance())(timeout)
 
-          future.onSuccess {
-            case archiveOverview: JobsOverview =>
-              theSender ! new JobsOverview(ourJobs, archiveOverview)
+          archivedOverviewFuture.onSuccess {
+            case archiveOverview: JobsOverviewInfo =>
+              theSender ! JobsOverviewInfo.combine(runningOverview, archiveOverview)
           }(context.dispatcher)
-
-        case _ : RequestJobsWithIDsOverview =>
-          // get our own overview
-          val ourJobs = createJobStatusWithIDsOverview()
-
-          // get the overview from the archive
-          val future = (archive ? RequestJobsWithIDsOverview.getInstance())(timeout)
-
-          future.onSuccess {
-            case archiveOverview: JobIdsWithStatusOverview =>
-              theSender ! new JobIdsWithStatusOverview(ourJobs, archiveOverview)
-          }(context.dispatcher)
-
-        case _ : RequestStatusOverview =>
-
-          val ourJobs = createJobStatusOverview()
-
-          val numTMs = instanceManager.getNumberOfRegisteredTaskManagers()
-          val numSlotsTotal = instanceManager.getTotalNumberOfSlots()
-          val numSlotsAvailable = instanceManager.getNumberOfAvailableSlots()
-
-          // add to that the jobs from the archive
-          val future = (archive ? RequestJobsOverview.getInstance())(timeout)
-          future.onSuccess {
-            case archiveOverview: JobsOverview =>
-              theSender ! new ClusterOverview(numTMs, numSlotsTotal, numSlotsAvailable,
-                ourJobs, archiveOverview)
-          }(context.dispatcher)
-
-        case msg : RequestJobDetails => 
-          
-          val ourDetails: List[JobDetails] = if (msg.shouldIncludeRunning()) {
-            currentJobs.values.map {
-              v => WebMonitorUtils.createDetailsForJob(v._1)
-            }.toList
-          } else {
-            null
-          }
-          
-          if (msg.shouldIncludeFinished()) {
-            val future = (archive ? msg)(timeout)
-            future.onSuccess {
-              case archiveDetails: MultipleJobsDetails =>
-                theSender ! new MultipleJobsDetails(
-                  (ourDetails ++ archiveDetails.getJobs.asScala).asJavaCollection)
-            }(context.dispatcher)
-          } else {
-            theSender ! new MultipleJobsDetails(util.Arrays.asList(ourDetails: _*))
-          }
           
         case _ => log.error("Unrecognized info message " + actorMessage)
       }
@@ -1684,34 +1635,26 @@ class JobManager(
     }
   }
 
-  private def createJobStatusOverview() : JobsOverview = {
+  private def createJobsOverview() : JobsOverviewInfo = {
     var runningOrPending = 0
     var finished = 0
     var canceled = 0
     var failed = 0
 
-    currentJobs.values.foreach {
-      _._1.getState() match {
+    var jobSummaries = new util.ArrayList[JobSummaryInfo]()
+
+    currentJobs.values.foreach { job =>
+      job._1.getState() match {
         case JobStatus.FINISHED => finished += 1
         case JobStatus.CANCELED => canceled += 1
         case JobStatus.FAILED => failed += 1
         case _ => runningOrPending += 1
       }
+
+      jobSummaries.add(job._1.getJobSummary)
     }
 
-    new JobsOverview(runningOrPending, finished, canceled, failed)
-  }
-
-  private def createJobStatusWithIDsOverview() : JobIdsWithStatusOverview = {
-    val jobIdsWithStatuses =
-      new java.util.ArrayList[JobIdWithStatus](currentJobs.size)
-
-    currentJobs.values.foreach { job =>
-      jobIdsWithStatuses.add(
-        new JobIdWithStatus(job._1.getJobID, job._1.getState))
-    }
-
-    new JobIdsWithStatusOverview(jobIdsWithStatuses)
+    new JobsOverviewInfo(runningOrPending, finished, canceled, failed, jobSummaries)
   }
 
   /**

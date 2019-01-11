@@ -19,11 +19,10 @@
 package org.apache.flink.runtime.dispatcher;
 
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.runtime.executiongraph.AccessExecutionGraph;
 import org.apache.flink.runtime.executiongraph.ArchivedExecutionGraph;
-import org.apache.flink.runtime.jobgraph.JobStatus;
-import org.apache.flink.runtime.messages.webmonitor.JobDetails;
-import org.apache.flink.runtime.messages.webmonitor.JobsOverview;
-import org.apache.flink.runtime.webmonitor.WebMonitorUtils;
+import org.apache.flink.runtime.rest.messages.job.JobSummaryInfo;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo;
 
 import javax.annotation.Nullable;
 
@@ -58,28 +57,21 @@ public class MemoryArchivedExecutionGraphStore implements ArchivedExecutionGraph
 	}
 
 	@Override
-	public JobsOverview getStoredJobsOverview() {
-		Collection<JobStatus> allJobStatus = serializableExecutionGraphs.values().stream()
-			.map(ArchivedExecutionGraph::getState)
+	public JobsOverviewInfo getStoredJobsOverview() {
+		Collection<JobSummaryInfo> jobSummaries = serializableExecutionGraphs.values().stream()
+			.map(AccessExecutionGraph::getJobSummary)
 			.collect(Collectors.toList());
 
-		return JobsOverview.create(allJobStatus);
-	}
-
-	@Override
-	public Collection<JobDetails> getAvailableJobDetails() {
-		return serializableExecutionGraphs.values().stream()
-			.map(WebMonitorUtils::createDetailsForJob)
-			.collect(Collectors.toList());
+		return JobsOverviewInfo.create(jobSummaries);
 	}
 
 	@Nullable
 	@Override
-	public JobDetails getAvailableJobDetails(JobID jobId) {
+	public JobSummaryInfo getAvailableJobSummary(JobID jobId) {
 		final ArchivedExecutionGraph archivedExecutionGraph = serializableExecutionGraphs.get(jobId);
 
 		if (archivedExecutionGraph != null) {
-			return WebMonitorUtils.createDetailsForJob(archivedExecutionGraph);
+			return archivedExecutionGraph.getJobSummary();
 		} else {
 			return null;
 		}

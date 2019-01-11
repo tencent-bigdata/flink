@@ -269,6 +269,19 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 	}
 
 	@Override
+	public Collection<ArchivedExecution> getPriorExecutionAttempts() {
+		Collection<ArchivedExecution> results = new ArrayList<>();
+
+		synchronized (priorExecutions) {
+			for (ArchivedExecution priorExecution : priorExecutions) {
+				results.add(priorExecution);
+			}
+		}
+
+		return results;
+	}
+
+	@Override
 	public ArchivedExecution getPriorExecutionAttempt(int attemptNumber) {
 		synchronized (priorExecutions) {
 			if (attemptNumber >= 0 && attemptNumber < priorExecutions.size()) {

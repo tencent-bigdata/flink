@@ -1,0 +1,58 @@
+//
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+table.table.table-hover.table-clickable.table-activable.table-inner(md-table)
+  thead(md-head md-order="myOrder")
+    tr(md-row)
+      th(md-column md-order-by="index") ID
+      th(md-column md-order-by="currentExecution.metrics.watermark") Watermark
+      th(md-column md-order-by="currentExecution.metrics.inQueueUsage") InQueue Usage
+      th(md-column md-order-by="currentExecution.metrics.outQueueUsage") OutQueue Usage
+      th(md-column md-order-by="currentExecution.metrics.bytesIn") Inputs
+      th(md-column md-order-by="currentExecution.metrics.bytesOut") Outputs
+      th(md-column md-order-by="currentExecution.metrics.bytesInRate") Input Rate
+      th(md-column md-order-by="currentExecution.metrics.bytesOutRate") Output Rate
+      th(md-column md-order-by="executor.id") Executor
+  tbody(md-body)
+    tr(md-row ng-repeat="task in tasks | orderBy: myOrder | limitTo: myLimit: ((myPage - 1) * myLimit)" ui-sref="single-task.executions({ jobid: jobId, vertexid: id, taskindex: task.index })")
+      td(md-cell) {{task.index}}
+      td(md-cell)
+        span(ng-if="task.currentExecution.metrics.watermark < 0") N/A
+        span(ng-if="task.currentExecution.metrics.watermark >= 0") {{task.currentExecution.metrics.watermark}}
+      td(md-cell)
+        span(ng-if="task.currentExecution.metrics.inQueueUsage < 0") N/A
+        span(ng-if="task.currentExecution.metrics.inQueueUsage >= 0") {{task.currentExecution.metrics.inQueueUsage | percentage }}
+      td(md-cell)
+        span(ng-if="task.currentExecution.metrics.outQueueUsage < 0") N/A
+        span(ng-if="task.currentExecution.metrics.outQueueUsage >= 0") {{task.currentExecution.metrics.outQueueUsage | percentage}}
+      td(md-cell)
+        span(ng-if="task.currentExecution.metrics.bytesIn < 0") N/A
+        span(ng-if="task.currentExecution.metrics.bytesIn >= 0") {{task.currentExecution.metrics.bytesIn | humanizeBytes}}
+      td(md-cell)
+        span(ng-if="task.currentExecution.metrics.bytesOut < 0") N/A
+        span(ng-if="task.currentExecution.metrics.bytesOut >= 0") {{task.currentExecution.metrics.bytesOut | humanizeBytes}}
+      td(md-cell)
+         span(ng-if="task.currentExecution.metrics.bytesInRate < 0") N/A
+         span(ng-if="task.currentExecution.metrics.bytesInRate >= 0") {{task.currentExecution.metrics.bytesInRate | humanizeBytes}}
+      td(md-cell)
+        span(ng-if="task.currentExecution.metrics.bytesOutRate < 0") N/A
+        span(ng-if="task.currentExecution.metrics.bytesOutRate >= 0") {{task.currentExecution.metrics.bytesOutRate | humanizeBytes}}
+      td(md-cell)
+        .md-body-2 {{task.currentExecution.executor.id}}
+        .md-caption {{task.currentExecution.executor.host}}:{{task.currentExecution.executor.port}}
+
+md-table-pagination.bg-light(md-limit="myLimit" md-limit-options="[5, 10, 20]" md-page="myPage" md-total="{{tasks.length}}" md-page-select)

@@ -53,6 +53,11 @@ public class MetricNames {
 	public static final String IO_CURRENT_INPUT_2_WATERMARK = "currentInput2Watermark";
 	public static final String IO_CURRENT_OUTPUT_WATERMARK = "currentOutputWatermark";
 
+	public static final String IO_IN_QUEUE_LENGTH =  "inputQueueLength";
+	public static final String IO_OUT_QUEUE_LENGTH = "outputQueueLength";
+	public static final String IO_IN_POOL_USAGE = "inPoolUsage";
+	public static final String IO_OUT_POOL_USAGE = "outPoolUsage";
+
 	public static final String NUM_RUNNING_JOBS = "numRunningJobs";
 	public static final String TASK_SLOTS_AVAILABLE = "taskSlotsAvailable";
 	public static final String TASK_SLOTS_TOTAL = "taskSlotsTotal";

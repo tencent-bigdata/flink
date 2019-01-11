@@ -218,7 +218,8 @@ function wait_dispatcher_running {
     QUERY_RESULT=$(curl ${CURL_SSL_ARGS} "$QUERY_URL" 2> /dev/null || true)
 
     # ensure the taskmanagers field is there at all and is not empty
-    if [[ ${QUERY_RESULT} =~ \{\"taskmanagers\":\[.+\]\} ]]; then
+    echo "${QUERY_RESULT}"
+    if [[ ${QUERY_RESULT} =~ \{\"taskManagers\":\[.+\]\} ]]; then
       echo "Dispatcher REST endpoint is up."
       return
     fi
@@ -247,7 +248,7 @@ function start_taskmanagers {
 function start_and_wait_for_tm {
   tm_query_result=`query_running_tms`
   # we assume that the cluster is running
-  if ! [[ ${tm_query_result} =~ \{\"taskmanagers\":\[.*\]\} ]]; then
+  if ! [[ ${tm_query_result} =~ \{\"taskManagers\":\[.*\]\} ]]; then
     echo "Your cluster seems to be unresponsive at the moment: ${tm_query_result}" 1>&2
     exit 1
   fi

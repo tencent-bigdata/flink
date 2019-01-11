@@ -57,6 +57,7 @@ import org.apache.flink.runtime.resourcemanager.registration.WorkerRegistration;
 import org.apache.flink.runtime.resourcemanager.slotmanager.ResourceActions;
 import org.apache.flink.runtime.resourcemanager.slotmanager.SlotManager;
 import org.apache.flink.runtime.resourcemanager.slotmanager.SlotManagerException;
+import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagersOverviewInfo;
 import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagerInfo;
 import org.apache.flink.runtime.rpc.FatalErrorHandler;
 import org.apache.flink.runtime.rpc.FencedRpcEndpoint;
@@ -532,8 +533,7 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 	}
 
 	@Override
-	public CompletableFuture<Collection<TaskManagerInfo>> requestTaskManagerInfo(Time timeout) {
-
+	public CompletableFuture<TaskManagersOverviewInfo> requestTaskManagersOverview(Time timeout) {
 		final ArrayList<TaskManagerInfo> taskManagerInfos = new ArrayList<>(taskExecutors.size());
 
 		for (Map.Entry<ResourceID, WorkerRegistration<WorkerType>> taskExecutorEntry : taskExecutors.entrySet()) {
@@ -551,7 +551,9 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 					taskExecutor.getHardwareDescription()));
 		}
 
-		return CompletableFuture.completedFuture(taskManagerInfos);
+		TaskManagersOverviewInfo taskManagersOverviewInfo = new TaskManagersOverviewInfo(taskManagerInfos);
+
+		return CompletableFuture.completedFuture(taskManagersOverviewInfo);
 	}
 
 	@Override
@@ -574,18 +576,6 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 
 			return CompletableFuture.completedFuture(taskManagerInfo);
 		}
-	}
-
-	@Override
-	public CompletableFuture<ResourceOverview> requestResourceOverview(Time timeout) {
-		final int numberSlots = slotManager.getNumberRegisteredSlots();
-		final int numberFreeSlots = slotManager.getNumberFreeSlots();
-
-		return CompletableFuture.completedFuture(
-			new ResourceOverview(
-				taskExecutors.size(),
-				numberSlots,
-				numberFreeSlots));
 	}
 
 	@Override

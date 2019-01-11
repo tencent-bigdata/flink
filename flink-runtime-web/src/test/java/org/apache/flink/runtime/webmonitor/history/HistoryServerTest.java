@@ -24,8 +24,8 @@ import org.apache.flink.configuration.HistoryServerOptions;
 import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.runtime.history.FsJobArchivist;
 import org.apache.flink.runtime.jobgraph.JobStatus;
-import org.apache.flink.runtime.messages.webmonitor.MultipleJobsDetails;
-import org.apache.flink.runtime.rest.messages.JobsOverviewHeaders;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewHeaders;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.test.util.MiniClusterWithClientResource;
@@ -104,7 +104,6 @@ public class HistoryServerTest extends TestLogger {
 		Configuration historyServerConfig = new Configuration();
 		historyServerConfig.setString(HistoryServerOptions.HISTORY_SERVER_ARCHIVE_DIRS, jmDirectory.toURI().toString());
 		historyServerConfig.setString(HistoryServerOptions.HISTORY_SERVER_WEB_DIR, hsDirectory.getAbsolutePath());
-
 		historyServerConfig.setInteger(HistoryServerOptions.HISTORY_SERVER_WEB_PORT, 0);
 
 		// the job is archived asynchronously after env.execute() returns
@@ -122,7 +121,7 @@ public class HistoryServerTest extends TestLogger {
 
 			ObjectMapper mapper = new ObjectMapper();
 			String response = getFromHTTP(baseUrl + JobsOverviewHeaders.URL);
-			MultipleJobsDetails overview = mapper.readValue(response, MultipleJobsDetails.class);
+			JobsOverviewInfo overview = mapper.readValue(response, JobsOverviewInfo.class);
 
 			Assert.assertEquals(numJobs + 1, overview.getJobs().size());
 		} finally {

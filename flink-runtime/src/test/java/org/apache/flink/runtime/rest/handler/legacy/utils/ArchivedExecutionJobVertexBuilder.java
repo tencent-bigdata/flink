@@ -35,6 +35,7 @@ public class ArchivedExecutionJobVertexBuilder {
 
 	private ArchivedExecutionVertex[] taskVertices;
 	private JobVertexID id;
+	private int topologyId;
 	private String name;
 	private int parallelism;
 	private int maxParallelism;
@@ -47,6 +48,11 @@ public class ArchivedExecutionJobVertexBuilder {
 
 	public ArchivedExecutionJobVertexBuilder setId(JobVertexID id) {
 		this.id = id;
+		return this;
+	}
+
+	public ArchivedExecutionJobVertexBuilder setTopologyId(int topologyId) {
+		this.topologyId = topologyId;
 		return this;
 	}
 
@@ -75,7 +81,7 @@ public class ArchivedExecutionJobVertexBuilder {
 		return new ArchivedExecutionJobVertex(
 			taskVertices,
 			id != null ? id : new JobVertexID(),
-			0,
+			topologyId != -1 ? topologyId : RANDOM.nextInt(),
 			name != null ? name : "task_" + RANDOM.nextInt(),
 			parallelism,
 			maxParallelism,

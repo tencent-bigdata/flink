@@ -511,9 +511,9 @@ public class MiniCluster implements JobExecutorService, AutoCloseableAsync {
 
 	public CompletableFuture<Collection<JobStatusMessage>> listJobs() {
 		try {
-			return getDispatcherGateway().requestMultipleJobDetails(rpcTimeout)
-				.thenApply(jobs -> jobs.getJobs().stream()
-					.map(details -> new JobStatusMessage(details.getJobId(), details.getJobName(), details.getStatus(), details.getStartTime()))
+			return getDispatcherGateway().requestJobsOverview(rpcTimeout)
+				.thenApply(clusterJobsInfo -> clusterJobsInfo.getJobs().stream()
+					.map(jobSummary -> new JobStatusMessage(jobSummary.getId(), jobSummary.getName(), jobSummary.getStatus(), jobSummary.getStartTime()))
 					.collect(Collectors.toList()));
 		} catch (LeaderRetrievalException | InterruptedException e) {
 			return FutureUtils.completedExceptionally(

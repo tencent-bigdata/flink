@@ -33,12 +33,12 @@ import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.runtime.clusterframework.types.ResourceID;
 import org.apache.flink.runtime.concurrent.FutureUtils;
 import org.apache.flink.runtime.concurrent.ScheduledExecutorServiceAdapter;
-import org.apache.flink.runtime.dispatcher.DispatcherGateway;
-import org.apache.flink.runtime.dispatcher.DispatcherId;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServicesUtils;
 import org.apache.flink.runtime.leaderelection.TestingListener;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalService;
+import org.apache.flink.runtime.resourcemanager.ResourceManagerGateway;
+import org.apache.flink.runtime.resourcemanager.ResourceManagerId;
 import org.apache.flink.runtime.rpc.RpcService;
 import org.apache.flink.runtime.rpc.RpcUtils;
 import org.apache.flink.runtime.rpc.akka.AkkaRpcServiceUtils;
@@ -277,7 +277,7 @@ public class JobManagerHAProcessFailureRecoveryITCase extends TestLogger {
 
 			// Leader listener
 			TestingListener leaderListener = new TestingListener();
-			leaderRetrievalService = highAvailabilityServices.getDispatcherLeaderRetriever();
+			leaderRetrievalService = highAvailabilityServices.getResourceManagerLeaderRetriever();
 			leaderRetrievalService.start(leaderListener);
 
 			// Initial submission
@@ -286,14 +286,14 @@ public class JobManagerHAProcessFailureRecoveryITCase extends TestLogger {
 			String leaderAddress = leaderListener.getAddress();
 			UUID leaderId = leaderListener.getLeaderSessionID();
 
-			final CompletableFuture<DispatcherGateway> dispatcherGatewayFuture = rpcService.connect(
+			final CompletableFuture<ResourceManagerGateway> resourceManagerGatewayFuture = rpcService.connect(
 				leaderAddress,
-				DispatcherId.fromUuid(leaderId),
-				DispatcherGateway.class);
-			final DispatcherGateway dispatcherGateway = dispatcherGatewayFuture.get();
+				ResourceManagerId.fromUuid(leaderId),
+				ResourceManagerGateway.class);
+			final ResourceManagerGateway resourceManagerGateway = resourceManagerGatewayFuture.get();
 
 			// Wait for all task managers to connect to the leading job manager
-			waitForTaskManagers(numberOfTaskManagers, dispatcherGateway, deadline.timeLeft());
+			waitForTaskManagers(numberOfTaskManagers, resourceManagerGateway, deadline.timeLeft());
 
 			final File coordinateDirClosure = coordinateTempDir;
 			final Throwable[] errorRef = new Throwable[1];
@@ -392,12 +392,12 @@ public class JobManagerHAProcessFailureRecoveryITCase extends TestLogger {
 		}
 	}
 
-	private void waitForTaskManagers(int numberOfTaskManagers, DispatcherGateway dispatcherGateway, FiniteDuration timeLeft) throws ExecutionException, InterruptedException {
+	private void waitForTaskManagers(int numberOfTaskManagers, ResourceManagerGateway resourceManagerGateway, FiniteDuration timeLeft) throws ExecutionException, InterruptedException {
 		FutureUtils.retrySuccessfulWithDelay(
-			() -> dispatcherGateway.requestClusterOverview(Time.milliseconds(timeLeft.toMillis())),
+			() -> resourceManagerGateway.requestTaskManagersOverview(Time.milliseconds(timeLeft.toMillis())),
 			Time.milliseconds(50L),
 			org.apache.flink.api.common.time.Deadline.fromNow(Duration.ofMillis(timeLeft.toMillis())),
-			clusterOverview -> clusterOverview.getNumTaskManagersConnected() >= numberOfTaskManagers,
+			taskManagers -> taskManagers.getTaskManagerInfos().size() >= numberOfTaskManagers,
 			new ScheduledExecutorServiceAdapter(Executors.newSingleThreadScheduledExecutor()))
 			.get();
 	}

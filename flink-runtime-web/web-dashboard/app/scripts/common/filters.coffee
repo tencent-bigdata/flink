@@ -86,7 +86,7 @@ angular.module('flinkApp')
   (text) -> text.toUpperCase()
 
 .filter "percentage", ->
-  (number) -> (number * 100).toFixed(0) + '%'
+  (number) -> (number * 100).toFixed(2) + '%'
 
 .filter "humanizeWatermark", (watermarksConfig) ->
   (value) ->

@@ -32,51 +32,58 @@ public class IOMetrics implements Serializable {
 	protected long numRecordsIn;
 	protected long numRecordsOut;
 
-	protected double numRecordsInPerSecond;
-	protected double numRecordsOutPerSecond;
+	protected double rateRecordsIn;
+	protected double rateRecordsOut;
 
 	protected long numBytesInLocal;
 	protected long numBytesInRemote;
 	protected long numBytesOut;
 
-	protected double numBytesInLocalPerSecond;
-	protected double numBytesInRemotePerSecond;
-	protected double numBytesOutPerSecond;
+	protected double rateBytesInLocal;
+	protected double rateBytesInRemote;
+	protected double rateBytesOut;
 
-	public IOMetrics(Meter recordsIn, Meter recordsOut, Meter bytesLocalIn, Meter bytesRemoteIn, Meter bytesOut) {
+	public IOMetrics(
+		Meter recordsIn,
+		Meter recordsOut,
+		Meter bytesLocalIn,
+		Meter bytesRemoteIn,
+		Meter bytesOut
+	) {
 		this.numRecordsIn = recordsIn.getCount();
-		this.numRecordsInPerSecond = recordsIn.getRate();
+		this.rateRecordsIn = recordsIn.getRate();
 		this.numRecordsOut = recordsOut.getCount();
-		this.numRecordsOutPerSecond = recordsOut.getRate();
+		this.rateRecordsOut = recordsOut.getRate();
 		this.numBytesInLocal = bytesLocalIn.getCount();
-		this.numBytesInLocalPerSecond = bytesLocalIn.getRate();
+		this.rateBytesInLocal = bytesLocalIn.getRate();
 		this.numBytesInRemote = bytesRemoteIn.getCount();
-		this.numBytesInRemotePerSecond = bytesRemoteIn.getRate();
+		this.rateBytesInRemote = bytesRemoteIn.getRate();
 		this.numBytesOut = bytesOut.getCount();
-		this.numBytesOutPerSecond = bytesOut.getRate();
+		this.rateBytesOut = bytesOut.getRate();
 	}
 
 	public IOMetrics(
-			long numBytesInLocal,
-			long numBytesInRemote,
-			long numBytesOut,
-			long numRecordsIn,
-			long numRecordsOut,
-			double numBytesInLocalPerSecond,
-			double numBytesInRemotePerSecond,
-			double numBytesOutPerSecond,
-			double numRecordsInPerSecond,
-			double numRecordsOutPerSecond) {
+		long numBytesInLocal,
+		long numBytesInRemote,
+		long numBytesOut,
+		long numRecordsIn,
+		long numRecordsOut,
+		double rateBytesInLocal,
+		double rateBytesInRemote,
+		double rateBytesOut,
+		double rateRecordsIn,
+		double rateRecordsOut
+	) {
 		this.numBytesInLocal = numBytesInLocal;
 		this.numBytesInRemote = numBytesInRemote;
 		this.numBytesOut = numBytesOut;
 		this.numRecordsIn = numRecordsIn;
 		this.numRecordsOut = numRecordsOut;
-		this.numBytesInLocalPerSecond = numBytesInLocalPerSecond;
-		this.numBytesInRemotePerSecond = numBytesInRemotePerSecond;
-		this.numBytesOutPerSecond = numBytesOutPerSecond;
-		this.numRecordsInPerSecond = numRecordsInPerSecond;
-		this.numRecordsOutPerSecond = numRecordsOutPerSecond;
+		this.rateBytesInLocal = rateBytesInLocal;
+		this.rateBytesInRemote = rateBytesInRemote;
+		this.rateBytesOut = rateBytesOut;
+		this.rateRecordsIn = rateRecordsIn;
+		this.rateRecordsOut = rateRecordsOut;
 	}
 
 	public long getNumRecordsIn() {
@@ -95,7 +102,7 @@ public class IOMetrics implements Serializable {
 		return numBytesInRemote;
 	}
 
-	public long getNumBytesInTotal() {
+	public long getNumBytesIn() {
 		return numBytesInLocal + numBytesInRemote;
 	}
 
@@ -103,23 +110,27 @@ public class IOMetrics implements Serializable {
 		return numBytesOut;
 	}
 
-	public double getNumRecordsInPerSecond() {
-		return numRecordsInPerSecond;
+	public double getRateRecordsIn() {
+		return rateRecordsIn;
 	}
 
-	public double getNumRecordsOutPerSecond() {
-		return numRecordsOutPerSecond;
+	public double getRateRecordsOut() {
+		return rateRecordsOut;
 	}
 
-	public double getNumBytesInLocalPerSecond() {
-		return numBytesInLocalPerSecond;
+	public double getRateBytesInLocal() {
+		return rateBytesInLocal;
 	}
 
-	public double getNumBytesInRemotePerSecond() {
-		return numBytesInRemotePerSecond;
+	public double getRateBytesInRemote() {
+		return rateBytesInRemote;
 	}
 
-	public double getNumBytesOutPerSecond() {
-		return numBytesOutPerSecond;
+	public double getRateBytesIn() {
+		return rateBytesInLocal + rateBytesInRemote;
+	}
+
+	public double getRateBytesOut() {
+		return rateBytesOut;
 	}
 }

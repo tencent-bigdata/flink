@@ -33,10 +33,10 @@ import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobmaster.message.ClassloadingProps;
 import org.apache.flink.runtime.messages.Acknowledge;
-import org.apache.flink.runtime.messages.webmonitor.JobDetails;
 import org.apache.flink.runtime.registration.RegistrationResponse;
 import org.apache.flink.runtime.resourcemanager.ResourceManagerId;
 import org.apache.flink.runtime.rest.handler.legacy.backpressure.OperatorBackPressureStatsResponse;
+import org.apache.flink.runtime.rest.messages.job.JobSummaryInfo;
 import org.apache.flink.runtime.rpc.FencedRpcGateway;
 import org.apache.flink.runtime.rpc.RpcTimeout;
 import org.apache.flink.runtime.taskexecutor.AccumulatorReport;
@@ -232,12 +232,12 @@ public interface JobMasterGateway extends
 	void heartbeatFromResourceManager(final ResourceID resourceID);
 
 	/**
-	 * Request the details of the executed job.
+	 * Request the summary information of the executed job.
 	 *
 	 * @param timeout for the rpc call
-	 * @return Future details of the executed job
+	 * @return Future summary information of the executed job
 	 */
-	CompletableFuture<JobDetails> requestJobDetails(@RpcTimeout Time timeout);
+	CompletableFuture<JobSummaryInfo> requestJobSummary(@RpcTimeout Time timeout);
 
 	/**
 	 * Requests the current job status.

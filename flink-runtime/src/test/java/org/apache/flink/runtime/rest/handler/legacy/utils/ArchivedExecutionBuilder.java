@@ -19,6 +19,7 @@
 package org.apache.flink.runtime.rest.handler.legacy.utils;
 
 import org.apache.flink.metrics.Counter;
+import org.apache.flink.metrics.Gauge;
 import org.apache.flink.metrics.MeterView;
 import org.apache.flink.runtime.accumulators.StringifiedAccumulatorResult;
 import org.apache.flink.runtime.clusterframework.types.AllocationID;
@@ -153,6 +154,19 @@ public class ArchivedExecutionBuilder {
 		@Override
 		public long getCount() {
 			return count;
+		}
+	}
+
+	private static class TestGauge<T> implements Gauge<T> {
+		private final T value;
+
+		private TestGauge(T value) {
+			this.value = value;
+		}
+
+		@Override
+		public T getValue() {
+			return value;
 		}
 	}
 }

@@ -19,12 +19,12 @@
 angular.module('flinkApp')
 
 .service 'TaskManagersService', ($http, flinkConfig, $q) ->
-  @loadManagers = () ->
+  @loadTaskManagers = () ->
     deferred = $q.defer()
 
     $http.get(flinkConfig.jobServer + "taskmanagers")
     .success (data, status, headers, config) ->
-      deferred.resolve(data['taskmanagers'])
+      deferred.resolve(data)
 
     deferred.promise
 

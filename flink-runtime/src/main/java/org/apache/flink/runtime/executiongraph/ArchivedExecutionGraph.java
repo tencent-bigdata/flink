@@ -25,6 +25,7 @@ import org.apache.flink.runtime.checkpoint.CheckpointStatsSnapshot;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration;
+import org.apache.flink.runtime.rest.messages.job.JobSummaryInfo;
 import org.apache.flink.util.OptionalFailure;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.SerializedValue;
@@ -147,6 +148,22 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
 	@Override
 	public JobStatus getState() {
 		return state;
+	}
+
+	@Override
+	public JobSummaryInfo getJobSummary() {
+		long startTime = getStatusTimestamp(JobStatus.CREATED);
+		long endTime = state.isGloballyTerminalState() ? getStatusTimestamp(state) : -1;
+		long duration = (endTime >= 0) ? endTime - startTime : System.currentTimeMillis() - startTime;
+
+		int parallelism = 0;
+		int maxParallelism = 0;
+		for (AccessExecutionJobVertex vertex : getVerticesTopologically()) {
+			parallelism += vertex.getParallelism();
+			maxParallelism += vertex.getMaxParallelism();
+		}
+
+		return new JobSummaryInfo(jobID, jobName, startTime, endTime, duration, parallelism, maxParallelism, state);
 	}
 
 	@Nullable

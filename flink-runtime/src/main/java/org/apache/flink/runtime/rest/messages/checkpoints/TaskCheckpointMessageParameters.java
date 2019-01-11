@@ -18,8 +18,8 @@
 
 package org.apache.flink.runtime.rest.messages.checkpoints;
 
-import org.apache.flink.runtime.rest.messages.JobVertexIdPathParameter;
 import org.apache.flink.runtime.rest.messages.MessagePathParameter;
+import org.apache.flink.runtime.rest.messages.job.VertexIDPathParameter;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,10 +31,10 @@ import java.util.Collection;
  */
 public class TaskCheckpointMessageParameters extends CheckpointMessageParameters {
 
-	protected final JobVertexIdPathParameter jobVertexIdPathParameter = new JobVertexIdPathParameter();
+	protected final VertexIDPathParameter vertexIDPathParameter = new VertexIDPathParameter();
 
 	@Override
 	public Collection<MessagePathParameter<?>> getPathParameters() {
-		return Arrays.asList(jobPathParameter, checkpointIdPathParameter, jobVertexIdPathParameter);
+		return Arrays.asList(jobIDPathParameter, checkpointIdPathParameter, vertexIDPathParameter);
 	}
 }

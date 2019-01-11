@@ -1,0 +1,49 @@
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-->
+<table md-table="md-table" class="table table-hover table-clickable table-activable table-inner">
+  <thead md-head="md-head" md-order="myOrder">
+    <tr md-row="md-row">
+      <th md-column="md-column" md-order-by="attemptNumber">ID</th>
+      <th md-column="md-column" md-order-by="startTime">Start Time</th>
+      <th md-column="md-column" md-order-by="endTime">End Time</th>
+      <th md-column="md-column" md-order-by="duration">Duration</th>
+      <th md-column="md-column" md-order-by="executor">Executor</th>
+      <th md-column="md-column" md-order-by="failure">Failure</th>
+      <th md-column="md-column" md-order-by="status">Status</th>
+    </tr>
+  </thead>
+  <tbody md-body="md-body">
+    <tr md-row="md-row" ng-repeat="execution in executions | orderBy: myOrder | limitTo: myLimit: ((myPage - 1) * myLimit)">
+      <td md-cell="md-cell">{{execution.attemptNumber}}</td>
+      <td md-cell="md-cell">{{execution.startTime | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}</td>
+      <td md-cell="md-cell"><span ng-if="execution.endTime &lt; 0">N/A</span><span ng-if="execution.endTime &gt;= 0">{{execution.endTime | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}</span></td>
+      <td md-cell="md-cell" title="{{execution.duration | humanizeDuration:false}}">{{execution.duration | humanizeDuration:true}}</td>
+      <td md-cell="md-cell">
+        <div class="md-body-2">{{execution.executor.id}}</div>
+        <div class="md-caption">{{execution.executor.host}}:{{execution.executor.port}}</div>
+      </td>
+      <td md-cell="md-cell">{{execution.failure}}</td>
+      <td md-cell="md-cell">
+        <bs-label status="{{execution.status}}">{{execution.status}}</bs-label>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<md-table-pagination md-limit="myLimit" md-limit-options="[5, 10, 20]" md-page="myPage" md-total="{{executions.length}}" md-page-select="md-page-select" class="bg-light"></md-table-pagination>

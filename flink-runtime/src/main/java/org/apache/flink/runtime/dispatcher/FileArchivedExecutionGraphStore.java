@@ -24,9 +24,8 @@ import org.apache.flink.api.common.time.Time;
 import org.apache.flink.runtime.concurrent.ScheduledExecutor;
 import org.apache.flink.runtime.executiongraph.ArchivedExecutionGraph;
 import org.apache.flink.runtime.jobgraph.JobStatus;
-import org.apache.flink.runtime.messages.webmonitor.JobDetails;
-import org.apache.flink.runtime.messages.webmonitor.JobsOverview;
-import org.apache.flink.runtime.webmonitor.WebMonitorUtils;
+import org.apache.flink.runtime.rest.messages.job.JobSummaryInfo;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo;
 import org.apache.flink.util.FileUtils;
 import org.apache.flink.util.InstantiationUtil;
 import org.apache.flink.util.Preconditions;
@@ -66,7 +65,7 @@ public class FileArchivedExecutionGraphStore implements ArchivedExecutionGraphSt
 
 	private final File storageDir;
 
-	private final Cache<JobID, JobDetails> jobDetailsCache;
+	private final Cache<JobID, JobSummaryInfo> jobSummariesCache;
 
 	private final LoadingCache<JobID, ArchivedExecutionGraph> archivedExecutionGraphCache;
 
@@ -100,10 +99,11 @@ public class FileArchivedExecutionGraphStore implements ArchivedExecutionGraphSt
 		Preconditions.checkArgument(
 			storageDirectory.exists() && storageDirectory.isDirectory(),
 			"The storage directory must exist and be a directory.");
-		this.jobDetailsCache = CacheBuilder.newBuilder()
+
+		this.jobSummariesCache = CacheBuilder.newBuilder()
 			.expireAfterWrite(expirationTime.toMilliseconds(), TimeUnit.MILLISECONDS)
 			.removalListener(
-				(RemovalListener<JobID, JobDetails>) notification -> deleteExecutionGraphFile(notification.getKey()))
+				(RemovalListener<JobID, JobSummaryInfo>) notification -> deleteExecutionGraphFile(notification.getKey()))
 			.ticker(ticker)
 			.build();
 
@@ -117,7 +117,7 @@ public class FileArchivedExecutionGraphStore implements ArchivedExecutionGraphSt
 				}});
 
 		this.cleanupFuture = scheduledExecutor.scheduleWithFixedDelay(
-			jobDetailsCache::cleanUp,
+			jobSummariesCache::cleanUp,
 			expirationTime.toMilliseconds(),
 			expirationTime.toMilliseconds(),
 			TimeUnit.MILLISECONDS);
@@ -131,7 +131,7 @@ public class FileArchivedExecutionGraphStore implements ArchivedExecutionGraphSt
 
 	@Override
 	public int size() {
-		return Math.toIntExact(jobDetailsCache.size());
+		return Math.toIntExact(jobSummariesCache.size());
 	}
 
 	@Override
@@ -175,33 +175,30 @@ public class FileArchivedExecutionGraphStore implements ArchivedExecutionGraphSt
 		// write the ArchivedExecutionGraph to disk
 		storeArchivedExecutionGraph(archivedExecutionGraph);
 
-		final JobDetails detailsForJob = WebMonitorUtils.createDetailsForJob(archivedExecutionGraph);
+		final JobSummaryInfo jobSummaryInfo = archivedExecutionGraph.getJobSummary();
+		jobSummariesCache.put(jobId, jobSummaryInfo);
 
-		jobDetailsCache.put(jobId, detailsForJob);
 		archivedExecutionGraphCache.put(jobId, archivedExecutionGraph);
 	}
 
 	@Override
-	public JobsOverview getStoredJobsOverview() {
-		return new JobsOverview(0, numFinishedJobs, numCanceledJobs, numFailedJobs);
-	}
+	public JobsOverviewInfo getStoredJobsOverview() {
+		Collection<JobSummaryInfo> jobSummaries = jobSummariesCache.asMap().values();
 
-	@Override
-	public Collection<JobDetails> getAvailableJobDetails() {
-		return jobDetailsCache.asMap().values();
+		return new JobsOverviewInfo(0, numFinishedJobs, numCanceledJobs, numFailedJobs, jobSummaries);
 	}
 
 	@Nullable
 	@Override
-	public JobDetails getAvailableJobDetails(JobID jobId) {
-		return jobDetailsCache.getIfPresent(jobId);
+	public JobSummaryInfo getAvailableJobSummary(JobID jobId) {
+		return jobSummariesCache.getIfPresent(jobId);
 	}
 
 	@Override
 	public void close() throws IOException {
 		cleanupFuture.cancel(false);
 
-		jobDetailsCache.invalidateAll();
+		jobSummariesCache.invalidateAll();
 
 		// clean up the storage directory
 		FileUtils.deleteFileOrDirectory(storageDir);
@@ -263,7 +260,7 @@ public class FileArchivedExecutionGraphStore implements ArchivedExecutionGraphSt
 		}
 
 		archivedExecutionGraphCache.invalidate(jobId);
-		jobDetailsCache.invalidate(jobId);
+		jobSummariesCache.invalidate(jobId);
 	}
 
 	private static File initExecutionGraphStorageDirectory(File tmpDir) throws IOException {

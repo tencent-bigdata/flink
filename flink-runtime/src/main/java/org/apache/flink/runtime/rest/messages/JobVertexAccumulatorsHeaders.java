@@ -19,21 +19,23 @@
 package org.apache.flink.runtime.rest.messages;
 
 import org.apache.flink.runtime.rest.HttpMethodWrapper;
-import org.apache.flink.runtime.rest.handler.job.JobVertexAccumulatorsHandler;
+import org.apache.flink.runtime.rest.messages.job.JobIDPathParameter;
+import org.apache.flink.runtime.rest.messages.job.VertexIDPathParameter;
+import org.apache.flink.runtime.rest.messages.job.VertexMessageParameters;
 
 import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpResponseStatus;
 
 /**
- * Message headers for the {@link JobVertexAccumulatorsHandler}.
+ * Message headers for the {@link VertexAccumulatorsHandler}.
  */
-public class JobVertexAccumulatorsHeaders implements MessageHeaders<EmptyRequestBody, JobVertexAccumulatorsInfo, JobVertexMessageParameters> {
+public class JobVertexAccumulatorsHeaders implements MessageHeaders<EmptyRequestBody, JobVertexAccumulatorsInfo, VertexMessageParameters> {
 
 	private static final JobVertexAccumulatorsHeaders INSTANCE = new JobVertexAccumulatorsHeaders();
 
 	public static final String URL = "/jobs" +
 		"/:" + JobIDPathParameter.KEY +
 		"/vertices" +
-		"/:" + JobVertexIdPathParameter.KEY +
+		"/:" + VertexIDPathParameter.KEY +
 		"/accumulators";
 
 	private JobVertexAccumulatorsHeaders() {}
@@ -54,8 +56,8 @@ public class JobVertexAccumulatorsHeaders implements MessageHeaders<EmptyRequest
 	}
 
 	@Override
-	public JobVertexMessageParameters getUnresolvedMessageParameters() {
-		return new JobVertexMessageParameters();
+	public VertexMessageParameters getUnresolvedMessageParameters() {
+		return new VertexMessageParameters();
 	}
 
 	@Override

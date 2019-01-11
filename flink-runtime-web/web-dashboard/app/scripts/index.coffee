@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-angular.module('flinkApp', ['ui.router', 'angularMoment', 'dndLists'])
+angular.module('flinkApp', ['ui.router', 'angularMoment', 'dndLists', 'ngMaterial', 'md.data.table'])
 
 # --------------------------------------
 
@@ -42,18 +42,6 @@ angular.module('flinkApp', ['ui.router', 'angularMoment', 'dndLists'])
   # a constant here to compare available watermarks against.
   noWatermark: -9223372036854776000
 }
-
-# --------------------------------------
-
-.run (JobsService, MainService, flinkConfig, $interval) ->
-  MainService.loadConfig().then (config) ->
-    angular.extend flinkConfig, config
-
-    JobsService.listJobs()
-
-    $interval ->
-      JobsService.listJobs()
-    , flinkConfig["refresh-interval"]
 
 # --------------------------------------
 
@@ -100,76 +88,142 @@ angular.module('flinkApp', ['ui.router', 'angularMoment', 'dndLists'])
         templateUrl: "partials/jobs/job.html"
         controller: 'SingleJobController'
 
-  .state "single-job.plan",
+  .state "single-job.overview",
     url: ""
-    redirectTo: "single-job.plan.subtasks"
+    redirectTo: "single-job.overview.vertices"
     views:
       details:
-        templateUrl: "partials/jobs/job.plan.html"
-        controller: 'JobPlanController'
+        templateUrl: "partials/jobs/job.overview.html"
+        controller: 'JobOverviewController'
 
-  .state "single-job.plan.subtasks",
+  .state "single-job.overview.vertices",
     url: ""
     views:
       'node-details':
-        templateUrl: "partials/jobs/job.plan.node-list.subtasks.html"
-        controller: 'JobPlanSubtasksController'
+        templateUrl: "partials/jobs/job.overview.vertices.html"
+        controller: 'JobOverviewVerticesController'
 
-  .state "single-job.plan.metrics",
-    url: "/metrics"
+  .state "single-job.overview.records",
+    url: ""
     views:
       'node-details':
-        templateUrl: "partials/jobs/job.plan.node-list.metrics.html"
-        controller: 'JobPlanMetricsController'
+        templateUrl: "partials/jobs/job.overview.records.html"
+        controller: 'JobOverviewRecordsController'
 
-  .state "single-job.plan.watermarks",
-    url: "/watermarks"
+  .state "single-job.overview.bytes",
+    url: ""
     views:
       'node-details':
-        templateUrl: "partials/jobs/job.plan.node-list.watermarks.html"
+        templateUrl: "partials/jobs/job.overview.bytes.html"
+        controller: 'JobOverviewBytesController'
 
-  .state "single-job.plan.accumulators",
+  .state "single-job.checkpoints",
+    url: "/checkpoints"
+    redirectTo: "single-job.checkpoints.overview"
+    views:
+      details:
+        templateUrl: "partials/jobs/job.checkpoints.html"
+        controller: 'JobCheckpointsController'
+
+  .state "single-job.checkpoints.overview",
+    url: ""
+    views:
+      'node-details':
+        templateUrl: "partials/jobs/job.checkpoints.overview.html"
+        controller: 'JobCheckpointsOverviewController'
+
+  .state "single-job.checkpoints.history",
+    url: ""
+    views:
+      'node-details':
+        templateUrl: "partials/jobs/job.checkpoints.history.html"
+        controller: 'JobCheckpointsHistoryController'
+
+  .state "single-job.checkpoints.summary",
+    url: ""
+    views:
+      'node-details':
+        templateUrl: "partials/jobs/job.checkpoints.summary.html"
+        controller: 'JobCheckpointsSummaryController'
+
+  .state "single-job.checkpoints.config",
+    url: ""
+    views:
+      'node-details':
+        templateUrl: "partials/jobs/job.checkpoints.config.html"
+        controller: 'JobCheckpointsConfigController'
+
+  .state "single-job.exceptions",
+    url: "/exceptions"
+    views:
+      details:
+        templateUrl: "partials/jobs/job.exceptions.html"
+        controller: 'JobExceptionsController'
+
+  .state "single-vertex",
+    url: "/jobs/{jobid}/vertices/{vertexid}"
+    redirectTo: "single-vertex.tasks"
+    views:
+      main:
+        templateUrl: "partials/jobs/vertex.html"
+        controller: 'SingleVertexController'
+
+  .state "single-vertex.tasks",
+    url: ""
+    views:
+      'details':
+        templateUrl: "partials/jobs/vertex.tasks.html"
+        controller: 'VertexTasksController'
+
+  .state "single-vertex.records",
+    url: ""
+    views:
+      details:
+        templateUrl: "partials/jobs/vertex.records.html"
+        controller: 'VertexRecordsController'
+
+  .state "single-vertex.bytes",
+    url: ""
+    views:
+      details:
+        templateUrl: "partials/jobs/vertex.bytes.html"
+        controller: 'VertexBytesController'
+
+  .state "single-task",
+    url: "/jobs/{jobid}/vertices/{vertexid}/task/{taskindex}"
+    redirectTo: "single-task.executions"
+    views:
+      main:
+        templateUrl: "partials/jobs/task.html"
+        controller: 'SingleTaskController'
+
+  .state "single-task.executions",
+    url: ""
+    views:
+      'details':
+        templateUrl: "partials/jobs/task.executions.html"
+        controller: 'TaskExecutionsController'
+
+  .state "single-task.records",
+    url: ""
+    views:
+      details:
+        templateUrl: "partials/jobs/task.records.html"
+        controller: 'TaskRecordsController'
+
+  .state "single-task.bytes",
+    url: ""
+    views:
+      details:
+        templateUrl: "partials/jobs/task.bytes.html"
+        controller: 'TaskBytesController'
+
+  .state "single-job.overview.accumulators",
     url: "/accumulators"
     views:
       'node-details':
         templateUrl: "partials/jobs/job.plan.node-list.accumulators.html"
         controller: 'JobPlanAccumulatorsController'
-
-  .state "single-job.plan.checkpoints",
-    url: "/checkpoints"
-    redirectTo: "single-job.plan.checkpoints.overview"
-    views:
-      'node-details':
-        templateUrl: "partials/jobs/job.plan.node-list.checkpoints.html"
-        controller: 'JobPlanCheckpointsController'
-
-  .state "single-job.plan.checkpoints.overview",
-    url: "/overview"
-    views:
-      'checkpoints-view':
-        templateUrl: "partials/jobs/job.plan.node.checkpoints.overview.html"
-        controller: 'JobPlanCheckpointsController'
-
-  .state "single-job.plan.checkpoints.summary",
-    url: "/summary"
-    views:
-      'checkpoints-view':
-        templateUrl: "partials/jobs/job.plan.node.checkpoints.summary.html"
-        controller: 'JobPlanCheckpointsController'
-
-  .state "single-job.plan.checkpoints.history",
-    url: "/history"
-    views:
-      'checkpoints-view':
-        templateUrl: "partials/jobs/job.plan.node.checkpoints.history.html"
-        controller: 'JobPlanCheckpointsController'
-
-  .state "single-job.plan.checkpoints.config",
-    url: "/config"
-    views:
-      'checkpoints-view':
-        templateUrl: "partials/jobs/job.plan.node.checkpoints.config.html"
-        controller: 'JobPlanCheckpointsController'
 
   .state "single-job.plan.checkpoints.details",
     url: "/details/{checkpointId}"
@@ -177,13 +231,6 @@ angular.module('flinkApp', ['ui.router', 'angularMoment', 'dndLists'])
       'checkpoints-view':
         templateUrl: "partials/jobs/job.plan.node.checkpoints.details.html"
         controller: 'JobPlanCheckpointDetailsController'
-
-  .state "single-job.plan.backpressure",
-    url: "/backpressure"
-    views:
-      'node-details':
-        templateUrl: "partials/jobs/job.plan.node-list.backpressure.html"
-        controller: 'JobPlanBackPressureController'
 
   .state "single-job.timeline",
     url: "/timeline"
@@ -197,13 +244,6 @@ angular.module('flinkApp', ['ui.router', 'angularMoment', 'dndLists'])
       vertex:
         templateUrl: "partials/jobs/job.timeline.vertex.html"
         controller: 'JobTimelineVertexController'
-
-  .state "single-job.exceptions",
-    url: "/exceptions"
-    views:
-      details:
-        templateUrl: "partials/jobs/job.exceptions.html"
-        controller: 'JobExceptionsController'
 
   .state "single-job.config",
     url: "/config"

@@ -19,11 +19,11 @@
 angular.module('flinkApp')
 
 .controller 'AllTaskManagersController', ($scope, TaskManagersService, $interval, flinkConfig) ->
-  TaskManagersService.loadManagers().then (data) ->
-    $scope.managers = data
+  TaskManagersService.loadTaskManagers().then (data) ->
+    $scope.managers = data.taskManagers
 
   refresh = $interval ->
-    TaskManagersService.loadManagers().then (data) ->
+    TaskManagersService.loadTaskManagers().then (data) ->
       $scope.managers = data
   , flinkConfig["refresh-interval"]
 

@@ -18,9 +18,11 @@
 
 package org.apache.flink.runtime.messages.webmonitor;
 
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo;
+
 /**
  * This message requests an overview of how many jobs are in which status.
- * The response to this message is a {@link JobsOverview} message.
+ * The response to this message is a {@link JobsOverviewInfo} message.
  */
 public class RequestJobsOverview implements InfoMessage {
 

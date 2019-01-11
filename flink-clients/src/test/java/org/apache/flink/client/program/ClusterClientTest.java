@@ -30,9 +30,9 @@ import org.apache.flink.runtime.instance.DummyActorGateway;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.messages.Acknowledge;
 import org.apache.flink.runtime.messages.JobManagerMessages;
-import org.apache.flink.runtime.messages.webmonitor.JobDetails;
-import org.apache.flink.runtime.messages.webmonitor.MultipleJobsDetails;
-import org.apache.flink.runtime.messages.webmonitor.RequestJobDetails;
+import org.apache.flink.runtime.messages.webmonitor.RequestJobsOverview;
+import org.apache.flink.runtime.rest.messages.job.JobSummaryInfo;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.TestLogger;
@@ -312,19 +312,19 @@ public class ClusterClientTest extends TestLogger {
 		}
 	}
 
-	private static class TestListActorGateway extends TestActorGateway<RequestJobDetails, MultipleJobsDetails> {
+	private static class TestListActorGateway extends TestActorGateway<RequestJobsOverview, JobsOverviewInfo> {
 
 		private static final long serialVersionUID = 5805153540407130753L;
 
 		TestListActorGateway() {
-			super(RequestJobDetails.class);
+			super(RequestJobsOverview.class);
 		}
 
 		@Override
-		public MultipleJobsDetails process(RequestJobDetails message) {
-			JobDetails running = new JobDetails(new JobID(), "job1", 0, 0, 0, JobStatus.RUNNING, 0, new int[9], 0);
-			JobDetails finished = new JobDetails(new JobID(), "job2", 0, 0, 0, JobStatus.FINISHED, 0, new int[9], 0);
-			return new MultipleJobsDetails(Arrays.asList(running, finished));
+		public JobsOverviewInfo process(RequestJobsOverview message) {
+			JobSummaryInfo running = new JobSummaryInfo(new JobID(), "job1", 0, 0, 0, 16, 32, JobStatus.RUNNING);
+			JobSummaryInfo finished = new JobSummaryInfo(new JobID(), "job2", 0, 0, 0, 8, 8, JobStatus.FINISHED);
+			return JobsOverviewInfo.create(Arrays.asList(running, finished));
 		}
 	}
 

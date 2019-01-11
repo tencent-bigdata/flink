@@ -30,10 +30,9 @@ import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.jobmaster.RescalingBehaviour;
 import org.apache.flink.runtime.messages.Acknowledge;
 import org.apache.flink.runtime.messages.FlinkJobNotFoundException;
-import org.apache.flink.runtime.messages.webmonitor.ClusterOverview;
-import org.apache.flink.runtime.messages.webmonitor.MultipleJobsDetails;
 import org.apache.flink.runtime.metrics.dump.MetricQueryService;
 import org.apache.flink.runtime.rest.handler.legacy.backpressure.OperatorBackPressureStatsResponse;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo;
 import org.apache.flink.runtime.rpc.RpcGateway;
 import org.apache.flink.runtime.rpc.RpcTimeout;
 
@@ -86,21 +85,12 @@ public interface RestfulGateway extends RpcGateway {
 	CompletableFuture<JobResult> requestJobResult(JobID jobId, @RpcTimeout Time timeout);
 
 	/**
-	 * Requests job details currently being executed on the Flink cluster.
+	 * Requests an overview of all jobs in the Flink cluster.
 	 *
-	 * @param timeout for the asynchronous operation
-	 * @return Future containing the job details
+	 * @param timeout for the asynchronous operation.
+	 * @return Future containing the overview of all running jobs.
 	 */
-	CompletableFuture<MultipleJobsDetails> requestMultipleJobDetails(
-		@RpcTimeout Time timeout);
-
-	/**
-	 * Requests the cluster status overview.
-	 *
-	 * @param timeout for the asynchronous operation
-	 * @return Future containing the status overview
-	 */
-	CompletableFuture<ClusterOverview> requestClusterOverview(@RpcTimeout Time timeout);
+	CompletableFuture<JobsOverviewInfo> requestJobsOverview(@RpcTimeout Time timeout);
 
 	/**
 	 * Requests the paths for the {@link MetricQueryService} to query.

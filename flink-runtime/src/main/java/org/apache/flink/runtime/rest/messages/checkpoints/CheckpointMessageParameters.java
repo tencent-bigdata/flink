@@ -18,8 +18,8 @@
 
 package org.apache.flink.runtime.rest.messages.checkpoints;
 
-import org.apache.flink.runtime.rest.messages.JobMessageParameters;
 import org.apache.flink.runtime.rest.messages.MessagePathParameter;
+import org.apache.flink.runtime.rest.messages.job.JobMessageParameters;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,6 +33,6 @@ public class CheckpointMessageParameters extends JobMessageParameters {
 
 	@Override
 	public Collection<MessagePathParameter<?>> getPathParameters() {
-		return Arrays.asList(jobPathParameter, checkpointIdPathParameter);
+		return Arrays.asList(jobIDPathParameter, checkpointIdPathParameter);
 	}
 }

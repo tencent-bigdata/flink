@@ -32,7 +32,6 @@ import org.apache.flink.runtime.rest.handler.HandlerRequest;
 import org.apache.flink.runtime.rest.handler.RestHandlerException;
 import org.apache.flink.runtime.rest.handler.legacy.ExecutionGraphCache;
 import org.apache.flink.runtime.rest.messages.EmptyRequestBody;
-import org.apache.flink.runtime.rest.messages.JobVertexIdPathParameter;
 import org.apache.flink.runtime.rest.messages.MessageHeaders;
 import org.apache.flink.runtime.rest.messages.ResponseBody;
 import org.apache.flink.runtime.rest.messages.checkpoints.CheckpointIdPathParameter;
@@ -40,6 +39,7 @@ import org.apache.flink.runtime.rest.messages.checkpoints.MinMaxAvgStatistics;
 import org.apache.flink.runtime.rest.messages.checkpoints.SubtaskCheckpointStatistics;
 import org.apache.flink.runtime.rest.messages.checkpoints.TaskCheckpointMessageParameters;
 import org.apache.flink.runtime.rest.messages.checkpoints.TaskCheckpointStatisticsWithSubtaskDetails;
+import org.apache.flink.runtime.rest.messages.job.VertexIDPathParameter;
 import org.apache.flink.runtime.webmonitor.RestfulGateway;
 import org.apache.flink.runtime.webmonitor.history.ArchivedJson;
 import org.apache.flink.runtime.webmonitor.history.JsonArchivist;
@@ -83,7 +83,7 @@ public class TaskCheckpointStatisticDetailsHandler
 			HandlerRequest<EmptyRequestBody, TaskCheckpointMessageParameters> request,
 			AbstractCheckpointStats checkpointStats) throws RestHandlerException {
 
-		final JobVertexID jobVertexId = request.getPathParameter(JobVertexIdPathParameter.class);
+		final JobVertexID jobVertexId = request.getPathParameter(VertexIDPathParameter.class);
 
 		final TaskStateStats taskStatistics = checkpointStats.getTaskStateStats(jobVertexId);
 
@@ -106,9 +106,9 @@ public class TaskCheckpointStatisticDetailsHandler
 			for (TaskStateStats subtaskStats : checkpoint.getAllTaskStateStats()) {
 				ResponseBody json = createCheckpointDetails(checkpoint, subtaskStats);
 				String path = getMessageHeaders().getTargetRestEndpointURL()
-					.replace(':' + JobVertexIdPathParameter.KEY, graph.getJobID().toString())
+					.replace(':' + VertexIDPathParameter.KEY, graph.getJobID().toString())
 					.replace(':' + CheckpointIdPathParameter.KEY, String.valueOf(checkpoint.getCheckpointId()))
-					.replace(':' + JobVertexIdPathParameter.KEY, subtaskStats.getJobVertexId().toString());
+					.replace(':' + VertexIDPathParameter.KEY, subtaskStats.getJobVertexId().toString());
 				archive.add(new ArchivedJson(path, json));
 			}
 		}

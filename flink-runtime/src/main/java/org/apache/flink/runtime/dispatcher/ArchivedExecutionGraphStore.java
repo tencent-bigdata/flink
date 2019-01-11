@@ -20,14 +20,13 @@ package org.apache.flink.runtime.dispatcher;
 
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.executiongraph.ArchivedExecutionGraph;
-import org.apache.flink.runtime.messages.webmonitor.JobDetails;
-import org.apache.flink.runtime.messages.webmonitor.JobsOverview;
+import org.apache.flink.runtime.rest.messages.job.JobSummaryInfo;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo;
 
 import javax.annotation.Nullable;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Collection;
 
 /**
  * Interface for a {@link ArchivedExecutionGraph} store.
@@ -59,25 +58,18 @@ public interface ArchivedExecutionGraphStore extends Closeable {
 	void put(ArchivedExecutionGraph archivedExecutionGraph) throws IOException;
 
 	/**
-	 * Return the {@link JobsOverview} for all stored/past jobs.
+	 * Return the {@link JobsOverviewInfo} for all stored/past jobs.
 	 *
 	 * @return Jobs overview for all stored/past jobs
 	 */
-	JobsOverview getStoredJobsOverview();
+	JobsOverviewInfo getStoredJobsOverview();
 
 	/**
-	 * Return the collection of {@link JobDetails} of all currently stored jobs.
+	 * Return the {@link JobSummaryInfo}} for the given job.
 	 *
-	 * @return Collection of job details of all currently stored jobs
-	 */
-	Collection<JobDetails> getAvailableJobDetails();
-
-	/**
-	 * Return the {@link JobDetails}} for the given job.
-	 *
-	 * @param jobId identifying the job for which to retrieve the {@link JobDetails}
-	 * @return {@link JobDetails} of the requested job or null if the job is not available
+	 * @param jobId identifying the job for which to retrieve the {@link JobSummaryInfo}
+	 * @return {@link JobSummaryInfo} of the requested job or null if the job is not available
 	 */
 	@Nullable
-	JobDetails getAvailableJobDetails(JobID jobId);
+	JobSummaryInfo getAvailableJobSummary(JobID jobId);
 }

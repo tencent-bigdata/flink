@@ -23,25 +23,26 @@ nav.navbar.navbar-default.navbar-fixed-top.navbar-main
     | Running Jobs
 
 #content-inner
-  table.table.table-hover.table-clickable
-    thead
-      tr
-        th Start Time
-        th End Time
-        th Duration
-        th Job Name
-        th Job ID
-        th Tasks
-        th Status
+  table.table.table-hover.table-clickable(md-table)
+    thead(md-head md-order="runningOrder")
+      tr(md-row)
+        th(md-column md-order-by="id") ID
+        th(md-column md-order-by="name") Name
+        th(md-column md-order-by="startTime") Start Time
+        th(md-column md-order-by="endTime") End Time
+        th(md-column md-order-by="duration") Duration
+        th(md-column md-order-by="parallelism") Parallelism
+        th(md-column md-order-by="status") Status
 
-    tbody
-      tr(ng-repeat="job in jobs|orderBy:\"'start-time'\"" ui-sref="single-job.plan.subtasks({ jobid: job.jid })")
-        td {{job['start-time'] | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}
-        td {{job['end-time'] | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}
-        td(title="{{job.duration | humanizeDuration:false}}") {{job.duration | humanizeDuration:true}}
-        td {{job.name}}
-        td {{job.jid}}
-        td.label-group
-          bs-label(status="{{status}}" ng-repeat="(status, value) in job.tasks") {{value}}
-        td 
-          bs-label(status="{{job.state}}") {{job.state}}
+    tbody(md-body)
+      tr(md-row ng-repeat="job in runningJobs | orderBy: runningOrder" ui-sref="single-job.overview.vertices({ jobid: job.id })")
+        td(md-cell) {{job.id}}
+        td(md-cell) {{job.name}}
+        td(md-cell) {{job.startTime | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}
+        td(md-cell)
+          span(ng-if="job.endTime >= 0") {{job.endTime | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}
+          span(ng-if="job.endTime < 0") N/A
+        td(md-cell title="{{job.duration | humanizeDuration:false}}") {{job.duration | humanizeDuration:true}}
+        td(md-cell) {{job.parallelism}}
+        td(md-cell)
+          bs-label(status="{{job.status}}") {{job.status}}

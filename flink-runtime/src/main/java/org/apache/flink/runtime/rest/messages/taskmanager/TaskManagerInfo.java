@@ -40,17 +40,11 @@ import java.util.Objects;
 public class TaskManagerInfo implements ResponseBody, Serializable {
 
 	public static final String FIELD_NAME_RESOURCE_ID = "id";
-
 	public static final String FIELD_NAME_ADDRESS = "path";
-
 	public static final String FIELD_NAME_DATA_PORT = "dataPort";
-
 	public static final String FIELD_NAME_LAST_HEARTBEAT = "timeSinceLastHeartbeat";
-
 	public static final String FIELD_NAME_NUMBER_SLOTS = "slotsNumber";
-
 	public static final String FIELD_NAME_NUMBER_AVAILABLE_SLOTS = "freeSlots";
-
 	public static final String FIELD_NAME_HARDWARE = "hardware";
 
 	private static final long serialVersionUID = 1L;

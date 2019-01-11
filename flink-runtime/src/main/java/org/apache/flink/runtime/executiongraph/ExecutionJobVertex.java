@@ -402,12 +402,18 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 
 	@Override
 	public ExecutionState getAggregateState() {
-		int[] num = new int[ExecutionState.values().length];
-		for (ExecutionVertex vertex : this.taskVertices) {
-			num[vertex.getExecutionState().ordinal()]++;
+		Map<ExecutionState, Integer> numTasksPerState = new HashMap<>(ExecutionState.values().length);
+		for (ExecutionState state : ExecutionState.values()) {
+			numTasksPerState.put(state, 0);
 		}
 
-		return getAggregateJobVertexState(num, parallelism);
+		for (ExecutionVertex vertex : this.taskVertices) {
+			ExecutionState state = vertex.getExecutionState();
+			int count = numTasksPerState.get(state);
+			numTasksPerState.put(state, count + 1);
+		}
+
+		return getVertexState(numTasksPerState, parallelism);
 	}
 
 	private String generateDebugString() {
@@ -645,34 +651,36 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 	 * is cancelling (or cancelled). If all tasks are finished, the aggregate state is finished,
 	 * and so on.
 	 *
-	 * @param verticesPerState The number of vertices in each state (indexed by the ordinal of
-	 *                         the ExecutionState values).
+	 * @param numTasksPerState The number of tasks in each state.
 	 * @param parallelism The parallelism of the ExecutionJobVertex
 	 *
 	 * @return The aggregate state of this ExecutionJobVertex.
 	 */
-	public static ExecutionState getAggregateJobVertexState(int[] verticesPerState, int parallelism) {
-		if (verticesPerState == null || verticesPerState.length != ExecutionState.values().length) {
+	public static ExecutionState getVertexState(Map<ExecutionState, Integer> numTasksPerState, int parallelism) {
+		if (numTasksPerState == null || numTasksPerState.size() != ExecutionState.values().length) {
 			throw new IllegalArgumentException("Must provide an array as large as there are execution states.");
 		}
 
-		if (verticesPerState[ExecutionState.FAILED.ordinal()] > 0) {
+		if (numTasksPerState.get(ExecutionState.FAILED) > 0) {
 			return ExecutionState.FAILED;
 		}
-		if (verticesPerState[ExecutionState.CANCELING.ordinal()] > 0) {
+
+		if (numTasksPerState.get(ExecutionState.CANCELING) > 0) {
 			return ExecutionState.CANCELING;
 		}
-		else if (verticesPerState[ExecutionState.CANCELED.ordinal()] > 0) {
+
+		if (numTasksPerState.get(ExecutionState.CANCELED) > 0) {
 			return ExecutionState.CANCELED;
 		}
-		else if (verticesPerState[ExecutionState.RUNNING.ordinal()] > 0) {
+
+		if (numTasksPerState.get(ExecutionState.RUNNING) > 0) {
 			return ExecutionState.RUNNING;
 		}
-		else if (verticesPerState[ExecutionState.FINISHED.ordinal()] > 0) {
-			return verticesPerState[ExecutionState.FINISHED.ordinal()] == parallelism ?
+
+		if (numTasksPerState.get(ExecutionState.FINISHED) > 0) {
+			return numTasksPerState.get(ExecutionState.FINISHED) == parallelism ?
 					ExecutionState.FINISHED : ExecutionState.RUNNING;
-		}
-		else {
+		} else {
 			// all else collapses under created
 			return ExecutionState.CREATED;
 		}

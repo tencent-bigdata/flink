@@ -34,8 +34,8 @@ import org.apache.flink.runtime.rest.messages.job.metrics.MetricCollectionRespon
 import org.apache.flink.runtime.rest.messages.job.metrics.TaskManagerMetricsHeaders;
 import org.apache.flink.runtime.rest.messages.job.metrics.TaskManagerMetricsMessageParameters;
 import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagerInfo;
-import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagersHeaders;
-import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagersInfo;
+import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagersOverviewHeaders;
+import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagersOverviewInfo;
 import org.apache.flink.tests.util.FlinkDistribution;
 import org.apache.flink.util.TestLogger;
 import org.apache.flink.util.function.SupplierWithException;
@@ -112,9 +112,9 @@ public class MetricsAvailabilityITCase extends TestLogger {
 	}
 
 	private static Collection<ResourceID> getTaskManagerIds(final RestClient restClient) throws Exception {
-		final TaskManagersHeaders headers = TaskManagersHeaders.getInstance();
+		final TaskManagersOverviewHeaders headers = TaskManagersOverviewHeaders.getInstance();
 
-		final TaskManagersInfo response = fetchMetric(() ->
+		final TaskManagersOverviewInfo response = fetchMetric(() ->
 				restClient.sendRequest(
 					HOST,
 					PORT,

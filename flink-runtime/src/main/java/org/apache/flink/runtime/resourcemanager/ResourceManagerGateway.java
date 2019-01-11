@@ -35,6 +35,7 @@ import org.apache.flink.runtime.messages.Acknowledge;
 import org.apache.flink.runtime.metrics.dump.MetricQueryService;
 import org.apache.flink.runtime.registration.RegistrationResponse;
 import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagerInfo;
+import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagersOverviewInfo;
 import org.apache.flink.runtime.rpc.FencedRpcGateway;
 import org.apache.flink.runtime.rpc.RpcTimeout;
 import org.apache.flink.runtime.taskexecutor.FileType;
@@ -193,12 +194,12 @@ public interface ResourceManagerGateway extends FencedRpcGateway<ResourceManager
 	void disconnectJobManager(JobID jobId, Exception cause);
 
 	/**
-	 * Requests information about the registered {@link TaskExecutor}.
+	 * Requests the overview of the task managers in the cluster.
 	 *
 	 * @param timeout of the request
-	 * @return Future collection of TaskManager information
+	 * @return Future containing the overview of the task managers in the cluster.
 	 */
-	CompletableFuture<Collection<TaskManagerInfo>> requestTaskManagerInfo(@RpcTimeout Time timeout);
+	CompletableFuture<TaskManagersOverviewInfo> requestTaskManagersOverview(@RpcTimeout Time timeout);
 
 	/**
 	 * Requests information about the given {@link TaskExecutor}.
@@ -208,15 +209,6 @@ public interface ResourceManagerGateway extends FencedRpcGateway<ResourceManager
 	 * @return Future TaskManager information
 	 */
 	CompletableFuture<TaskManagerInfo> requestTaskManagerInfo(ResourceID taskManagerId, @RpcTimeout Time timeout);
-	 
-	/**
-	 * Requests the resource overview. The resource overview provides information about the
-	 * connected TaskManagers, the total number of slots and the number of available slots.
-	 *
-	 * @param timeout of the request
-	 * @return Future containing the resource overview
-	 */
-	CompletableFuture<ResourceOverview> requestResourceOverview(@RpcTimeout Time timeout);
 
 	/**
 	 * Requests the paths for the TaskManager's {@link MetricQueryService} to query.

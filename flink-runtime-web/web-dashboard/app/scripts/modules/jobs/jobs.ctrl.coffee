@@ -18,242 +18,160 @@
 
 angular.module('flinkApp')
 
-.controller 'RunningJobsController', ($scope, $state, $stateParams, JobsService) ->
-  $scope.jobObserver = ->
-    $scope.jobs = JobsService.getJobs('running')
+.controller 'RunningJobsController', ($scope, $state, $stateParams, $interval, flinkConfig, JobsService) ->
+  $scope.runningJobs = []
+  $scope.completedJobs = []
 
-  JobsService.registerObserver($scope.jobObserver)
-  $scope.$on '$destroy', ->
-    JobsService.unRegisterObserver($scope.jobObserver)
+  loadJobs = ->
+    JobsService.loadJobs().then (data) ->
+      $scope.runningJobs = []
+      $scope.completedJobs = []
 
-  $scope.jobObserver()
+      # collect the jobs
+      (data.jobs).forEach (job, i) ->
+        switch job.status.toLowerCase()
+          when 'finished'
+            $scope.completedJobs.push job
+          when 'cancelled'
+            $scope.completedJobs.push job
+          when 'failed'
+            $scope.completedJobs.push job
+          else
+            $scope.runningJobs.push job
+
+  loadJobs()
+
+  refresh = $interval ->
+      loadJobs()
+    , flinkConfig["refresh-interval"]
+
+    $scope.$on '$destroy', ->
+      $interval.cancel(refresh)
 
 # --------------------------------------
 
-.controller 'CompletedJobsController', ($scope, $state, $stateParams, JobsService) ->
-  $scope.jobObserver = ->
-    $scope.jobs = JobsService.getJobs('finished')
+.controller 'CompletedJobsController', ($scope, $state, $stateParams, $interval, flinkConfig, JobsService) ->
+  $scope.runningJobs = []
+  $scope.completedJobs = []
 
-  JobsService.registerObserver($scope.jobObserver)
-  $scope.$on '$destroy', ->
-    JobsService.unRegisterObserver($scope.jobObserver)
+  loadJobs = ->
+    JobsService.loadJobs().then (data) ->
+      $scope.runningJobs = []
+      $scope.completedJobs = []
 
-  $scope.jobObserver()
+      # collect the jobs
+      (data.jobs).forEach (job, i) ->
+        switch job.status.toLowerCase()
+          when 'finished'
+            $scope.completedJobs.push job
+          when 'cancelled'
+            $scope.completedJobs.push job
+          when 'failed'
+            $scope.completedJobs.push job
+          else
+            $scope.runningJobs.push job
+
+  loadJobs()
+
+  refresh = $interval ->
+      loadJobs()
+    , flinkConfig["refresh-interval"]
+
+    $scope.$on '$destroy', ->
+      $interval.cancel(refresh)
 
 # --------------------------------------
 
 .controller 'SingleJobController', ($scope, $state, $stateParams, JobsService, MetricsService, $rootScope, flinkConfig, $interval, $q, watermarksConfig) ->
-  $scope.jobid = $stateParams.jobid
-  $scope.job = null
-  $scope.plan = null
-  $scope.watermarks = {}
+  $scope.id = $stateParams.jobid
+  $scope.name = null
+  $scope.startTime = null
+  $scope.endTime = null
+  $scope.duration = null
+  $scope.status = null
   $scope.vertices = null
-  $scope.backPressureOperatorStats = {}
+  $scope.plan = null
+  $scope.aggs = ["max", "min", "sum", "avg"]
 
-  refresher = $interval ->
-    JobsService.loadJob($stateParams.jobid).then (data) ->
-      $scope.job = data
+  loadJob = ->
+    JobsService.loadJob($scope.id).then (data) ->
+      $scope.name = data.name
+      $scope.startTime = data.startTime
+      $scope.endTime = data.endTime
+      $scope.duration = data.duration
+      $scope.status = data.status
+      $scope.vertices = data.vertices
+      $scope.plan = data.plan
+
       $scope.$broadcast 'reload'
+
+  loadJob()
+
+  refresh = $interval ->
+    loadJob()
 
   , flinkConfig["refresh-interval"]
 
   $scope.$on '$destroy', ->
-    $scope.job = null
-    $scope.plan = null
-    $scope.watermarks = {}
-    $scope.vertices = null
-    $scope.backPressureOperatorStats = null
-
-    $interval.cancel(refresher)
-
-  $scope.cancelJob = (cancelEvent) ->
-    angular.element(cancelEvent.currentTarget).removeClass("btn").removeClass("btn-default").html('Cancelling...')
-    JobsService.cancelJob($stateParams.jobid).then (data) ->
-      {}
-
-  $scope.stopJob = (stopEvent) ->
-    angular.element(stopEvent.currentTarget).removeClass("btn").removeClass("btn-default").html('Stopping...')
-    JobsService.stopJob($stateParams.jobid).then (data) ->
-      {}
-
-  JobsService.loadJob($stateParams.jobid).then (data) ->
-    $scope.job = data
-    $scope.vertices = data.vertices
-    $scope.plan = data.plan
-    MetricsService.setupMetrics($stateParams.jobid, data.vertices)
-
-  # Asynchronously requests the watermark metrics for the given nodes. The
-  # returned object has the following structure:
-  #
-  # {
-  #    "<nodeId>": {
-  #          "lowWatermark": <lowWatermark>
-  #          "watermarks": {
-  #               0: <watermark for subtask 0>
-  #               ...
-  #               n: <watermark for subtask n>
-  #            }
-  #       }
-  # }
-  #
-  # If no watermark is available, lowWatermark will be NaN and
-  # the watermarks will be empty.
-  getWatermarks = (nodes) ->
-    # Requests the watermarks for a single vertex. Triggers a request
-    # to the Metrics service.
-    requestWatermarkForNode = (node) =>
-      deferred = $q.defer()
-
-      jid = $scope.job.jid
-
-      # Request metrics for each subtask
-      metricIds = (i + ".currentInputWatermark" for i in [0..node.parallelism - 1])
-      MetricsService.getMetrics(jid, node.id, metricIds).then (metrics) ->
-        minValue = NaN
-        watermarks = {}
-
-        for key, value of metrics.values
-          subtaskIndex = key.replace('.currentInputWatermark', '')
-          watermarks[subtaskIndex] = value
-
-          if (isNaN(minValue) || value < minValue)
-            minValue = value
-
-        if (!isNaN(minValue) && minValue > watermarksConfig.noWatermark)
-          lowWatermark = minValue
-        else
-          # NaN indicates no watermark available
-          lowWatermark = NaN
-
-        deferred.resolve({"lowWatermark": lowWatermark, "watermarks": watermarks})
-
-      deferred.promise
-
-    deferred = $q.defer()
-    watermarks = {}
-
-    # Request watermarks for each node and update watermarks
-    len = nodes.length
-    angular.forEach nodes, (node, index) =>
-      nodeId = node.id
-      requestWatermarkForNode(node).then (data) ->
-        watermarks[nodeId] = data
-        if (index >= len - 1)
-          deferred.resolve(watermarks)
-
-    deferred.promise
-
-  # Returns true if the lowWatermark is != NaN
-  $scope.hasWatermark = (nodeid) ->
-    $scope.watermarks[nodeid] && !isNaN($scope.watermarks[nodeid]["lowWatermark"])
-
-  $scope.$watch 'plan', (newPlan) ->
-    if newPlan
-      getWatermarks(newPlan.nodes).then (data) ->
-        $scope.watermarks = data
-
-  $scope.$on 'reload', () ->
-    if $scope.plan
-      getWatermarks($scope.plan.nodes).then (data) ->
-        $scope.watermarks = data
+    $interval.cancel(refresh)
 
 # --------------------------------------
 
-.controller 'JobPlanController', ($scope, $state, $stateParams, $window, JobsService) ->
-  $scope.nodeid = null
-  $scope.nodeUnfolded = false
-  $scope.stateList = JobsService.stateList()
-
-  $scope.changeNode = (nodeid) ->
-    if nodeid != $scope.nodeid
-      $scope.nodeid = nodeid
-      $scope.vertex = null
-      $scope.subtasks = null
-      $scope.accumulators = null
-      $scope.operatorCheckpointStats = null
-
-      $scope.$broadcast 'reload'
-      $scope.$broadcast 'node:change', $scope.nodeid
-
-    else
-      $scope.nodeid = null
-      $scope.nodeUnfolded = false
-      $scope.vertex = null
-      $scope.subtasks = null
-      $scope.accumulators = null
-      $scope.operatorCheckpointStats = null
-
-  $scope.deactivateNode = ->
-    $scope.nodeid = null
-    $scope.nodeUnfolded = false
-    $scope.vertex = null
-    $scope.subtasks = null
-    $scope.accumulators = null
-    $scope.operatorCheckpointStats = null
-
-  $scope.toggleFold = ->
-    $scope.nodeUnfolded = !$scope.nodeUnfolded
+.controller 'JobOverviewController', ($scope, $state, $stateParams, $window, JobsService) ->
+  return
 
 # --------------------------------------
 
-.controller 'JobPlanSubtasksController', ($scope, JobsService) ->
-  $scope.aggregate = false
-
-  getSubtasks = ->
-    if $scope.aggregate
-      JobsService.getTaskManagers($scope.nodeid).then (data) ->
-        $scope.taskmanagers = data
-    else
-      JobsService.getSubtasks($scope.nodeid).then (data) ->
-        $scope.subtasks = data
-
-  if $scope.nodeid and (!$scope.vertex or !$scope.vertex.st)
-    getSubtasks()
-
-  $scope.$on 'reload', (event) ->
-    getSubtasks() if $scope.nodeid
+.controller 'JobOverviewVerticesController', ($scope, JobsService) ->
+  return
 
 # --------------------------------------
 
-.controller 'JobPlanAccumulatorsController', ($scope, JobsService) ->
-  getAccumulators = ->
-    JobsService.getAccumulators($scope.nodeid).then (data) ->
-      $scope.accumulators = data.main
-      $scope.subtaskAccumulators = data.subtasks
-
-  if $scope.nodeid and (!$scope.vertex or !$scope.vertex.accumulators)
-    getAccumulators()
-
-  $scope.$on 'reload', (event) ->
-    getAccumulators() if $scope.nodeid
+.controller 'JobOverviewRecordsController', ($scope, JobsService) ->
+  return
 
 # --------------------------------------
 
-.controller 'JobPlanCheckpointsController', ($scope, $state, $stateParams, JobsService) ->
-  # Updated by the details handler for the sub checkpoints nav bar.
+.controller 'JobOverviewBytesController', ($scope, JobsService) ->
+  return
+
+# --------------------------------------
+
+.controller 'JobCheckpointsController', ($scope, $state, $stateParams, JobsService) ->
   $scope.checkpointDetails = {}
   $scope.checkpointDetails.id = -1
 
   # Request the config once (it's static)
-  JobsService.getCheckpointConfig().then (data) ->
+  JobsService.getCheckpointConfig($scope.id).then (data) ->
     $scope.checkpointConfig = data
 
   # General stats like counts, history, etc.
-  getGeneralCheckpointStats = ->
-    JobsService.getCheckpointStats().then (data) ->
-      if (data != null)
-        $scope.checkpointStats = data
-
-  # Trigger request
-  getGeneralCheckpointStats()
-
-  $scope.$on 'reload', (event) ->
-    # Retrigger request
-    getGeneralCheckpointStats()
+  JobsService.getCheckpointStats($scope.id).then (data) ->
+    $scope.checkpointStats = data
 
 # --------------------------------------
 
-.controller 'JobPlanCheckpointDetailsController', ($scope, $state, $stateParams, JobsService) ->
+.controller 'JobCheckpointsOverviewController', ($scope, $state, $stateParams) ->
+  return
+
+# --------------------------------------
+
+.controller 'JobCheckpointsHistoryController', ($scope, $state, $stateParams) ->
+  return
+
+# --------------------------------------
+
+.controller 'JobCheckpointsSummaryController', ($scope, $state, $stateParams) ->
+  return
+
+# --------------------------------------
+
+.controller 'JobCheckpointsConfigController', ($scope, $state, $stateParams) ->
+  return
+
+# --------------------------------------
+
+.controller 'JobCheckpointDetailsController', ($scope, $state, $stateParams, JobsService) ->
   $scope.subtaskDetails = {}
   $scope.checkpointDetails.id = $stateParams.checkpointId
 
@@ -286,18 +204,142 @@ angular.module('flinkApp')
 
 # --------------------------------------
 
-.controller 'JobPlanBackPressureController', ($scope, JobsService) ->
-  getOperatorBackPressure = ->
-    $scope.now = Date.now()
+.controller 'JobExceptionsController', ($scope, $state, $stateParams, JobsService) ->
+  JobsService.loadExceptions($scope.id).then (data) ->
+    $scope.exceptions = data
 
-    if $scope.nodeid
-      JobsService.getOperatorBackPressure($scope.nodeid).then (data) ->
-        $scope.backPressureOperatorStats[$scope.nodeid] = data
+# --------------------------------------
 
-  getOperatorBackPressure()
+.controller 'SingleVertexController', ($scope, $state, $stateParams, JobsService, MetricsService, $rootScope, flinkConfig, $interval, $q, watermarksConfig) ->
+  $scope.jobId = $stateParams.jobid
+  $scope.id = $stateParams.vertexid
+  $scope.jobName = null
+  $scope.name = null
+  $scope.numTasksPerState = {}
+  $scope.tasks = null
+
+  JobsService.loadJob($scope.jobId).then (data) ->
+    $scope.jobName = data.name
+
+  loadVertex = ->
+    JobsService.loadVertex($scope.jobId, $scope.id).then (data) ->
+      $scope.name = data["name"]
+      $scope.tasks = data["tasks"]
+
+      $scope.numTasksPerState = {
+        "DEPLOYING": 0,
+        "FAILED": 0,
+        "RECONCILING": 0,
+        "RUNNING": 0,
+        "CREATED": 0,
+        "SCHEDULED": 0,
+        "FINISHED": 0,
+        "CANCELED": 0,
+        "CANCELING": 0
+      }
+
+      ($scope.tasks).forEach (task) ->
+        $scope.numTasksPerState[task.currentExecution.status]++
+
+      $scope.$broadcast 'reload'
+
+  loadVertex()
+
+  refresh = $interval ->
+    loadVertex()
+
+  , flinkConfig["refresh-interval"]
+
+  $scope.$on '$destroy', ->
+    $interval.cancel(refresh)
+
+# --------------------------------------
+
+.controller 'VertexTasksController', ($scope, JobsService) ->
+  $scope.myPage = 1
+  $scope.myLimit = 10
+  return
+
+# --------------------------------------
+
+.controller 'VertexRecordsController', ($scope, JobsService) ->
+  $scope.myPage = 1
+  $scope.myLimit = 10
+  return
+
+# --------------------------------------
+
+.controller 'VertexBytesController', ($scope, JobsService) ->
+  $scope.myPage = 1
+  $scope.myLimit = 10
+  return
+
+# --------------------------------------
+
+.controller 'SingleTaskController', ($scope, $state, $stateParams, JobsService, MetricsService, $rootScope, flinkConfig, $interval, $q, watermarksConfig) ->
+  $scope.jobId = $stateParams.jobid
+  $scope.vertexId = $stateParams.vertexid
+  $scope.index = $stateParams.taskindex
+  $scope.jobName = "N/A"
+  $scope.vertexName = "N/A"
+  $scope.executions = null
+
+  JobsService.loadJob($scope.jobId).then (data) ->
+    $scope.jobName = data.name
+
+  JobsService.loadVertex($scope.jobId, $scope.vertexId).then (data) ->
+    $scope.vertexName = data.name
+
+  loadTask = ->
+    JobsService.loadTask($scope.jobId, $scope.vertexId, $scope.index).then (data) ->
+      $scope.executions = data["executions"]
+
+      $scope.$broadcast 'reload'
+
+  loadTask()
+
+  refresh = $interval ->
+    loadTask()
+
+  , flinkConfig["refresh-interval"]
+
+  $scope.$on '$destroy', ->
+    $interval.cancel(refresh)
+
+# --------------------------------------
+
+.controller 'TaskExecutionsController', ($scope, JobsService) ->
+  $scope.myPage = 1
+  $scope.myLimit = 10
+  return
+
+# --------------------------------------
+
+.controller 'TaskRecordsController', ($scope, JobsService) ->
+  $scope.myPage = 1
+  $scope.myLimit = 10
+  return
+
+# --------------------------------------
+
+.controller 'TaskBytesController', ($scope, JobsService) ->
+  $scope.myPage = 1
+  $scope.myLimit = 10
+  return
+
+# --------------------------------------
+
+.controller 'JobPlanAccumulatorsController', ($scope, JobsService) ->
+  getAccumulators = ->
+    JobsService.getAccumulators($scope.nodeid).then (data) ->
+      $scope.accumulators = data.main
+      $scope.subtaskAccumulators = data.subtasks
+
+  if $scope.nodeid and (!$scope.vertex or !$scope.vertex.accumulators)
+    getAccumulators()
 
   $scope.$on 'reload', (event) ->
-    getOperatorBackPressure()
+    getAccumulators() if $scope.nodeid
 
 # --------------------------------------
 
@@ -310,12 +352,6 @@ angular.module('flinkApp')
 
   $scope.$on 'reload', (event) ->
     getVertex()
-
-# --------------------------------------
-
-.controller 'JobExceptionsController', ($scope, $state, $stateParams, JobsService) ->
-  JobsService.loadExceptions().then (data) ->
-    $scope.exceptions = data
 
 # --------------------------------------
 

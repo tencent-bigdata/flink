@@ -140,7 +140,7 @@ public final class FlinkDistribution extends ExternalResource {
 				if (response.isSuccessful()) {
 					final String json = response.body().string();
 					final JsonNode taskManagerList = OBJECT_MAPPER.readTree(json)
-						.get("taskmanagers");
+						.get("taskManagers");
 
 					if (taskManagerList != null && taskManagerList.size() > 0) {
 						LOG.info("Dispatcher REST endpoint is up.");

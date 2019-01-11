@@ -31,9 +31,8 @@ import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.messages.Acknowledge;
-import org.apache.flink.runtime.messages.webmonitor.ClusterOverview;
-import org.apache.flink.runtime.messages.webmonitor.MultipleJobsDetails;
 import org.apache.flink.runtime.rest.handler.legacy.backpressure.OperatorBackPressureStatsResponse;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo;
 import org.apache.flink.runtime.rpc.RpcTimeout;
 
 import java.util.Collection;
@@ -77,8 +76,7 @@ public final class TestingDispatcherGateway extends TestingRestfulGateway implem
 			Function<JobID, CompletableFuture<? extends AccessExecutionGraph>> requestJobFunction,
 			Function<JobID, CompletableFuture<JobResult>> requestJobResultFunction,
 			Function<JobID, CompletableFuture<JobStatus>> requestJobStatusFunction,
-			Supplier<CompletableFuture<MultipleJobsDetails>> requestMultipleJobDetailsSupplier,
-			Supplier<CompletableFuture<ClusterOverview>> requestClusterOverviewSupplier,
+			Supplier<CompletableFuture<JobsOverviewInfo>> requestJobsOverviewSupplier,
 			Supplier<CompletableFuture<Collection<String>>> requestMetricQueryServicePathsSupplier,
 			Supplier<CompletableFuture<Collection<Tuple2<ResourceID, String>>>> requestTaskManagerMetricQueryServicePathsSupplier,
 			BiFunction<JobID, JobVertexID, CompletableFuture<OperatorBackPressureStatsResponse>> requestOperatorBackPressureStatsFunction,
@@ -96,8 +94,7 @@ public final class TestingDispatcherGateway extends TestingRestfulGateway implem
 			requestJobFunction,
 			requestJobResultFunction,
 			requestJobStatusFunction,
-			requestMultipleJobDetailsSupplier,
-			requestClusterOverviewSupplier,
+			requestJobsOverviewSupplier,
 			requestMetricQueryServicePathsSupplier,
 			requestTaskManagerMetricQueryServicePathsSupplier,
 			requestOperatorBackPressureStatsFunction,
@@ -184,8 +181,7 @@ public final class TestingDispatcherGateway extends TestingRestfulGateway implem
 				requestJobFunction,
 				requestJobResultFunction,
 				requestJobStatusFunction,
-				requestMultipleJobDetailsSupplier,
-				requestClusterOverviewSupplier,
+				requestJobsOverviewSupplier,
 				requestMetricQueryServicePathsSupplier,
 				requestTaskManagerMetricQueryServicePathsSupplier,
 				requestOperatorBackPressureStatsFunction,

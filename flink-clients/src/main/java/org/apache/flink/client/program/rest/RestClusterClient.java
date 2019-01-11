@@ -58,10 +58,8 @@ import org.apache.flink.runtime.rest.messages.EmptyResponseBody;
 import org.apache.flink.runtime.rest.messages.JobAccumulatorsHeaders;
 import org.apache.flink.runtime.rest.messages.JobAccumulatorsInfo;
 import org.apache.flink.runtime.rest.messages.JobAccumulatorsMessageParameters;
-import org.apache.flink.runtime.rest.messages.JobMessageParameters;
 import org.apache.flink.runtime.rest.messages.JobTerminationHeaders;
 import org.apache.flink.runtime.rest.messages.JobTerminationMessageParameters;
-import org.apache.flink.runtime.rest.messages.JobsOverviewHeaders;
 import org.apache.flink.runtime.rest.messages.MessageHeaders;
 import org.apache.flink.runtime.rest.messages.MessageParameters;
 import org.apache.flink.runtime.rest.messages.RequestBody;
@@ -69,12 +67,14 @@ import org.apache.flink.runtime.rest.messages.ResponseBody;
 import org.apache.flink.runtime.rest.messages.TerminationModeQueryParameter;
 import org.apache.flink.runtime.rest.messages.TriggerId;
 import org.apache.flink.runtime.rest.messages.cluster.ShutdownHeaders;
-import org.apache.flink.runtime.rest.messages.job.JobDetailsHeaders;
-import org.apache.flink.runtime.rest.messages.job.JobDetailsInfo;
+import org.apache.flink.runtime.rest.messages.job.JobDetailHeaders;
+import org.apache.flink.runtime.rest.messages.job.JobDetailInfo;
 import org.apache.flink.runtime.rest.messages.job.JobExecutionResultHeaders;
+import org.apache.flink.runtime.rest.messages.job.JobMessageParameters;
 import org.apache.flink.runtime.rest.messages.job.JobSubmitHeaders;
 import org.apache.flink.runtime.rest.messages.job.JobSubmitRequestBody;
 import org.apache.flink.runtime.rest.messages.job.JobSubmitResponseBody;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewHeaders;
 import org.apache.flink.runtime.rest.messages.job.savepoints.SavepointDisposalRequest;
 import org.apache.flink.runtime.rest.messages.job.savepoints.SavepointDisposalStatusHeaders;
 import org.apache.flink.runtime.rest.messages.job.savepoints.SavepointDisposalStatusMessageParameters;
@@ -274,15 +274,15 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 
 	@Override
 	public CompletableFuture<JobStatus> getJobStatus(JobID jobId) {
-		JobDetailsHeaders detailsHeaders = JobDetailsHeaders.getInstance();
+		JobDetailHeaders detailsHeaders = JobDetailHeaders.getInstance();
 		final JobMessageParameters  params = new JobMessageParameters();
-		params.jobPathParameter.resolve(jobId);
+		params.jobIDPathParameter.resolve(jobId);
 
-		CompletableFuture<JobDetailsInfo> responseFuture = sendRequest(
+		CompletableFuture<JobDetailInfo> responseFuture = sendRequest(
 			detailsHeaders,
 			params);
 
-		return responseFuture.thenApply(JobDetailsInfo::getJobStatus);
+		return responseFuture.thenApply(JobDetailInfo::getStatus);
 	}
 
 	/**
@@ -298,7 +298,7 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 		return pollResourceAsync(
 			() -> {
 				final JobMessageParameters messageParameters = new JobMessageParameters();
-				messageParameters.jobPathParameter.resolve(jobId);
+				messageParameters.jobIDPathParameter.resolve(jobId);
 				return sendRequest(
 					JobExecutionResultHeaders.getInstance(),
 					messageParameters);
@@ -444,7 +444,7 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 	public Map<String, OptionalFailure<Object>> getAccumulators(final JobID jobID, ClassLoader loader) throws Exception {
 		final JobAccumulatorsHeaders accumulatorsHeaders = JobAccumulatorsHeaders.getInstance();
 		final JobAccumulatorsMessageParameters accMsgParams = accumulatorsHeaders.getUnresolvedMessageParameters();
-		accMsgParams.jobPathParameter.resolve(jobID);
+		accMsgParams.jobIDPathParameter.resolve(jobID);
 		accMsgParams.includeSerializedAccumulatorsParameter.resolve(Collections.singletonList(true));
 
 		CompletableFuture<JobAccumulatorsInfo> responseFuture = sendRequest(
@@ -492,12 +492,12 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 	public CompletableFuture<Collection<JobStatusMessage>> listJobs() {
 		return sendRequest(JobsOverviewHeaders.getInstance())
 			.thenApply(
-				(multipleJobsDetails) -> multipleJobsDetails
+				(jobsOverview) -> jobsOverview
 					.getJobs()
 					.stream()
 					.map(detail -> new JobStatusMessage(
-						detail.getJobId(),
-						detail.getJobName(),
+						detail.getId(),
+						detail.getName(),
 						detail.getStatus(),
 						detail.getStartTime()))
 					.collect(Collectors.toList()));
@@ -520,7 +520,7 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 
 		final RescalingTriggerHeaders rescalingTriggerHeaders = RescalingTriggerHeaders.getInstance();
 		final RescalingTriggerMessageParameters rescalingTriggerMessageParameters = rescalingTriggerHeaders.getUnresolvedMessageParameters();
-		rescalingTriggerMessageParameters.jobPathParameter.resolve(jobId);
+		rescalingTriggerMessageParameters.jobIDPathParameter.resolve(jobId);
 		rescalingTriggerMessageParameters.rescalingParallelismQueryParameter.resolve(Collections.singletonList(newParallelism));
 
 		final CompletableFuture<TriggerResponse> rescalingTriggerResponseFuture = sendRequest(
@@ -533,7 +533,7 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 				final RescalingStatusHeaders rescalingStatusHeaders = RescalingStatusHeaders.getInstance();
 				final RescalingStatusMessageParameters rescalingStatusMessageParameters = rescalingStatusHeaders.getUnresolvedMessageParameters();
 
-				rescalingStatusMessageParameters.jobPathParameter.resolve(jobId);
+				rescalingStatusMessageParameters.jobIDPathParameter.resolve(jobId);
 				rescalingStatusMessageParameters.triggerIdPathParameter.resolve(triggerId);
 
 				return pollResourceAsync(

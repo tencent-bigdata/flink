@@ -41,11 +41,11 @@ import org.apache.flink.runtime.jobmaster.SerializedInputSplit;
 import org.apache.flink.runtime.jobmaster.message.ClassloadingProps;
 import org.apache.flink.runtime.messages.Acknowledge;
 import org.apache.flink.runtime.messages.checkpoint.DeclineCheckpoint;
-import org.apache.flink.runtime.messages.webmonitor.JobDetails;
 import org.apache.flink.runtime.query.KvStateLocation;
 import org.apache.flink.runtime.registration.RegistrationResponse;
 import org.apache.flink.runtime.resourcemanager.ResourceManagerId;
 import org.apache.flink.runtime.rest.handler.legacy.backpressure.OperatorBackPressureStatsResponse;
+import org.apache.flink.runtime.rest.messages.job.JobSummaryInfo;
 import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.taskexecutor.AccumulatorReport;
 import org.apache.flink.runtime.taskexecutor.slot.SlotOffer;
@@ -126,7 +126,7 @@ public class TestingJobMasterGateway implements JobMasterGateway {
 	private final Consumer<ResourceID> resourceManagerHeartbeatConsumer;
 
 	@Nonnull
-	private final Supplier<CompletableFuture<JobDetails>> requestJobDetailsSupplier;
+	private final Supplier<CompletableFuture<JobSummaryInfo>> requestJobSummarySupplier;
 
 	@Nonnull
 	private final Supplier<CompletableFuture<ArchivedExecutionGraph>> requestJobSupplier;
@@ -177,7 +177,7 @@ public class TestingJobMasterGateway implements JobMasterGateway {
 			@Nonnull BiFunction<String, TaskManagerLocation, CompletableFuture<RegistrationResponse>> registerTaskManagerFunction,
 			@Nonnull BiConsumer<ResourceID, AccumulatorReport> taskManagerHeartbeatConsumer,
 			@Nonnull Consumer<ResourceID> resourceManagerHeartbeatConsumer,
-			@Nonnull Supplier<CompletableFuture<JobDetails>> requestJobDetailsSupplier,
+			@Nonnull Supplier<CompletableFuture<JobSummaryInfo>> requestJobSummarySupplier,
 			@Nonnull Supplier<CompletableFuture<ArchivedExecutionGraph>> requestJobSupplier,
 			@Nonnull BiFunction<String, Boolean, CompletableFuture<String>> triggerSavepointFunction,
 			@Nonnull Function<JobVertexID, CompletableFuture<OperatorBackPressureStatsResponse>> requestOperatorBackPressureStatsFunction,
@@ -206,7 +206,7 @@ public class TestingJobMasterGateway implements JobMasterGateway {
 		this.registerTaskManagerFunction = registerTaskManagerFunction;
 		this.taskManagerHeartbeatConsumer = taskManagerHeartbeatConsumer;
 		this.resourceManagerHeartbeatConsumer = resourceManagerHeartbeatConsumer;
-		this.requestJobDetailsSupplier = requestJobDetailsSupplier;
+		this.requestJobSummarySupplier = requestJobSummarySupplier;
 		this.requestJobSupplier = requestJobSupplier;
 		this.triggerSavepointFunction = triggerSavepointFunction;
 		this.requestOperatorBackPressureStatsFunction = requestOperatorBackPressureStatsFunction;
@@ -300,13 +300,13 @@ public class TestingJobMasterGateway implements JobMasterGateway {
 	}
 
 	@Override
-	public CompletableFuture<JobDetails> requestJobDetails(Time timeout) {
-		return requestJobDetailsSupplier.get();
+	public CompletableFuture<JobSummaryInfo> requestJobSummary(Time timeout) {
+		return requestJobSummarySupplier.get();
 	}
 
 	@Override
 	public CompletableFuture<JobStatus> requestJobStatus(Time timeout) {
-		return requestJobDetailsSupplier.get().thenApply(JobDetails::getStatus);
+		return requestJobSummarySupplier.get().thenApply(JobSummaryInfo::getStatus);
 	}
 
 	@Override

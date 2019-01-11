@@ -21,6 +21,7 @@ package org.apache.flink.runtime.rest.messages;
 import org.apache.flink.runtime.rest.HttpMethodWrapper;
 import org.apache.flink.runtime.rest.handler.RestHandlerSpecification;
 import org.apache.flink.runtime.rest.handler.job.JobTerminationHandler;
+import org.apache.flink.runtime.rest.messages.job.JobIDPathParameter;
 
 /**
  * {@link RestHandlerSpecification} for the {@link JobTerminationHandler} which is registered for

@@ -159,7 +159,7 @@ public class ArchivedJobGenerationUtils {
 	}
 
 	public static void compareIoMetrics(IOMetrics expectedMetrics, JsonNode writtenMetrics) {
-		assertEquals(expectedMetrics.getNumBytesInTotal(), writtenMetrics.get("read-bytes").asLong());
+		assertEquals(expectedMetrics.getNumBytesIn(), writtenMetrics.get("read-bytes").asLong());
 		assertEquals(expectedMetrics.getNumBytesOut(), writtenMetrics.get("write-bytes").asLong());
 		assertEquals(expectedMetrics.getNumRecordsIn(), writtenMetrics.get("read-records").asLong());
 		assertEquals(expectedMetrics.getNumRecordsOut(), writtenMetrics.get("write-records").asLong());

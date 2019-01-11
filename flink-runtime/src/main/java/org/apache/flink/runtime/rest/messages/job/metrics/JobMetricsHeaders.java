@@ -19,8 +19,8 @@
 package org.apache.flink.runtime.rest.messages.job.metrics;
 
 import org.apache.flink.runtime.rest.handler.job.metrics.JobMetricsHandler;
-import org.apache.flink.runtime.rest.messages.JobIDPathParameter;
 import org.apache.flink.runtime.rest.messages.MessageHeaders;
+import org.apache.flink.runtime.rest.messages.job.JobIDPathParameter;
 
 /**
  * {@link MessageHeaders} for {@link JobMetricsHandler}.

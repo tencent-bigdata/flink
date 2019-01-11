@@ -18,7 +18,7 @@
 
 package org.apache.flink.runtime.rest.messages.job.metrics;
 
-import org.apache.flink.runtime.rest.messages.JobIDPathParameter;
+import org.apache.flink.runtime.rest.messages.job.JobIDPathParameter;
 import org.apache.flink.util.TestLogger;
 
 import org.junit.Test;

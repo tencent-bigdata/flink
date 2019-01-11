@@ -58,9 +58,8 @@ import org.apache.flink.runtime.messages.JobManagerMessages;
 import org.apache.flink.runtime.messages.accumulators.AccumulatorResultsErroneous;
 import org.apache.flink.runtime.messages.accumulators.AccumulatorResultsFound;
 import org.apache.flink.runtime.messages.accumulators.RequestAccumulatorResults;
-import org.apache.flink.runtime.messages.webmonitor.JobDetails;
-import org.apache.flink.runtime.messages.webmonitor.MultipleJobsDetails;
-import org.apache.flink.runtime.messages.webmonitor.RequestJobDetails;
+import org.apache.flink.runtime.messages.webmonitor.RequestJobsOverview;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo;
 import org.apache.flink.runtime.util.LeaderConnectionInfo;
 import org.apache.flink.runtime.util.LeaderRetrievalUtils;
 import org.apache.flink.util.FlinkException;
@@ -78,7 +77,6 @@ import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -86,6 +84,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import scala.Option;
 import scala.concurrent.Await;
@@ -793,17 +792,24 @@ public abstract class ClusterClient<T> {
 	public CompletableFuture<Collection<JobStatusMessage>> listJobs() throws Exception {
 		final ActorGateway jobManager = getJobManagerGateway();
 
-		Future<Object> response = jobManager.ask(new RequestJobDetails(true, false), timeout);
+		Future<Object> response = jobManager.ask(RequestJobsOverview.getInstance(), timeout);
 		CompletableFuture<Object> responseFuture = FutureUtils.toJava(response);
 
 		return responseFuture.thenApply((responseMessage) -> {
-			if (responseMessage instanceof MultipleJobsDetails) {
-				MultipleJobsDetails details = (MultipleJobsDetails) responseMessage;
+			if (responseMessage instanceof JobsOverviewInfo) {
+				JobsOverviewInfo jobsOverviewInfo = (JobsOverviewInfo) responseMessage;
 
-				final Collection<JobDetails> jobDetails = details.getJobs();
-				Collection<JobStatusMessage> flattenedDetails = new ArrayList<>(jobDetails.size());
-				jobDetails.forEach(detail -> flattenedDetails.add(new JobStatusMessage(detail.getJobId(), detail.getJobName(), detail.getStatus(), detail.getStartTime())));
-				return flattenedDetails;
+				return jobsOverviewInfo
+					.getJobs()
+					.stream()
+					.map((jobSummary) ->
+						new JobStatusMessage(
+							jobSummary.getId(),
+							jobSummary.getName(),
+							jobSummary.getStatus(),
+							jobSummary.getStartTime()
+						))
+					.collect(Collectors.toList());
 			} else {
 				throw new CompletionException(
 					new IllegalStateException("Unknown JobManager response of type " + responseMessage.getClass()));

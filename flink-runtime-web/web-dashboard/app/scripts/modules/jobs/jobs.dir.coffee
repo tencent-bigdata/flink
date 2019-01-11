@@ -20,6 +20,105 @@ angular.module('flinkApp')
 
 # ----------------------------------------------
 
+.directive 'overview', ($state) ->
+  template: "<svg width='0' height='0'></svg>"
+
+  scope:
+    jobcounts: "="
+
+  link: (scope, elem, attrs) ->
+    svg = elem.children()[0]
+
+    width = elem.width()
+    height = 258
+    radius = Math.min(width, height) * 0.5
+
+    colors = {
+      "RUNNING": "#428cba",
+      "FINISHED": "#5cb85c",
+      "CANCELED": "#5bc0de",
+      "FAILED": "#d9534f"
+    }
+
+    drawJobsOverview = (data) ->
+      d3.select(svg).selectAll("*").remove()
+
+      pie = d3.layout.pie()
+        .sort(null)
+        .value((d) ->
+            d.count
+
+        )
+
+      totalCount = 0
+      data.forEach ((d) ->
+        totalCount += d.count
+
+      )
+
+      pieData = pie(data)
+
+      arc = d3.svg.arc()
+        .innerRadius(radius * 0.4)
+        .outerRadius(radius * 0.8)
+
+      outerArc = d3.svg.arc()
+        .innerRadius(radius * 0.9)
+        .outerRadius(radius * 0.9)
+
+      vis = d3.select(svg)
+        .attr("width", width)
+        .attr("height", height)
+        .append("g")
+        .attr("transform", "translate(" + width / 2 + ", " + height / 2 + ")")
+
+      g = vis.selectAll(".arc")
+          .data(pie(data))
+          .enter().append("g");
+
+      g.append("path")
+        .attr("d", arc)
+        .style("fill", (d, i) ->
+          colors[d.data.name]
+
+        )
+
+      g.append("text")
+        .text((d) ->
+            if d.data.count > 0
+              d.data.name + ": " + d.data.count
+            else
+              ""
+
+        )
+        .attr("dy", ".35em")
+        .style("text-anchor", (d, i) ->
+          if (d.startAngle + (d.endAngle - d.startAngle) / 2) < Math.PI
+            "start"
+          else
+            "end"
+
+        )
+        .attr("transform", (d, i) ->
+          pos = outerArc.centroid(d)
+          "translate(" + pos + ")"
+
+        )
+
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr('font-size', '4em')
+        .attr('y', 20)
+        .text(totalCount);
+
+    scope.$watch attrs.jobcounts, (newJobCounts) ->
+      drawJobsOverview(newJobCounts) if newJobCounts
+
+    return
+
+
+# ----------------------------------------------
+
 .directive 'vertex', ($state) ->
   template: "<svg class='timeline secondary' width='0' height='0'></svg>"
 
@@ -189,7 +288,6 @@ angular.module('flinkApp')
 
   scope:
     plan: '='
-    watermarks: '='
     setNode: '&'
 
   link: (scope, elem, attrs) ->
@@ -275,14 +373,17 @@ angular.module('flinkApp')
 
     # creates the label of a node, in info is stored, whether it is a special node (like a mirror in an iteration)
     createLabelNode = (el, info, maxW, maxH) ->
-      # labelValue = "<a href='#/jobs/" + jobid + "/vertex/" + el.id + "' class='node-label " + getNodeType(el, info) + "'>"
-      labelValue = "<div href='#/jobs/" + jobid + "/vertex/" + el.id + "' class='node-label " + getNodeType(el, info) + "'>"
+      labelValue = "<div class='node-label " + getNodeType(el, info) + "'>"
+
+      labelValue += "<div class='node-label'>" + el.id + "</div>"
 
       # Nodename
-      if info is "mirror"
-        labelValue += "<h3 class='node-name'>Mirror of " + el.operator + "</h3>"
-      else
-        labelValue += "<h3 class='node-name'>" + el.operator + "</h3>"
+      if (el.operator) != ""
+        if info is "mirror"
+          labelValue += "<h3 class='node-name'>Mirror of " + el.operator + "</h3>"
+        else
+          labelValue += "<h3 class='node-name'>" + el.operator + "</h3>"
+
       if el.description is ""
         labelValue += ""
       else
@@ -300,7 +401,6 @@ angular.module('flinkApp')
         # Otherwise add infos
         labelValue += "<h5>" + info + " Node</h5>"  if isSpecialIterationNode(info)
         labelValue += "<h5>Parallelism: " + el.parallelism + "</h5>"  unless el.parallelism is ""
-        labelValue += "<h5>Low Watermark: " + el.lowWatermark + "</h5>"  unless el.lowWatermark is `undefined`
         labelValue += "<h5>Operation: " + shortenString(el.operator_strategy) + "</h5>" unless el.operator is `undefined` or not el.operator_strategy
       # labelValue += "</a>"
       labelValue += "</div>"
@@ -375,6 +475,7 @@ angular.module('flinkApp')
         label: createLabelEdge(pred)
         labelType: 'html'
         arrowhead: 'normal'
+        lineInterpolate: 'basis'
 
     loadJsonToDagre = (g, data) ->
       existingNodes = []
@@ -435,14 +536,6 @@ angular.module('flinkApp')
           for j of el.step_function
             return el.step_function[j]  if el.step_function[j].id is nodeID
 
-    mergeWatermarks = (data, watermarks) ->
-      if (!_.isEmpty(watermarks))
-        for node in data.nodes
-          if (watermarks[node.id] && !isNaN(watermarks[node.id]["lowWatermark"]))
-            node.lowWatermark = watermarks[node.id]["lowWatermark"]
-
-      return data
-
     lastPosition = 0
     lastZoomScale = 0
 
@@ -457,7 +550,7 @@ angular.module('flinkApp')
           marginy: 40
           })
 
-        loadJsonToDagre(g, mergeWatermarks(scope.plan, scope.watermarks))
+        loadJsonToDagre(g, scope.plan)
 
         d3mainSvgG.selectAll("*").remove()
 
@@ -494,8 +587,5 @@ angular.module('flinkApp')
 
     scope.$watch attrs.plan, (newPlan) ->
       drawGraph() if newPlan
-
-    scope.$watch attrs.watermarks, (newWatermarks) ->
-      drawGraph() if newWatermarks && scope.plan
 
     return

@@ -1,0 +1,76 @@
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-->
+<table md-table="md-table" class="table table-hover table-clickable table-activable table-inner">
+  <thead md-head="md-head">
+    <tr md-row="md-row">
+      <th md-column="md-column">Name</th>
+      <th md-column="md-column">Watermark
+        <md-select ng-model="watermarkAgg">
+          <md-option ng-repeat="agg in aggs" value="{{agg}}" ng-selected="{{agg == 'max'}}">{{agg}}</md-option>
+        </md-select>
+      </th>
+      <th md-column="md-column">InQueue Usage
+        <md-select ng-model="inQueueUsageAgg">
+          <md-option ng-repeat="agg in aggs" value="{{agg}}" ng-selected="{{agg == 'max'}}">{{agg}}</md-option>
+        </md-select>
+      </th>
+      <th md-column="md-column">OutQueue Usage
+        <md-select ng-model="outQueueUsageAgg">
+          <md-option ng-repeat="agg in aggs" value="{{agg}}" ng-selected="{{agg == 'max'}}">{{agg}}</md-option>
+        </md-select>
+      </th>
+      <th md-column="md-column">Input Records
+        <md-select ng-model="recordsInAgg">
+          <md-option ng-repeat="agg in aggs" value="{{agg}}" ng-selected="{{agg == 'sum'}}">{{agg}}</md-option>
+        </md-select>
+      </th>
+      <th md-column="md-column">Output Records
+        <md-select ng-model="recordsOutAgg">
+          <md-option ng-repeat="agg in aggs" value="{{agg}}" ng-selected="{{agg == 'sum'}}">{{agg}}</md-option>
+        </md-select>
+      </th>
+      <th md-column="md-column">Input Rate
+        <md-select ng-model="recordsInRateAgg">
+          <md-option ng-repeat="agg in aggs" value="{{agg}}" ng-selected="{{agg == 'sum'}}">{{agg}}</md-option>
+        </md-select>
+      </th>
+      <th md-column="md-column">Output Rate
+        <md-select ng-model="recordsOutRateAgg">
+          <md-option ng-repeat="agg in aggs" value="{{agg}}" ng-selected="{{agg == 'sum'}}">{{agg}}</md-option>
+        </md-select>
+      </th>
+    </tr>
+  </thead>
+  <tbody md-body="md-body">
+    <tr md-row="md-row" ng-repeat="vertex in vertices" ui-sref="single-vertex.tasks({ jobid: id, vertexid: vertex.id })">
+      <td md-cell="md-cell">
+        <div class="md-body-2">{{vertex.name}}</div>
+        <div class="md-caption">{{vertex.id}}</div>
+      </td>
+      <td md-cell="md-cell"><span ng-if="vertex.metrics.watermark[watermarkAgg] &lt; 0">N/A</span><span ng-if="vertex.metrics.watermark[watermarkAgg] &gt;= 0" title="{{vertex.metrics.watermark[watermarkAgg]}}">{{vertex.metrics.watermark[watermarkAgg] | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}</span></td>
+      <td md-cell="md-cell"><span ng-if="vertex.metrics.inQueueUsage[inQueueUsageAgg] &lt; 0">N/A</span><span ng-if="vertex.metrics.inQueueUsage[inQueueUsageAgg] &gt;= 0">{{vertex.metrics.inQueueUsage[inQueueUsageAgg] | percentage}}</span></td>
+      <td md-cell="md-cell"><span ng-if="vertex.metrics.outQueueUsage[outQueueUsageAgg] &lt; 0">N/A</span><span ng-if="vertex.metrics.outQueueUsage[outQueueUsageAgg] &gt;= 0">{{vertex.metrics.outQueueUsage[outQueueUsageAgg] | percentage}}</span></td>
+      <td md-cell="md-cell"><span ng-if="vertex.metrics.recordsIn[recordsInAgg] &lt; 0">N/A</span><span ng-if="vertex.metrics.recordsIn[recordsInAgg] &gt;= 0">{{vertex.metrics.recordsIn[recordsInAgg] | number}}</span></td>
+      <td md-cell="md-cell"><span ng-if="vertex.metrics.recordsOut[recordsOutAgg] &lt; 0">N/A</span><span ng-if="vertex.metrics.recordsOut[recordsOutAgg] &gt;= 0">{{vertex.metrics.recordsOut[recordsOutAgg] | number}}</span></td>
+      <td md-cell="md-cell"><span ng-if="vertex.metrics.recordsInRate[recordsInRateAgg] &lt; 0">N/A</span><span ng-if="vertex.metrics.recordsInRate[recordsInRateAgg] &gt;= 0">{{vertex.metrics.recordsInRate[recordsInRateAgg] | number:0}}</span></td>
+      <td md-cell="md-cell"><span ng-if="vertex.metrics.recordsOutRate[recordsOutRateAgg] &lt; 0">N/A</span><span ng-if="vertex.metrics.recordsOutRate[recordsOutRateAgg] &gt;= 0">{{vertex.metrics.recordsOutRate[recordsOutRateAgg] | number:0}}</span></td>
+    </tr>
+  </tbody>
+</table>

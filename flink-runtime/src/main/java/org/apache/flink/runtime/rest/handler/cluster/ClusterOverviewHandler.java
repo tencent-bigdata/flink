@@ -19,13 +19,12 @@
 package org.apache.flink.runtime.rest.handler.cluster;
 
 import org.apache.flink.api.common.time.Time;
-import org.apache.flink.runtime.messages.webmonitor.ClusterOverview;
 import org.apache.flink.runtime.rest.handler.AbstractRestHandler;
 import org.apache.flink.runtime.rest.handler.HandlerRequest;
-import org.apache.flink.runtime.rest.handler.legacy.messages.ClusterOverviewWithVersion;
 import org.apache.flink.runtime.rest.messages.EmptyMessageParameters;
 import org.apache.flink.runtime.rest.messages.EmptyRequestBody;
 import org.apache.flink.runtime.rest.messages.MessageHeaders;
+import org.apache.flink.runtime.rest.messages.cluster.ClusterOverviewInfo;
 import org.apache.flink.runtime.util.EnvironmentInformation;
 import org.apache.flink.runtime.webmonitor.RestfulGateway;
 import org.apache.flink.runtime.webmonitor.retriever.GatewayRetriever;
@@ -38,7 +37,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Handler which returns the cluster overview information with version.
  */
-public class ClusterOverviewHandler extends AbstractRestHandler<RestfulGateway, EmptyRequestBody, ClusterOverviewWithVersion, EmptyMessageParameters> {
+public class ClusterOverviewHandler extends AbstractRestHandler<RestfulGateway, EmptyRequestBody, ClusterOverviewInfo, EmptyMessageParameters> {
 
 	private static final String version = EnvironmentInformation.getVersion();
 
@@ -48,15 +47,16 @@ public class ClusterOverviewHandler extends AbstractRestHandler<RestfulGateway, 
 			GatewayRetriever<? extends RestfulGateway> leaderRetriever,
 			Time timeout,
 			Map<String, String> responseHeaders,
-			MessageHeaders<EmptyRequestBody, ClusterOverviewWithVersion, EmptyMessageParameters> messageHeaders) {
+			MessageHeaders<EmptyRequestBody, ClusterOverviewInfo, EmptyMessageParameters> messageHeaders
+	) {
 		super(leaderRetriever, timeout, responseHeaders, messageHeaders);
 	}
 
 	@Override
-	public CompletableFuture<ClusterOverviewWithVersion> handleRequest(@Nonnull HandlerRequest<EmptyRequestBody, EmptyMessageParameters> request, @Nonnull RestfulGateway gateway) {
-		CompletableFuture<ClusterOverview> overviewFuture = gateway.requestClusterOverview(timeout);
-
-		return overviewFuture.thenApply(
-			statusOverview -> ClusterOverviewWithVersion.fromStatusOverview(statusOverview, version, commitID));
+	public CompletableFuture<ClusterOverviewInfo> handleRequest(
+		@Nonnull HandlerRequest<EmptyRequestBody, EmptyMessageParameters> request,
+		@Nonnull RestfulGateway gateway
+	) {
+		return CompletableFuture.completedFuture(new ClusterOverviewInfo(version, commitID));
 	}
 }

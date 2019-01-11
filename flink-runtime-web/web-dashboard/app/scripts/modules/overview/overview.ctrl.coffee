@@ -18,23 +18,70 @@
 
 angular.module('flinkApp')
 
-.controller 'OverviewController', ($scope, OverviewService, JobsService, $interval, flinkConfig) ->
-  $scope.jobObserver = ->
-    $scope.runningJobs = JobsService.getJobs('running')
-    $scope.finishedJobs = JobsService.getJobs('finished')
+.controller 'OverviewController', ($scope, OverviewService, JobsService, TaskManagersService, $interval, flinkConfig) ->
+  $scope.flinkVersion = "N/A"
+  $scope.flinkCommit = "N/A"
 
-  JobsService.registerObserver($scope.jobObserver)
-  $scope.$on '$destroy', ->
-    JobsService.unRegisterObserver($scope.jobObserver)
+  $scope.runningJobs = []
+  $scope.completedJobs = []
+  $scope.jobcounts = []
 
-  $scope.jobObserver()
+  $scope.taskManagers = []
+  $scope.numTaskManagers = -1
+  $scope.cpu = -1
+  $scope.memory = -1
+  $scope.numSlots = -1
+  $scope.numAvailableSlots = -1
 
-  OverviewService.loadOverview().then (data) ->
-    $scope.overview = data
+  OverviewService.loadInfo().then (data) ->
+    $scope.flinkVersion = data.version
+    $scope.flinkCommit = data.commit
+
+  loadJobs = ->
+    JobsService.loadJobs().then (data) ->
+      $scope.runningJobs = []
+      $scope.completedJobs = []
+
+      $scope.jobcounts = [
+        {name: "FINISHED", count: data.numFinishedJobs},
+        {name: "CANCELED", count: data.numCanceledJobs},
+        {name: "FAILED", count: data.numFailedJobs},
+        {name: "RUNNING", count: data.numRunningJobs}
+      ]
+
+      # collect the jobs
+      (data.jobs).forEach (job, i) ->
+        switch job.status.toLowerCase()
+          when 'finished'
+            $scope.completedJobs.push job
+          when 'cancelled'
+            $scope.completedJobs.push job
+          when 'failed'
+            $scope.completedJobs.push job
+          else
+            $scope.runningJobs.push job
+
+  loadTaskManagers = ->
+    TaskManagersService.loadTaskManagers().then (data) ->
+      $scope.taskManagers = data.taskManagers
+      $scope.numTaskManagers = 0
+      $scope.numSlots = 0
+      $scope.numAvailableSlots = 0
+      $scope.cpu = 0
+      $scope.memory = 0
+      ($scope.taskManagers).forEach (taskManager) ->
+        $scope.numTaskManagers++
+        $scope.numSlots += taskManager.slotsNumber
+        $scope.numAvailableSlots += taskManager.freeSlots
+        $scope.cpu += taskManager.hardware.cpuCores
+        $scope.memory += taskManager.hardware.physicalMemory
+
+  loadJobs()
+  loadTaskManagers()
 
   refresh = $interval ->
-    OverviewService.loadOverview().then (data) ->
-      $scope.overview = data
+    loadJobs()
+    loadTaskManagers()
   , flinkConfig["refresh-interval"]
 
   $scope.$on '$destroy', ->

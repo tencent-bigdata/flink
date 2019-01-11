@@ -25,8 +25,8 @@ import org.apache.flink.runtime.rest.handler.HandlerRequest;
 import org.apache.flink.runtime.rest.handler.legacy.metrics.MetricFetcher;
 import org.apache.flink.runtime.rest.handler.legacy.metrics.MetricStore;
 import org.apache.flink.runtime.rest.messages.EmptyRequestBody;
-import org.apache.flink.runtime.rest.messages.JobIDPathParameter;
-import org.apache.flink.runtime.rest.messages.JobVertexIdPathParameter;
+import org.apache.flink.runtime.rest.messages.job.JobIDPathParameter;
+import org.apache.flink.runtime.rest.messages.job.VertexIDPathParameter;
 import org.apache.flink.runtime.rest.messages.job.metrics.AggregatedSubtaskMetricsHeaders;
 import org.apache.flink.runtime.rest.messages.job.metrics.AggregatedSubtaskMetricsParameters;
 import org.apache.flink.runtime.rest.messages.job.metrics.SubtasksFilterQueryParameter;
@@ -66,7 +66,7 @@ public class AggregatingSubtasksMetricsHandler extends AbstractAggregatingMetric
 	@Override
 	Collection<? extends MetricStore.ComponentMetricStore> getStores(MetricStore store, HandlerRequest<EmptyRequestBody, AggregatedSubtaskMetricsParameters> request) {
 		JobID jobID = request.getPathParameter(JobIDPathParameter.class);
-		JobVertexID taskID = request.getPathParameter(JobVertexIdPathParameter.class);
+		JobVertexID taskID = request.getPathParameter(VertexIDPathParameter.class);
 
 		Collection<String> subtaskRanges = request.getQueryParameter(SubtasksFilterQueryParameter.class);
 		if (subtaskRanges.isEmpty()) {

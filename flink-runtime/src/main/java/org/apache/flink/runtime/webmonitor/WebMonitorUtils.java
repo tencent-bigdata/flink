@@ -24,15 +24,9 @@ import org.apache.flink.configuration.WebOptions;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.concurrent.ScheduledExecutor;
 import org.apache.flink.runtime.dispatcher.DispatcherGateway;
-import org.apache.flink.runtime.execution.ExecutionState;
-import org.apache.flink.runtime.executiongraph.AccessExecutionGraph;
-import org.apache.flink.runtime.executiongraph.AccessExecutionJobVertex;
-import org.apache.flink.runtime.executiongraph.AccessExecutionVertex;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
-import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobmaster.JobManagerGateway;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalService;
-import org.apache.flink.runtime.messages.webmonitor.JobDetails;
 import org.apache.flink.runtime.rest.handler.legacy.files.StaticFileServerHandler;
 import org.apache.flink.runtime.webmonitor.history.JsonArchivist;
 import org.apache.flink.runtime.webmonitor.retriever.GatewayRetriever;
@@ -290,42 +284,6 @@ public final class WebMonitorUtils {
 		catch (Exception e) {
 			throw new RuntimeException(e.getMessage(), e);
 		}
-	}
-
-	public static JobDetails createDetailsForJob(AccessExecutionGraph job) {
-		JobStatus status = job.getState();
-
-		long started = job.getStatusTimestamp(JobStatus.CREATED);
-		long finished = status.isGloballyTerminalState() ? job.getStatusTimestamp(status) : -1L;
-		long duration = (finished >= 0L ? finished : System.currentTimeMillis()) - started;
-
-		int[] countsPerStatus = new int[ExecutionState.values().length];
-		long lastChanged = 0;
-		int numTotalTasks = 0;
-
-		for (AccessExecutionJobVertex ejv : job.getVerticesTopologically()) {
-			AccessExecutionVertex[] vertices = ejv.getTaskVertices();
-			numTotalTasks += vertices.length;
-
-			for (AccessExecutionVertex vertex : vertices) {
-				ExecutionState state = vertex.getExecutionState();
-				countsPerStatus[state.ordinal()]++;
-				lastChanged = Math.max(lastChanged, vertex.getStateTimestamp(state));
-			}
-		}
-
-		lastChanged = Math.max(lastChanged, finished);
-
-		return new JobDetails(
-			job.getJobID(),
-			job.getJobName(),
-			started,
-			finished,
-			duration,
-			status,
-			lastChanged,
-			countsPerStatus,
-			numTotalTasks);
 	}
 
 	/**

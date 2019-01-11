@@ -1,0 +1,41 @@
+//
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+ 
+      http://www.apache.org/licenses/LICENSE-2.0
+ 
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+table.table.table-hover.table-clickable.table-activable.table-inner(md-table)
+  thead(md-head)
+    tr(md-row)
+      th(md-column) Name
+      th(md-column) Start Time
+      th(md-column) End Time
+      th(md-column) Duration
+      th(md-column) Tasks
+      th(md-column) Status
+  tbody
+    tr(ng-repeat="vertex in vertices" ui-sref="single-vertex.tasks({ jobid: id, vertexid: vertex.id })")
+      td(md-cell)
+        .md-body-2 {{vertex.name}}
+        .md-caption {{vertex.id}}
+      td(md-cell) {{ vertex.startTime | amDateFormat:'YYYY-MM-DD, H:mm:ss' }}
+      td(md-cell)
+        span(ng-if="vertex.endTime >= 0") {{ vertex.endTime | amDateFormat:'YYYY-MM-DD, H:mm:ss' }}
+        span(ng-if="vertex.endTime < 0") N/A
+      td(md-cell)
+        span(title="{{vertex.duration | humanizeDuration:false}}") {{vertex.duration | humanizeDuration:true}}
+      td.label-group(md-cell)
+        bs-label(status="{{status}}" ng-repeat="(status, value) in vertex.numTasksPerState") {{value}}
+      td(md-cell)
+        bs-label(status="{{vertex.status}}") {{vertex.status}}

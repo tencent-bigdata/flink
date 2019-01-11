@@ -22,8 +22,10 @@ import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.apache.flink.runtime.executiongraph.ExecutionJobVertex.getAggregateJobVertexState;
+import static org.apache.flink.runtime.executiongraph.ExecutionJobVertex.getVertexState;
 
 public class ArchivedExecutionJobVertex implements AccessExecutionJobVertex, Serializable {
 
@@ -110,12 +112,18 @@ public class ArchivedExecutionJobVertex implements AccessExecutionJobVertex, Ser
 
 	@Override
 	public ExecutionState getAggregateState() {
-		int[] num = new int[ExecutionState.values().length];
-		for (ArchivedExecutionVertex vertex : this.taskVertices) {
-			num[vertex.getExecutionState().ordinal()]++;
+		Map<ExecutionState, Integer> numTasksPerState = new HashMap<>(ExecutionState.values().length);
+		for (ExecutionState state : ExecutionState.values()) {
+			numTasksPerState.put(state, 0);
 		}
 
-		return getAggregateJobVertexState(num, parallelism);
+		for (ArchivedExecutionVertex vertex : this.taskVertices) {
+			ExecutionState state = vertex.getExecutionState();
+			int count = numTasksPerState.get(state);
+			numTasksPerState.put(state, count + 1);
+		}
+
+		return getVertexState(numTasksPerState, parallelism);
 	}
 
 	// --------------------------------------------------------------------------------------------

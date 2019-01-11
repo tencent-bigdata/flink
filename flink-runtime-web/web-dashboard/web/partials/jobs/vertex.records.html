@@ -1,0 +1,51 @@
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-->
+<table md-table="md-table" class="table table-hover table-clickable table-activable table-inner">
+  <thead md-head="md-head" md-order="myOrder">
+    <tr md-row="md-row">
+      <th md-column="md-column" md-order-by="index">ID</th>
+      <th md-column="md-column" md-order-by="currentExecution.metrics.watermark">Watermark</th>
+      <th md-column="md-column" md-order-by="currentExecution.metrics.inQueueUsage">InQueue Usage</th>
+      <th md-column="md-column" md-order-by="currentExecution.metrics.outQueueUsage">OutQueue Usage</th>
+      <th md-column="md-column" md-order-by="currentExecution.metrics.recordsIn">Inputs</th>
+      <th md-column="md-column" md-order-by="currentExecution.metrics.recordsOut">Outputs</th>
+      <th md-column="md-column" md-order-by="currentExecution.metrics.recordsInRate">Input Rate</th>
+      <th md-column="md-column" md-order-by="currentExecution.metrics.recordsOutRate">Output Rate</th>
+      <th md-column="md-column" md-order-by="executor.id">Executor</th>
+    </tr>
+  </thead>
+  <tbody md-body="md-body">
+    <tr md-row="md-row" ng-repeat="task in tasks | orderBy: myOrder | limitTo: myLimit: ((myPage - 1) * myLimit)" ui-sref="single-task.executions({ jobid: jobId, vertexid: id, taskindex: task.index })">
+      <td md-cell="md-cell">{{task.index}}</td>
+      <td md-cell="md-cell"><span ng-if="task.currentExecution.metrics.watermark &lt; 0">N/A</span><span ng-if="task.currentExecution.metrics.watermark &gt;= 0">{{task.currentExecution.metrics.watermark}}</span></td>
+      <td md-cell="md-cell"><span ng-if="task.currentExecution.metrics.inQueueUsage &lt; 0">N/A</span><span ng-if="task.currentExecution.metrics.inQueueUsage &gt;= 0">{{task.currentExecution.metrics.inQueueUsage | percentage }}</span></td>
+      <td md-cell="md-cell"><span ng-if="task.currentExecution.metrics.outQueueUsage &lt; 0">N/A</span><span ng-if="task.currentExecution.metrics.outQueueUsage &gt;= 0">{{task.currentExecution.metrics.outQueueUsage | percentage}}</span></td>
+      <td md-cell="md-cell"><span ng-if="task.currentExecution.metrics.recordsIn &lt; 0">N/A</span><span ng-if="task.currentExecution.metrics.recordsIn &gt;= 0">{{task.currentExecution.metrics.recordsIn | number}}</span></td>
+      <td md-cell="md-cell"><span ng-if="task.currentExecution.metrics.recordsOut &lt; 0">N/A</span><span ng-if="task.currentExecution.metrics.recordsOut &gt;= 0">{{task.currentExecution.metrics.recordsOut | number}}</span></td>
+      <td md-cell="md-cell"><span ng-if="task.currentExecution.metrics.recordsInRate &lt; 0">N/A</span><span ng-if="task.currentExecution.metrics.recordsInRate &gt;= 0">{{task.currentExecution.metrics.recordsInRate | number:0}}</span></td>
+      <td md-cell="md-cell"><span ng-if="task.currentExecution.metrics.recordsOutRate &lt; 0">N/A</span><span ng-if="task.currentExecution.metrics.recordsOutRate &gt;= 0">{{task.currentExecution.metrics.recordsOutRate | number:0}}</span></td>
+      <td md-cell="md-cell">
+        <div class="md-body-2">{{task.currentExecution.executor.id}}</div>
+        <div class="md-caption">{{task.currentExecution.executor.host}}:{{task.currentExecution.executor.port}}</div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<md-table-pagination md-limit="myLimit" md-limit-options="[5, 10, 20]" md-page="myPage" md-total="{{tasks.length}}" md-page-select="md-page-select" class="bg-light"></md-table-pagination>

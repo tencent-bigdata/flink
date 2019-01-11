@@ -1,0 +1,46 @@
+//
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+table.table.table-hover.table-clickable.table-activable.table-inner(md-table)
+  thead(md-head md-order="myOrder")
+    tr(md-row)
+      th(md-column md-order-by="index") ID
+      th(md-column md-order-by="attempts") Retries
+      th(md-column md-order-by="currentExecution.startTime") Start Time
+      th(md-column md-order-by="currentExecution.endTime") End Time
+      th(md-column md-order-by="currentExecution.duration") Duration
+      th(md-column md-order-by="currentExecution.executor.id") Executor
+      th(md-column md-order-by="currentExecution.status") Status
+  tbody(md-body)
+    tr(md-row ng-repeat="task in tasks | orderBy: myOrder | limitTo: myLimit: ((myPage - 1) * myLimit)" ui-sref="single-task.executions({ jobid: jobId, vertexid: id, taskindex: task.index })")
+      td(md-cell) {{task.index}}
+      td(md-cell) {{task.attempts}}
+      td(md-cell)
+        span(ng-if="task.currentExecution.startTime >= 0") {{ task.currentExecution.startTime | amDateFormat:'YYYY-MM-DD, H:mm:ss' }}
+        span(ng-if="task['start-time'] < 0") N/A
+      td(md-cell)
+        span(ng-if="task.currentExecution.endTime >= 0") {{ task.currentExecution.endTime | amDateFormat:'YYYY-MM-DD, H:mm:ss' }}
+        span(ng-if="task.currentExecution.endTime < 0") N/A
+      td(md-cell)
+        span(title="{{task.currentExecution.duration | humanizeDuration:false}}") {{task.currentExecution.duration | humanizeDuration:true}}
+      td(md-cell)
+        .md-body-2 {{task.currentExecution.executor.id}}
+        .md-caption {{task.currentExecution.executor.host}} : {{task.currentExecution.executor.port}}
+      td(md-cell)
+        bs-label(status="{{task.currentExecution.status}}") {{task.currentExecution.status}}
+
+md-table-pagination.bg-light(md-limit="myLimit" md-limit-options="[5, 10, 20]" md-page="myPage" md-total="{{tasks.length}}" md-page-select)

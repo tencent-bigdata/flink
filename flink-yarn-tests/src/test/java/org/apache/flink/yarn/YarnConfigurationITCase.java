@@ -34,8 +34,8 @@ import org.apache.flink.runtime.rest.RestClientConfiguration;
 import org.apache.flink.runtime.rest.messages.EmptyMessageParameters;
 import org.apache.flink.runtime.rest.messages.EmptyRequestBody;
 import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagerInfo;
-import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagersHeaders;
-import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagersInfo;
+import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagersOverviewHeaders;
+import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagersOverviewInfo;
 import org.apache.flink.runtime.testingUtils.TestingUtils;
 
 import org.apache.hadoop.fs.Path;
@@ -144,18 +144,18 @@ public class YarnConfigurationITCase extends YarnTestBase {
 
 				final URI webURI = new URI(clusterClient.getWebInterfaceURL());
 
-				CompletableFuture<TaskManagersInfo> taskManagersInfoCompletableFuture;
+				CompletableFuture<TaskManagersOverviewInfo> taskManagersInfoCompletableFuture;
 				Collection<TaskManagerInfo> taskManagerInfos;
 
 				while (true) {
 					taskManagersInfoCompletableFuture = restClient.sendRequest(
 						webURI.getHost(),
 						webURI.getPort(),
-						TaskManagersHeaders.getInstance(),
+						TaskManagersOverviewHeaders.getInstance(),
 						EmptyMessageParameters.getInstance(),
 						EmptyRequestBody.getInstance());
 
-					final TaskManagersInfo taskManagersInfo = taskManagersInfoCompletableFuture.get();
+					final TaskManagersOverviewInfo taskManagersInfo = taskManagersInfoCompletableFuture.get();
 
 					taskManagerInfos = taskManagersInfo.getTaskManagerInfos();
 

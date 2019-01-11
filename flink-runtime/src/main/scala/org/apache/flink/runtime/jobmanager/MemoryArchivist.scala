@@ -20,7 +20,6 @@ package org.apache.flink.runtime.jobmanager
 
 import java.io.IOException
 import java.net.URI
-import java.util
 
 import akka.actor.ActorRef
 import grizzled.slf4j.Logger
@@ -28,15 +27,15 @@ import org.apache.flink.api.common.JobID
 import org.apache.flink.core.fs.{FileSystem, Path}
 import org.apache.flink.runtime.jobgraph.JobStatus
 import org.apache.flink.runtime.messages.accumulators._
-import org.apache.flink.runtime.webmonitor.WebMonitorUtils
 import org.apache.flink.runtime.{FlinkActor, LogMessages}
 import org.apache.flink.runtime.messages.webmonitor._
 import org.apache.flink.runtime.executiongraph.{ArchivedExecutionGraph, ExecutionGraph}
 import org.apache.flink.runtime.history.FsJobArchivist
 import org.apache.flink.runtime.messages.ArchiveMessages._
 import org.apache.flink.runtime.messages.JobManagerMessages._
-import org.apache.flink.runtime.messages.webmonitor.JobIdsWithStatusOverview.JobIdWithStatus
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.future
 
@@ -176,21 +175,6 @@ class MemoryArchivist(
         catch {
           case t: Throwable => log.error("Exception while creating the jobs overview", t)
         }
-
-      case _ : RequestJobsWithIDsOverview =>
-        try {
-          sender ! decorateMessage(createJobsWithIDsOverview())
-        }
-        catch {
-          case t: Throwable => log.error("Exception while creating the jobs overview", t)
-        }
-
-      case _ : RequestJobDetails =>
-        val details = graphs.values.map {
-          v => WebMonitorUtils.createDetailsForJob(v)
-        }.toArray[JobDetails]
-
-        theSender ! decorateMessage(new MultipleJobsDetails(util.Arrays.asList(details: _*)))
     }
   }
 
@@ -219,20 +203,12 @@ class MemoryArchivist(
   //  Request Responses
   // --------------------------------------------------------------------------
 
-  private def createJobsOverview() : JobsOverview = {
-    new JobsOverview(0, finishedCnt, canceledCnt, failedCnt)
-  }
+  private def createJobsOverview() : JobsOverviewInfo = {
+    var jobSummaries = graphs.values.map {
+      v => v.getJobSummary
+    }.asJavaCollection
 
-  private def createJobsWithIDsOverview() : JobIdsWithStatusOverview = {
-    val jobIdsWithStatuses =
-      new java.util.ArrayList[JobIdWithStatus](graphs.size)
-
-    graphs.values.foreach { graph =>
-      jobIdsWithStatuses.add(
-        new JobIdWithStatus(graph.getJobID, graph.getState))
-    }
-
-    new JobIdsWithStatusOverview(jobIdsWithStatuses)
+    new JobsOverviewInfo(0, finishedCnt, canceledCnt, failedCnt, jobSummaries)
   }
 
   // --------------------------------------------------------------------------

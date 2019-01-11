@@ -1,0 +1,58 @@
+//
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+table.table.table-hover.table-clickable.table-activable.table-inner(md-table)
+  thead(md-head md-order="myOrder")
+    tr(md-row)
+      th(md-column md-order-by="attemptNumber") ID
+      th(md-column md-order-by="metrics.watermark") Watermark
+      th(md-column md-order-by="metrics.inQueueUsage") InQueue Usage
+      th(md-column md-order-by="metrics.outQueueUsage") OutQueue Usage
+      th(md-column md-order-by="metrics.bytesIn") Inputs
+      th(md-column md-order-by="metrics.bytesOut") Outputs
+      th(md-column md-order-by="metrics.bytesInRate") Input Rate
+      th(md-column md-order-by="metrics.bytesOutRate") Output Rate
+      th(md-column md-order-by="executor.id") Executor
+  tbody(md-body)
+    tr(md-row ng-repeat="execution in executions | orderBy: myOrder | limitTo: myLimit: ((myPage - 1) * myLimit)")
+      td(md-cell) {{execution.attemptNumber}}
+      td(md-cell)
+        span(ng-if="execution.metrics.watermark < 0") N/A
+        span(ng-if="execution.metrics.watermark >= 0") {{execution.metrics.watermark}}
+      td(md-cell)
+        span(ng-if="execution.metrics.inQueueUsage < 0") N/A
+        span(ng-if="execution.metrics.inQueueUsage >= 0") {{execution.metrics.inQueueUsage | percentage }}
+      td(md-cell)
+        span(ng-if="execution.metrics.outQueueUsage < 0") N/A
+        span(ng-if="execution.metrics.outQueueUsage >= 0") {{execution.metrics.outQueueUsage | percentage}}
+      td(md-cell)
+        span(ng-if="execution.metrics.bytesIn < 0") N/A
+        span(ng-if="execution.metrics.bytesIn >= 0") {{execution.metrics.bytesIn | humanizeBytes}}
+      td(md-cell)
+        span(ng-if="execution.metrics.bytesOut < 0") N/A
+        span(ng-if="execution.metrics.bytesOut >= 0") {{execution.metrics.bytesOut | humanizeBytes}}
+      td(md-cell)
+         span(ng-if="execution.metrics.bytesInRate < 0") N/A
+         span(ng-if="execution.metrics.bytesInRate >= 0") {{execution.metrics.bytesInRate | humanizeBytes}}
+      td(md-cell)
+        span(ng-if="execution.metrics.bytesOutRate < 0") N/A
+        span(ng-if="execution.metrics.bytesOutRate >= 0") {{execution.metrics.bytesOutRate | humanizeBytes}}
+      td(md-cell)
+        .md-body-2 {{execution.executor.id}}
+        .md-caption {{execution.executor.host}}:{{execution.executor.port}}
+
+md-table-pagination.bg-light(md-limit="myLimit" md-limit-options="[5, 10, 20]" md-page="myPage" md-total="{{executions.length}}" md-page-select)

@@ -21,9 +21,9 @@ package org.apache.flink.runtime.rest.handler.legacy.metrics;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.runtime.clusterframework.types.ResourceID;
-import org.apache.flink.runtime.messages.webmonitor.JobDetails;
-import org.apache.flink.runtime.messages.webmonitor.MultipleJobsDetails;
 import org.apache.flink.runtime.metrics.dump.MetricDumpSerialization;
+import org.apache.flink.runtime.rest.messages.job.JobSummaryInfo;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo;
 import org.apache.flink.runtime.webmonitor.RestfulGateway;
 import org.apache.flink.runtime.webmonitor.retriever.GatewayRetriever;
 import org.apache.flink.runtime.webmonitor.retriever.MetricQueryServiceGateway;
@@ -106,16 +106,16 @@ public class MetricFetcher<T extends RestfulGateway> {
 				/*
 				 * Remove all metrics that belong to a job that is not running and no longer archived.
 				 */
-				CompletableFuture<MultipleJobsDetails> jobDetailsFuture = leaderGateway.requestMultipleJobDetails(timeout);
+				CompletableFuture<JobsOverviewInfo> jobsOverviewFuture = leaderGateway.requestJobsOverview(timeout);
 
-				jobDetailsFuture.whenCompleteAsync(
-					(MultipleJobsDetails jobDetails, Throwable throwable) -> {
+				jobsOverviewFuture.whenCompleteAsync(
+					(JobsOverviewInfo jobsOverview, Throwable throwable) -> {
 						if (throwable != null) {
 							LOG.debug("Fetching of JobDetails failed.", throwable);
 						} else {
-							ArrayList<String> toRetain = new ArrayList<>(jobDetails.getJobs().size());
-							for (JobDetails job : jobDetails.getJobs()) {
-								toRetain.add(job.getJobId().toString());
+							ArrayList<String> toRetain = new ArrayList<>(jobsOverview.getJobs().size());
+							for (JobSummaryInfo jobSummary : jobsOverview.getJobs()) {
+								toRetain.add(jobSummary.getId().toString());
 							}
 							metrics.retainJobs(toRetain);
 						}

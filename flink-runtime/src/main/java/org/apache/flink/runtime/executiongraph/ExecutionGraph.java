@@ -64,6 +64,7 @@ import org.apache.flink.runtime.jobmanager.scheduler.NoResourceAvailableExceptio
 import org.apache.flink.runtime.jobmaster.slotpool.SlotPool;
 import org.apache.flink.runtime.jobmaster.slotpool.SlotProvider;
 import org.apache.flink.runtime.query.KvStateLocationRegistry;
+import org.apache.flink.runtime.rest.messages.job.JobSummaryInfo;
 import org.apache.flink.runtime.state.SharedStateRegistry;
 import org.apache.flink.runtime.state.StateBackend;
 import org.apache.flink.runtime.taskmanager.TaskExecutionState;
@@ -242,7 +243,9 @@ public class ExecutionGraph implements AccessExecutionGraph {
 	private final BlobWriter blobWriter;
 
 	/** The total number of vertices currently in the execution graph. */
-	private int numVerticesTotal;
+	private int parallelism;
+
+	private int maxParallelism;
 
 	// ------ Configuration of the Execution -------
 
@@ -646,6 +649,24 @@ public class ExecutionGraph implements AccessExecutionGraph {
 		return state;
 	}
 
+	@Override
+	public JobSummaryInfo getJobSummary() {
+		long startTime = getStatusTimestamp(JobStatus.CREATED);
+		long endTime = state.isGloballyTerminalState() ? getStatusTimestamp(state) : -1;
+		long duration = (endTime >= 0) ? endTime - startTime : System.currentTimeMillis() - startTime;
+
+		return new JobSummaryInfo(
+			jobInformation.getJobId(),
+			jobInformation.getJobName(),
+			startTime,
+			endTime,
+			duration,
+			parallelism,
+			maxParallelism,
+			state
+		);
+	}
+
 	public Throwable getFailureCause() {
 		return failureCause;
 	}
@@ -712,7 +733,7 @@ public class ExecutionGraph implements AccessExecutionGraph {
 	}
 
 	public int getTotalNumberOfVertices() {
-		return numVerticesTotal;
+		return parallelism;
 	}
 
 	public Map<IntermediateDataSetID, IntermediateResult> getAllIntermediateResults() {
@@ -848,7 +869,8 @@ public class ExecutionGraph implements AccessExecutionGraph {
 			}
 
 			this.verticesInCreationOrder.add(ejv);
-			this.numVerticesTotal += ejv.getParallelism();
+			this.parallelism += ejv.getParallelism();
+			this.maxParallelism += ejv.getMaxParallelism();
 			newExecJobVertices.add(ejv);
 		}
 
@@ -900,7 +922,7 @@ public class ExecutionGraph implements AccessExecutionGraph {
 
 	private CompletableFuture<Void> scheduleLazy(SlotProvider slotProvider) {
 
-		final ArrayList<CompletableFuture<Void>> schedulingFutures = new ArrayList<>(numVerticesTotal);
+		final ArrayList<CompletableFuture<Void>> schedulingFutures = new ArrayList<>(parallelism);
 		// simply take the vertices without inputs.
 		for (ExecutionJobVertex ejv : verticesInCreationOrder) {
 			if (ejv.getJobVertex().isInputVertex()) {
@@ -1423,7 +1445,7 @@ public class ExecutionGraph implements AccessExecutionGraph {
 	 */
 	void vertexFinished() {
 		final int numFinished = verticesFinished.incrementAndGet();
-		if (numFinished == numVerticesTotal) {
+		if (numFinished == parallelism) {
 			// done :-)
 
 			// check whether we are still in "RUNNING" and trigger the final cleanup

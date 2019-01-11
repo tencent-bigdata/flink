@@ -18,10 +18,10 @@
 
 package org.apache.flink.runtime.rest.handler.job.rescaling;
 
-import org.apache.flink.runtime.rest.messages.JobMessageParameters;
 import org.apache.flink.runtime.rest.messages.MessageParameters;
 import org.apache.flink.runtime.rest.messages.MessagePathParameter;
 import org.apache.flink.runtime.rest.messages.TriggerIdPathParameter;
+import org.apache.flink.runtime.rest.messages.job.JobMessageParameters;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,6 +35,6 @@ public class RescalingStatusMessageParameters extends JobMessageParameters {
 
 	@Override
 	public Collection<MessagePathParameter<?>> getPathParameters() {
-		return Arrays.asList(jobPathParameter, triggerIdPathParameter);
+		return Arrays.asList(jobIDPathParameter, triggerIdPathParameter);
 	}
 }

@@ -18,7 +18,6 @@
 
 package org.apache.flink.runtime.rest.messages;
 
-import org.apache.flink.runtime.rest.handler.job.JobVertexAccumulatorsHandler;
 import org.apache.flink.runtime.rest.messages.job.UserAccumulator;
 import org.apache.flink.util.Preconditions;
 
@@ -29,7 +28,7 @@ import java.util.Collection;
 import java.util.Objects;
 
 /**
- * Response type of the {@link JobVertexAccumulatorsHandler}.
+ * Response type of the {@link VertexAccumulatorsHandler}.
  */
 public class JobVertexAccumulatorsInfo implements ResponseBody {
 

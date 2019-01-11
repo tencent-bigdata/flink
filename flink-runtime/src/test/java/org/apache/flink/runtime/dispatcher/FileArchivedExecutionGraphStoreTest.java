@@ -23,12 +23,10 @@ import org.apache.flink.api.common.time.Time;
 import org.apache.flink.runtime.concurrent.ManuallyTriggeredScheduledExecutor;
 import org.apache.flink.runtime.executiongraph.ArchivedExecutionGraph;
 import org.apache.flink.runtime.jobgraph.JobStatus;
-import org.apache.flink.runtime.messages.webmonitor.JobDetails;
-import org.apache.flink.runtime.messages.webmonitor.JobsOverview;
 import org.apache.flink.runtime.rest.handler.legacy.utils.ArchivedExecutionGraphBuilder;
+import org.apache.flink.runtime.rest.messages.job.JobSummaryInfo;
 import org.apache.flink.runtime.testingUtils.TestingUtils;
 import org.apache.flink.runtime.util.ManualTicker;
-import org.apache.flink.runtime.webmonitor.WebMonitorUtils;
 import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.TestLogger;
 
@@ -113,9 +111,7 @@ public class FileArchivedExecutionGraphStoreTest extends TestLogger {
 		final int numberExecutionGraphs = 10;
 		final Collection<ArchivedExecutionGraph> executionGraphs = generateTerminalExecutionGraphs(numberExecutionGraphs);
 
-		final List<JobStatus> jobStatuses = executionGraphs.stream().map(ArchivedExecutionGraph::getState).collect(Collectors.toList());
-
-		final JobsOverview expectedJobsOverview = JobsOverview.create(jobStatuses);
+		final Collection<JobSummaryInfo> jobSummaries = executionGraphs.stream().map(ArchivedExecutionGraph::getJobSummary).collect(Collectors.toList());
 
 		final File rootDir = temporaryFolder.newFolder();
 
@@ -124,28 +120,7 @@ public class FileArchivedExecutionGraphStoreTest extends TestLogger {
 				executionGraphStore.put(executionGraph);
 			}
 
-			assertThat(executionGraphStore.getStoredJobsOverview(), Matchers.equalTo(expectedJobsOverview));
-		}
-	}
-
-	/**
-	 * Tests that we obtain the correct collection of available job details.
-	 */
-	@Test
-	public void testAvailableJobDetails() throws IOException {
-		final int numberExecutionGraphs = 10;
-		final Collection<ArchivedExecutionGraph> executionGraphs = generateTerminalExecutionGraphs(numberExecutionGraphs);
-
-		final Collection<JobDetails> jobDetails = executionGraphs.stream().map(WebMonitorUtils::createDetailsForJob).collect(Collectors.toList());
-
-		final File rootDir = temporaryFolder.newFolder();
-
-		try (final FileArchivedExecutionGraphStore executionGraphStore = createDefaultExecutionGraphStore(rootDir)) {
-			for (ArchivedExecutionGraph executionGraph : executionGraphs) {
-				executionGraphStore.put(executionGraph);
-			}
-
-			assertThat(executionGraphStore.getAvailableJobDetails(), Matchers.containsInAnyOrder(jobDetails.toArray()));
+			assertThat(executionGraphStore.getStoredJobsOverview().getJobs(), Matchers.containsInAnyOrder(jobSummaries.toArray()));
 		}
 	}
 

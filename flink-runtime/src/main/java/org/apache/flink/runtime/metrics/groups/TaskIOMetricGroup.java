@@ -22,7 +22,6 @@ import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.Gauge;
 import org.apache.flink.metrics.Meter;
 import org.apache.flink.metrics.MeterView;
-import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.metrics.SimpleCounter;
 import org.apache.flink.runtime.executiongraph.IOMetrics;
 import org.apache.flink.runtime.io.network.partition.ResultPartition;
@@ -42,20 +41,28 @@ public class TaskIOMetricGroup extends ProxyMetricGroup<TaskMetricGroup> {
 	private final Counter numBytesOut;
 	private final Counter numBytesInLocal;
 	private final Counter numBytesInRemote;
-	private final SumCounter numRecordsIn;
-	private final SumCounter numRecordsOut;
-	private final Counter numBuffersOut;
-	private final Counter numBuffersInLocal;
-	private final Counter numBuffersInRemote;
 
 	private final Meter numBytesInRateLocal;
 	private final Meter numBytesInRateRemote;
 	private final Meter numBytesOutRate;
-	private final Meter numRecordsInRate;
-	private final Meter numRecordsOutRate;
+
+	private final Counter numBuffersOut;
+	private final Counter numBuffersInLocal;
+	private final Counter numBuffersInRemote;
+
 	private final Meter numBuffersOutRate;
 	private final Meter numBuffersInRateLocal;
 	private final Meter numBuffersInRateRemote;
+
+	private final SumCounter numRecordsIn;
+	private final SumCounter numRecordsOut;
+	private final Meter numRecordsInRate;
+	private final Meter numRecordsOutRate;
+
+	private Gauge<Integer> inputQueueLength;
+	private Gauge<Integer> outputQueueLength;
+	private Gauge<Float> inPoolUsage;
+	private Gauge<Float> outPoolUsage;
 
 	public TaskIOMetricGroup(TaskMetricGroup parent) {
 		super(parent);
@@ -81,7 +88,13 @@ public class TaskIOMetricGroup extends ProxyMetricGroup<TaskMetricGroup> {
 	}
 
 	public IOMetrics createSnapshot() {
-		return new IOMetrics(numRecordsInRate, numRecordsOutRate, numBytesInRateLocal, numBytesInRateRemote, numBytesOutRate);
+		return new IOMetrics(
+			numRecordsInRate,
+			numRecordsOutRate,
+			numBytesInRateLocal,
+			numBytesInRateRemote,
+			numBytesOutRate
+		);
 	}
 
 	// ============================================================================================
@@ -139,11 +152,10 @@ public class TaskIOMetricGroup extends ProxyMetricGroup<TaskMetricGroup> {
 	 * Initialize Buffer Metrics for a task.
 	 */
 	public void initializeBufferMetrics(Task task) {
-		final MetricGroup buffers = addGroup("buffers");
-		buffers.gauge("inputQueueLength", new InputBuffersGauge(task));
-		buffers.gauge("outputQueueLength", new OutputBuffersGauge(task));
-		buffers.gauge("inPoolUsage", new InputBufferPoolUsageGauge(task));
-		buffers.gauge("outPoolUsage", new OutputBufferPoolUsageGauge(task));
+		this.inputQueueLength = gauge("inputQueueLength", new InputBuffersGauge(task));
+		this.outputQueueLength = gauge("outputQueueLength", new OutputBuffersGauge(task));
+		this.inPoolUsage = gauge("inPoolUsage", new InputBufferPoolUsageGauge(task));
+		this.outPoolUsage = gauge("outPoolUsage", new OutputBufferPoolUsageGauge(task));
 	}
 
 	/**

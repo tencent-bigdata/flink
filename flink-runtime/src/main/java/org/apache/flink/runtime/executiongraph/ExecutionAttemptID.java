@@ -21,6 +21,7 @@ package org.apache.flink.runtime.executiongraph;
 import org.apache.flink.util.AbstractID;
 
 import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBuf;
+import org.apache.flink.util.StringUtils;
 
 /**
  * Unique identifier for the attempt to execute a tasks. Multiple attempts happen
@@ -37,6 +38,10 @@ public class ExecutionAttemptID extends AbstractID {
 		super(lowerPart, upperPart);
 	}
 
+	public ExecutionAttemptID(byte[] bytes) {
+		super(bytes);
+	}
+
 	public void writeTo(ByteBuf buf) {
 		buf.writeLong(this.lowerPart);
 		buf.writeLong(this.upperPart);
@@ -46,5 +51,24 @@ public class ExecutionAttemptID extends AbstractID {
 		long lower = buf.readLong();
 		long upper = buf.readLong();
 		return new ExecutionAttemptID(lower, upper);
+	}
+
+	public static ExecutionAttemptID fromByteArray(byte[] bytes) {
+		return new ExecutionAttemptID(bytes);
+	}
+
+	/**
+	 * Parses a ExecutionAttemptID from the given string.
+	 *
+	 * @param hexString string representation of a ExecutionAttemptID
+	 * @return Parsed ExecutionAttemptID
+	 * @throws IllegalArgumentException if the ExecutionAttemptID could not be parsed from the given string
+	 */
+	public static ExecutionAttemptID fromHexString(String hexString) {
+		try {
+			return new ExecutionAttemptID(StringUtils.hexStringToByte(hexString));
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Cannot parse ExecutionAttemptID from \"" + hexString + "\".", e);
+		}
 	}
 }

@@ -30,7 +30,7 @@ import org.apache.flink.runtime.clusterframework.types.ResourceID
 import org.apache.flink.runtime.executiongraph.{AccessExecutionGraph, ExecutionAttemptID, ExecutionGraph}
 import org.apache.flink.runtime.instance.{Instance, InstanceID}
 import org.apache.flink.runtime.io.network.partition.ResultPartitionID
-import org.apache.flink.runtime.jobgraph.{IntermediateDataSetID, JobGraph, JobStatus, JobVertexID}
+import org.apache.flink.runtime.jobgraph.{JobGraph, JobStatus, JobVertexID}
 import org.apache.flink.runtime.jobmanager.SubmittedJobGraph
 import org.apache.flink.runtime.messages.checkpoint.AbstractCheckpointMessage
 import org.apache.flink.util.SerializedThrowable
@@ -394,6 +394,11 @@ object JobManagerMessages {
   case class RemoveCachedJob(jobID: JobID)
 
   /**
+    * Requests the runtime information of all jobs.
+    */
+  case object RequestJobInfos
+
+  /**
    * Requests the instances of all registered task managers.
    */
   case object RequestRegisteredTaskManagers
@@ -524,6 +529,10 @@ object JobManagerMessages {
   // --------------------------------------------------------------------------
   // Utility methods to allow simpler case object access from Java
   // --------------------------------------------------------------------------
+
+  def getRequestJobInfos() : AnyRef = {
+    RequestJobInfos
+  }
 
   def getRequestJobStatus(jobId : JobID) : AnyRef = {
     RequestJobStatus(jobId)

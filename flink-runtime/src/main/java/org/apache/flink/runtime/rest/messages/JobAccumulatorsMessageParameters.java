@@ -18,6 +18,8 @@
 
 package org.apache.flink.runtime.rest.messages;
 
+import org.apache.flink.runtime.rest.messages.job.JobMessageParameters;
+
 import java.util.Collection;
 import java.util.Collections;
 

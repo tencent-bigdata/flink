@@ -22,30 +22,28 @@ limitations under the License.
   <div class="navbar-title">Completed Jobs</div>
 </nav>
 <div id="content-inner">
-  <table class="table table-hover table-clickable">
-    <thead>
-      <tr>
-        <th>Start Time</th>
-        <th>End Time</th>
-        <th>Duration</th>
-        <th>Job Name</th>
-        <th>Job ID</th>
-        <th>Tasks</th>
-        <th>Status</th>
+  <table md-table="md-table" class="table table-hover table-clickable">
+    <thead md-head="md-head" md-order="completedOrder">
+      <tr md-row="md-row">
+        <th md-column="md-column" md-order-by="id">ID</th>
+        <th md-column="md-column" md-order-by="name">Name</th>
+        <th md-column="md-column" md-order-by="startTime">Start Time</th>
+        <th md-column="md-column" md-order-by="endTime">End Time</th>
+        <th md-column="md-column" md-order-by="duration">Duration</th>
+        <th md-column="md-column" md-order-by="parallelism">Parallelism</th>
+        <th md-column="md-column" md-order-by="status">Status</th>
       </tr>
     </thead>
-    <tbody>
-      <tr ng-repeat="job in jobs|orderBy:&quot;'end-time'&quot;:true" ui-sref="single-job.plan.subtasks({ jobid: job.jid })">
-        <td>{{job['start-time'] | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}</td>
-        <td>{{job['end-time'] | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}</td>
-        <td title="{{job.duration | humanizeDuration:false}}">{{job.duration | humanizeDuration:true}}</td>
-        <td>{{job.name}}</td>
-        <td>{{job.jid}}</td>
-        <td class="label-group">
-          <bs-label status="{{status}}" ng-repeat="(status, value) in job.tasks">{{value}}</bs-label>
-        </td>
-        <td> 
-          <bs-label status="{{job.state}}">{{job.state}}</bs-label>
+    <tbody md-body="md-body">
+      <tr md-row="md-row" ng-repeat="job in completedJobs | orderBy: completedOrder" ui-sref="single-job.overview.vertices({ jobid: job.id })">
+        <td md-cell="md-cell">{{job.id}}</td>
+        <td md-cell="md-cell">{{job.name}}</td>
+        <td md-cell="md-cell">{{job.startTime | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}</td>
+        <td md-cell="md-cell"><span ng-if="job.endTime &gt;= 0">{{job.endTime | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}</span><span ng-if="job.endTime &lt; 0">N/A</span></td>
+        <td md-cell="md-cell" title="{{job.duration | humanizeDuration:false}}">{{job.duration | humanizeDuration:true}}</td>
+        <td md-cell="md-cell">{{job.parallelism}}</td>
+        <td md-cell="md-cell">
+          <bs-label status="{{job.status}}">{{job.status}}</bs-label>
         </td>
       </tr>
     </tbody>

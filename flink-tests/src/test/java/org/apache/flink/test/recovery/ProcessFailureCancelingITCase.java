@@ -36,9 +36,6 @@ import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.runtime.client.JobStatusMessage;
 import org.apache.flink.runtime.clusterframework.ApplicationStatus;
 import org.apache.flink.runtime.concurrent.FutureUtils;
-import org.apache.flink.runtime.dispatcher.Dispatcher;
-import org.apache.flink.runtime.dispatcher.DispatcherGateway;
-import org.apache.flink.runtime.dispatcher.DispatcherId;
 import org.apache.flink.runtime.dispatcher.MemoryArchivedExecutionGraphStore;
 import org.apache.flink.runtime.entrypoint.component.DispatcherResourceManagerComponent;
 import org.apache.flink.runtime.entrypoint.component.SessionDispatcherResourceManagerComponentFactory;
@@ -46,6 +43,9 @@ import org.apache.flink.runtime.heartbeat.HeartbeatServices;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServicesUtils;
 import org.apache.flink.runtime.metrics.NoOpMetricRegistry;
+import org.apache.flink.runtime.resourcemanager.ResourceManager;
+import org.apache.flink.runtime.resourcemanager.ResourceManagerGateway;
+import org.apache.flink.runtime.resourcemanager.ResourceManagerId;
 import org.apache.flink.runtime.resourcemanager.StandaloneResourceManagerFactory;
 import org.apache.flink.runtime.rpc.RpcService;
 import org.apache.flink.runtime.rpc.RpcUtils;
@@ -218,8 +218,8 @@ public class ProcessFailureCancelingITCase extends TestLogger {
 			// kill the TaskManager
 			programThread.start();
 
-			final DispatcherGateway dispatcherGateway = retrieveDispatcherGateway(rpcService, haServices);
-			waitUntilAllSlotsAreUsed(dispatcherGateway, timeout);
+			final ResourceManagerGateway resourceManagerGateway = retrieveResourceManagerGateway(rpcService, haServices);
+			waitUntilAllSlotsAreUsed(resourceManagerGateway, timeout);
 
 			clusterClient = new RestClusterClient<>(config, "standalone");
 
@@ -277,30 +277,30 @@ public class ProcessFailureCancelingITCase extends TestLogger {
 	}
 
 	/**
-	 * Helper method to wait until the {@link Dispatcher} has set its fencing token.
+	 * Helper method to wait until the {@link ResourceManager} has set its fencing token.
 	 *
 	 * @param rpcService to use to connect to the dispatcher
 	 * @param haServices high availability services to connect to the dispatcher
-	 * @return {@link DispatcherGateway}
+	 * @return {@link ResourceManagerGateway}
 	 * @throws Exception if something goes wrong
 	 */
-	static DispatcherGateway retrieveDispatcherGateway(RpcService rpcService, HighAvailabilityServices haServices) throws Exception {
-		final LeaderConnectionInfo leaderConnectionInfo = LeaderRetrievalUtils.retrieveLeaderConnectionInfo(haServices.getDispatcherLeaderRetriever(), Time.seconds(10L));
+	static ResourceManagerGateway retrieveResourceManagerGateway(RpcService rpcService, HighAvailabilityServices haServices) throws Exception {
+		final LeaderConnectionInfo leaderConnectionInfo = LeaderRetrievalUtils.retrieveLeaderConnectionInfo(haServices.getResourceManagerLeaderRetriever(), Time.seconds(10L));
 
 		return rpcService.connect(
 			leaderConnectionInfo.getAddress(),
-			DispatcherId.fromUuid(leaderConnectionInfo.getLeaderSessionID()),
-			DispatcherGateway.class).get();
+			ResourceManagerId.fromUuid(leaderConnectionInfo.getLeaderSessionID()),
+			ResourceManagerGateway.class).get();
 	}
 
-	private void waitUntilAllSlotsAreUsed(DispatcherGateway dispatcherGateway, Time timeout) throws ExecutionException, InterruptedException {
+	private void waitUntilAllSlotsAreUsed(ResourceManagerGateway resourceManagerGateway, Time timeout) throws ExecutionException, InterruptedException {
 		FutureUtils.retrySuccessfulWithDelay(
-			() -> dispatcherGateway.requestClusterOverview(timeout),
+			() -> resourceManagerGateway.requestTaskManagersOverview(timeout),
 			Time.milliseconds(50L),
 			Deadline.fromNow(Duration.ofMillis(timeout.toMilliseconds())),
-			clusterOverview -> clusterOverview.getNumTaskManagersConnected() >= 1 &&
-				clusterOverview.getNumSlotsAvailable() == 0 &&
-				clusterOverview.getNumSlotsTotal() == 2,
+			taskManagersOverview -> taskManagersOverview.getNumTaskManagers() >= 1 &&
+				taskManagersOverview.getNumAvailableSlots() == 0 &&
+				taskManagersOverview.getNumSlots() == 2,
 			TestingUtils.defaultScheduledExecutor())
 			.get();
 	}

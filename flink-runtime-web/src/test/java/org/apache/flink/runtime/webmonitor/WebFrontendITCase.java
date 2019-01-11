@@ -169,7 +169,7 @@ public class WebFrontendITCase extends TestLogger {
 
 			ObjectMapper mapper = new ObjectMapper();
 			JsonNode response = mapper.readTree(json);
-			ArrayNode taskManagers = (ArrayNode) response.get("taskmanagers");
+			ArrayNode taskManagers = (ArrayNode) response.get("taskManagers");
 
 			assertNotNull(taskManagers);
 			assertEquals(NUM_TASK_MANAGERS, taskManagers.size());
@@ -185,7 +185,7 @@ public class WebFrontendITCase extends TestLogger {
 
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode parsed = mapper.readTree(json);
-		ArrayNode taskManagers = (ArrayNode) parsed.get("taskmanagers");
+		ArrayNode taskManagers = (ArrayNode) parsed.get("taskManagers");
 
 		assertNotNull(taskManagers);
 		assertEquals(NUM_TASK_MANAGERS, taskManagers.size());
@@ -216,7 +216,7 @@ public class WebFrontendITCase extends TestLogger {
 
 			ObjectMapper mapper = new ObjectMapper();
 			JsonNode parsed = mapper.readTree(json);
-			ArrayNode taskManagers = (ArrayNode) parsed.get("taskmanagers");
+			ArrayNode taskManagers = (ArrayNode) parsed.get("taskManagers");
 			JsonNode taskManager = taskManagers.get(0);
 			String id = taskManager.get("id").asText();
 

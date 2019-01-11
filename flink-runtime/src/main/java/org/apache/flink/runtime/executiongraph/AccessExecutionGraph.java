@@ -25,6 +25,7 @@ import org.apache.flink.runtime.checkpoint.CheckpointStatsSnapshot;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration;
+import org.apache.flink.runtime.rest.messages.job.JobSummaryInfo;
 import org.apache.flink.util.OptionalFailure;
 import org.apache.flink.util.SerializedValue;
 
@@ -63,6 +64,13 @@ public interface AccessExecutionGraph {
 	 * @return job status for this execution graph
 	 */
 	JobStatus getState();
+
+	/**
+	 * Returns the runtime information for this execution graph.
+	 *
+	 * @return job runtime information for this execution graph.
+	 */
+	JobSummaryInfo getJobSummary();
 
 	/**
 	 * Returns the exception that caused the job to fail. This is the first root exception

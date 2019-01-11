@@ -50,15 +50,12 @@ import org.apache.flink.runtime.leaderelection.LeaderContender;
 import org.apache.flink.runtime.leaderelection.LeaderElectionService;
 import org.apache.flink.runtime.messages.Acknowledge;
 import org.apache.flink.runtime.messages.FlinkJobNotFoundException;
-import org.apache.flink.runtime.messages.webmonitor.ClusterOverview;
-import org.apache.flink.runtime.messages.webmonitor.JobDetails;
-import org.apache.flink.runtime.messages.webmonitor.JobsOverview;
-import org.apache.flink.runtime.messages.webmonitor.MultipleJobsDetails;
 import org.apache.flink.runtime.metrics.MetricNames;
 import org.apache.flink.runtime.metrics.groups.JobManagerMetricGroup;
 import org.apache.flink.runtime.resourcemanager.ResourceManagerGateway;
-import org.apache.flink.runtime.resourcemanager.ResourceOverview;
 import org.apache.flink.runtime.rest.handler.legacy.backpressure.OperatorBackPressureStatsResponse;
+import org.apache.flink.runtime.rest.messages.job.JobSummaryInfo;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo;
 import org.apache.flink.runtime.rpc.FatalErrorHandler;
 import org.apache.flink.runtime.rpc.FencedRpcEndpoint;
 import org.apache.flink.runtime.rpc.RpcService;
@@ -392,47 +389,25 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 	}
 
 	@Override
-	public CompletableFuture<ClusterOverview> requestClusterOverview(Time timeout) {
-		CompletableFuture<ResourceOverview> taskManagerOverviewFuture = resourceManagerGateway.requestResourceOverview(timeout);
+	public CompletableFuture<JobsOverviewInfo> requestJobsOverview(Time timeout) {
 
-		final List<CompletableFuture<Optional<JobStatus>>> optionalJobInformation = queryJobMastersForInformation(
-			(JobMasterGateway jobMasterGateway) -> jobMasterGateway.requestJobStatus(timeout));
+		JobsOverviewInfo archivedJobsOverview = archivedExecutionGraphStore.getStoredJobsOverview();
 
-		CompletableFuture<Collection<Optional<JobStatus>>> allOptionalJobsFuture = FutureUtils.combineAll(optionalJobInformation);
+		List<CompletableFuture<Optional<JobSummaryInfo>>> optionalJobSummaryInfoFutures =
+			queryJobMastersForInformation((JobMasterGateway jobMasterGateway) -> jobMasterGateway.requestJobSummary(timeout));
 
-		CompletableFuture<Collection<JobStatus>> allJobsFuture = allOptionalJobsFuture.thenApply(this::flattenOptionalCollection);
+		CompletableFuture<Collection<Optional<JobSummaryInfo>>> optionalJobSummaryInfosFuture =
+			FutureUtils.combineAll(optionalJobSummaryInfoFutures);
 
-		final JobsOverview completedJobsOverview = archivedExecutionGraphStore.getStoredJobsOverview();
+		CompletableFuture<Collection<JobSummaryInfo>> jobSummaryInfosFuture =
+			optionalJobSummaryInfosFuture.thenApply(this::flattenOptionalCollection);
 
-		return allJobsFuture.thenCombine(
-			taskManagerOverviewFuture,
-			(Collection<JobStatus> runningJobsStatus, ResourceOverview resourceOverview) -> {
-				final JobsOverview allJobsOverview = JobsOverview.create(runningJobsStatus).combine(completedJobsOverview);
-				return new ClusterOverview(resourceOverview, allJobsOverview);
-			});
-	}
-
-	@Override
-	public CompletableFuture<MultipleJobsDetails> requestMultipleJobDetails(Time timeout) {
-		List<CompletableFuture<Optional<JobDetails>>> individualOptionalJobDetails = queryJobMastersForInformation(
-			(JobMasterGateway jobMasterGateway) -> jobMasterGateway.requestJobDetails(timeout));
-
-		CompletableFuture<Collection<Optional<JobDetails>>> optionalCombinedJobDetails = FutureUtils.combineAll(
-			individualOptionalJobDetails);
-
-		CompletableFuture<Collection<JobDetails>> combinedJobDetails = optionalCombinedJobDetails.thenApply(this::flattenOptionalCollection);
-
-		final Collection<JobDetails> completedJobDetails = archivedExecutionGraphStore.getAvailableJobDetails();
-
-		return combinedJobDetails.thenApply(
-			(Collection<JobDetails> runningJobDetails) -> {
-				final Collection<JobDetails> allJobDetails = new ArrayList<>(completedJobDetails.size() + runningJobDetails.size());
-
-				allJobDetails.addAll(runningJobDetails);
-				allJobDetails.addAll(completedJobDetails);
-
-				return new MultipleJobsDetails(allJobDetails);
-			});
+		return jobSummaryInfosFuture.thenApply(
+			(Collection<JobSummaryInfo> runningJobSummaries) -> {
+				JobsOverviewInfo runningJobsOverview = JobsOverviewInfo.create(runningJobSummaries);
+				return JobsOverviewInfo.combine(runningJobsOverview, archivedJobsOverview);
+			}
+		);
 	}
 
 	@Override
@@ -445,13 +420,13 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 
 		return jobStatusFuture.exceptionally(
 			(Throwable throwable) -> {
-				final JobDetails jobDetails = archivedExecutionGraphStore.getAvailableJobDetails(jobId);
+				final JobSummaryInfo jobSummaryInfo = archivedExecutionGraphStore.getAvailableJobSummary(jobId);
 
 				// check whether it is a completed job
-				if (jobDetails == null) {
+				if (jobSummaryInfo == null) {
 					throw new CompletionException(ExceptionUtils.stripCompletionException(throwable));
 				} else {
-					return jobDetails.getStatus();
+					return jobSummaryInfo.getStatus();
 				}
 			});
 	}
@@ -772,7 +747,7 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 	private <T> List<CompletableFuture<Optional<T>>> queryJobMastersForInformation(Function<JobMasterGateway, CompletableFuture<T>> queryFunction) {
 		final int numberJobsRunning = jobManagerRunnerFutures.size();
 
-		ArrayList<CompletableFuture<Optional<T>>> optionalJobInformation = new ArrayList<>(
+		ArrayList<CompletableFuture<Optional<T>>> optionalJobSummaryInformation = new ArrayList<>(
 			numberJobsRunning);
 
 		for (JobID jobId : jobManagerRunnerFutures.keySet()) {
@@ -782,9 +757,9 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 				.thenCompose(queryFunction::apply)
 				.handle((T value, Throwable throwable) -> Optional.ofNullable(value));
 
-			optionalJobInformation.add(optionalRequest);
+			optionalJobSummaryInformation.add(optionalRequest);
 		}
-		return optionalJobInformation;
+		return optionalJobSummaryInformation;
 	}
 
 	//------------------------------------------------------

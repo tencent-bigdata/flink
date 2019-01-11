@@ -19,29 +19,61 @@
 angular.module('flinkApp')
 
 .service 'JobsService', ($http, flinkConfig, $log, amMoment, $q, $timeout) ->
-  currentJob = null
-  currentPlan = null
 
-  deferreds = {}
-  jobs = {
-    running: []
-    finished: []
-    cancelled: []
-    failed: []
-  }
+  @loadJobs = ->
+    deferred = $q.defer()
 
-  jobObservers = []
+    $http.get(flinkConfig.jobServer + "jobs")
+    .success (data, status, headers, config) ->
+      deferred.resolve(data)
 
-  notifyObservers = ->
-    angular.forEach jobObservers, (callback) ->
-      callback()
+    deferred.promise
 
-  @registerObserver = (callback) ->
-    jobObservers.push(callback)
+  @loadJob = (jobid) ->
+    deferred = $q.defer()
 
-  @unRegisterObserver = (callback) ->
-    index = jobObservers.indexOf(callback)
-    jobObservers.splice(index, 1)
+    $http.get flinkConfig.jobServer + "jobs/" + jobid
+    .success (data, status, headers, config) =>
+      deferred.resolve(data)
+
+    deferred.promise
+
+  @loadVertex = (jobid, vertexid) ->
+    deferred = $q.defer()
+
+    $http.get flinkConfig.jobServer + "jobs/" + jobid + "/vertices/" + vertexid
+    .success (data, status, headers, config) =>
+      deferred.resolve(data)
+
+    deferred.promise
+
+  @loadTask = (jobid, vertexid, taskindex) ->
+    deferred = $q.defer()
+
+    $http.get flinkConfig.jobServer + "jobs/" + jobid + "/vertices/" + vertexid + "/tasks/" + taskindex
+    .success (data, status, headers, config) =>
+      deferred.resolve(data)
+
+    deferred.promise
+
+  @getCheckpointConfig = (jobId) ->
+    deferred = $q.defer()
+
+    $http.get flinkConfig.jobServer + "jobs/" + jobId + "/checkpoints/config"
+    .success (data) ->
+      deferred.resolve(data)
+
+    deferred.promise
+
+  # General checkpoint stats like counts, history, etc.
+  @getCheckpointStats = (jobId) ->
+    deferred = $q.defer()
+
+    $http.get flinkConfig.jobServer + "jobs/" + jobId + "/checkpoints"
+    .success (data, status, headers, config) =>
+      deferred.resolve(data)
+
+    deferred.promise
 
   @stateList = ->
     [ 
@@ -82,59 +114,6 @@ angular.module('flinkApp')
       'end-time': data.timestamps['CREATED'] + 1
       type: 'scheduled'
     })
-
-  @listJobs = ->
-    deferred = $q.defer()
-
-    $http.get flinkConfig.jobServer + "jobs/overview"
-    .success (data, status, headers, config) =>
-      # reset job fields
-      jobs.finished = []
-      jobs.running = []
-
-      # group the received list of jobs into running and finished jobs
-      _(data.jobs).groupBy(
-        (x) ->
-          switch x.state.toLowerCase()
-            when 'finished' then 'finished'
-            when 'failed' then 'finished'
-            when 'canceled' then 'finished'
-            else 'running')
-      .forEach((value, key) =>
-        switch key
-          when 'finished' then jobs.finished = @setEndTimes(value)
-          when 'running' then jobs.running = @setEndTimes(value))
-      .value(); # materialize the chain
-
-      deferred.resolve(jobs)
-      notifyObservers()
-
-    deferred.promise
-
-  @getJobs = (type) ->
-    jobs[type]
-
-  @getAllJobs = ->
-    jobs
-
-  @loadJob = (jobid) ->
-    currentJob = null
-    deferreds.job = $q.defer()
-
-    $http.get flinkConfig.jobServer + "jobs/" + jobid
-    .success (data, status, headers, config) =>
-      @setEndTimes(data.vertices)
-      @processVertices(data)
-
-      $http.get flinkConfig.jobServer + "jobs/" + jobid + "/config"
-      .success (jobConfig) ->
-        data = angular.extend(data, jobConfig)
-
-        currentJob = data
-
-        deferreds.job.resolve(currentJob)
-
-    deferreds.job.promise
 
   @getNode = (nodeid) ->
     seekNode = (nodeid, data) ->
@@ -223,34 +202,6 @@ angular.module('flinkApp')
 
     deferred.promise
 
-  # Checkpoint config
-  @getCheckpointConfig =  ->
-    deferred = $q.defer()
-
-    deferreds.job.promise.then (data) =>
-      $http.get flinkConfig.jobServer + "jobs/" + currentJob.jid + "/checkpoints/config"
-      .success (data) ->
-        if (angular.equals({}, data))
-          deferred.resolve(null)
-        else
-          deferred.resolve(data)
-
-    deferred.promise
-
-  # General checkpoint stats like counts, history, etc.
-  @getCheckpointStats = ->
-    deferred = $q.defer()
-
-    deferreds.job.promise.then (data) =>
-      $http.get flinkConfig.jobServer + "jobs/" + currentJob.jid + "/checkpoints"
-      .success (data, status, headers, config) =>
-        if (angular.equals({}, data))
-          deferred.resolve(null)
-        else
-          deferred.resolve(data)
-
-    deferred.promise
-
   # Detailed checkpoint stats for a single checkpoint
   @getCheckpointDetails = (checkpointid) ->
     deferred = $q.defer()
@@ -281,45 +232,13 @@ angular.module('flinkApp')
 
     deferred.promise
 
-  # Operator-level back pressure stats
-  @getOperatorBackPressure = (vertexid) ->
+  @loadExceptions = (jobId) ->
     deferred = $q.defer()
 
-    $http.get flinkConfig.jobServer + "jobs/" + currentJob.jid + "/vertices/" + vertexid + "/backpressure"
-    .success (data) =>
-      deferred.resolve(data)
+    $http.get flinkConfig.jobServer + "jobs/" + jobId + "/exceptions"
+    .success (exceptions) ->
+      deferred.resolve(exceptions)
 
     deferred.promise
-
-  @translateBackPressureLabelState = (state) ->
-    switch state.toLowerCase()
-      when 'in-progress' then 'danger'
-      when 'ok' then 'success'
-      when 'low' then 'warning'
-      when 'high' then 'danger'
-      else 'default'
-
-  @loadExceptions = ->
-    deferred = $q.defer()
-
-    deferreds.job.promise.then (data) =>
-
-      $http.get flinkConfig.jobServer + "jobs/" + currentJob.jid + "/exceptions"
-      .success (exceptions) ->
-        currentJob.exceptions = exceptions
-
-        deferred.resolve(exceptions)
-
-    deferred.promise
-
-  @cancelJob = (jobid) ->
-    # uses the non REST-compliant GET yarn-cancel handler which is available in addition to the
-    # proper $http.patch flinkConfig.jobServer + "jobs/" + jobid + "?mode=cancel"
-    $http.get flinkConfig.jobServer + "jobs/" + jobid + "/yarn-cancel"
-
-  @stopJob = (jobid) ->
-    # uses the non REST-compliant GET yarn-cancel handler which is available in addition to the
-    # proper $http.patch flinkConfig.jobServer + "jobs/" + jobid + "?mode=stop"
-    $http.get "jobs/" + jobid + "/yarn-stop"
 
   @

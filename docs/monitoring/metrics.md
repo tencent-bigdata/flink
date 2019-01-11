@@ -1001,12 +1001,12 @@ Thus, in order to infer the metric identifier:
       <td>Gauge</td>
     </tr>
     <tr>
-      <td>inPoolUsage</td>
+      <td>inQueueUsage</td>
       <td>An estimate of the input buffers usage.</td>
       <td>Gauge</td>
     </tr>
     <tr>
-      <td>outPoolUsage</td>
+      <td>outQueueUsage</td>
       <td>An estimate of the output buffers usage.</td>
       <td>Gauge</td>      
     </tr>
@@ -1204,7 +1204,7 @@ Certain RocksDB native metrics are available but disabled by default, you can fi
       <td>Counter</td>
     </tr>
     <tr>
-      <td>numBytesInLocalPerSecond</td>
+      <td>rateBytesInLocal</td>
       <td>The number of bytes this task reads from a local source per second.</td>
       <td>Meter</td>
     </tr>
@@ -1214,7 +1214,7 @@ Certain RocksDB native metrics are available but disabled by default, you can fi
       <td>Counter</td>
     </tr>
     <tr>
-      <td>numBytesInRemotePerSecond</td>
+      <td>rateBytesInRemote</td>
       <td>The number of bytes this task reads from a remote source per second.</td>
       <td>Meter</td>
     </tr>
@@ -1244,7 +1244,7 @@ Certain RocksDB native metrics are available but disabled by default, you can fi
       <td>Counter</td>
     </tr>
     <tr>
-      <td>numBytesOutPerSecond</td>
+      <td>rateBytesOut</td>
       <td>The number of bytes this task emits per second.</td>
       <td>Meter</td>
     </tr>
@@ -1265,7 +1265,7 @@ Certain RocksDB native metrics are available but disabled by default, you can fi
       <td>Counter</td>
     </tr>
     <tr>
-      <td>numRecordsInPerSecond</td>
+      <td>rateRecordsIn</td>
       <td>The number of records this operator/task receives per second.</td>
       <td>Meter</td>
     </tr>
@@ -1275,7 +1275,7 @@ Certain RocksDB native metrics are available but disabled by default, you can fi
       <td>Counter</td>
     </tr>
     <tr>
-      <td>numRecordsOutPerSecond</td>
+      <td>rateRecordsOut</td>
       <td>The number of records this operator/task sends per second.</td>
       <td>Meter</td>
     </tr>

@@ -32,13 +32,9 @@ import org.apache.flink.runtime.jobmaster.JobResult;
 import org.apache.flink.runtime.messages.Acknowledge;
 import org.apache.flink.runtime.messages.FlinkJobNotFoundException;
 import org.apache.flink.runtime.messages.JobManagerMessages;
-import org.apache.flink.runtime.messages.webmonitor.ClusterOverview;
-import org.apache.flink.runtime.messages.webmonitor.JobIdsWithStatusOverview;
-import org.apache.flink.runtime.messages.webmonitor.MultipleJobsDetails;
-import org.apache.flink.runtime.messages.webmonitor.RequestJobDetails;
-import org.apache.flink.runtime.messages.webmonitor.RequestJobsWithIDsOverview;
-import org.apache.flink.runtime.messages.webmonitor.RequestStatusOverview;
+import org.apache.flink.runtime.messages.webmonitor.RequestJobsOverview;
 import org.apache.flink.runtime.metrics.dump.MetricQueryService;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo;
 import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.Preconditions;
 
@@ -224,11 +220,11 @@ public class AkkaJobManagerGateway implements JobManagerGateway {
 	}
 
 	@Override
-	public CompletableFuture<MultipleJobsDetails> requestMultipleJobDetails(Time timeout) {
+	public CompletableFuture<JobsOverviewInfo> requestJobsOverview(Time timeout) {
 		return FutureUtils.toJava(
 			jobManagerGateway
-				.ask(new RequestJobDetails(true, true), FutureUtils.toFiniteDuration(timeout))
-				.mapTo(ClassTag$.MODULE$.apply(MultipleJobsDetails.class)));
+				.ask(RequestJobsOverview.getInstance(), FutureUtils.toFiniteDuration(timeout))
+				.mapTo(ClassTag$.MODULE$.apply(JobsOverviewInfo.class)));
 	}
 
 	@Override
@@ -251,14 +247,6 @@ public class AkkaJobManagerGateway implements JobManagerGateway {
 	@Override
 	public CompletableFuture<JobResult> requestJobResult(JobID jobId, Time timeout) {
 		return requestJob(jobId, timeout).thenApply(JobResult::createFrom);
-	}
-
-	@Override
-	public CompletableFuture<ClusterOverview> requestClusterOverview(Time timeout) {
-		return FutureUtils.toJava(
-			jobManagerGateway
-				.ask(RequestStatusOverview.getInstance(), FutureUtils.toFiniteDuration(timeout))
-				.mapTo(ClassTag$.MODULE$.apply(ClusterOverview.class)));
 	}
 
 	@Override
@@ -286,13 +274,5 @@ public class AkkaJobManagerGateway implements JobManagerGateway {
 								return Tuple2.of(instance.getTaskManagerID(), taskManagerMetricQuerServicePath);
 							})
 						.collect(Collectors.toList()));
-	}
-
-	@Override
-	public CompletableFuture<JobIdsWithStatusOverview> requestJobsOverview(Time timeout) {
-		return FutureUtils.toJava(
-			jobManagerGateway
-				.ask(RequestJobsWithIDsOverview.getInstance(), FutureUtils.toFiniteDuration(timeout))
-				.mapTo(ClassTag$.MODULE$.apply(JobIdsWithStatusOverview.class)));
 	}
 }

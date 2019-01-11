@@ -23,12 +23,11 @@ import org.apache.flink.configuration.HistoryServerOptions;
 import org.apache.flink.core.fs.FileStatus;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
-import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.history.FsJobArchivist;
 import org.apache.flink.runtime.jobgraph.JobStatus;
-import org.apache.flink.runtime.messages.webmonitor.JobDetails;
-import org.apache.flink.runtime.messages.webmonitor.MultipleJobsDetails;
-import org.apache.flink.runtime.rest.messages.JobsOverviewHeaders;
+import org.apache.flink.runtime.rest.messages.job.JobSummaryInfo;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewHeaders;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo;
 import org.apache.flink.runtime.util.ExecutorThreadFactory;
 import org.apache.flink.util.FileUtils;
 
@@ -244,32 +243,12 @@ class HistoryServerArchiveFetcher {
 		long startTime = job.get("start-time").asLong();
 		long endTime = job.get("end-time").asLong();
 		long duration = job.get("duration").asLong();
-		long lastMod = job.get("last-modification").asLong();
 
-		JsonNode tasks = job.get("tasks");
-		int numTasks = tasks.get("total").asInt();
-		int pending = tasks.get("pending").asInt();
-		int running = tasks.get("running").asInt();
-		int finished = tasks.get("finished").asInt();
-		int canceling = tasks.get("canceling").asInt();
-		int canceled = tasks.get("canceled").asInt();
-		int failed = tasks.get("failed").asInt();
-
-		int[] tasksPerState = new int[ExecutionState.values().length];
-		// pending is a mix of CREATED/SCHEDULED/DEPLOYING
-		// to maintain the correct number of task states we have to pick one of them
-		tasksPerState[ExecutionState.SCHEDULED.ordinal()] = pending;
-		tasksPerState[ExecutionState.RUNNING.ordinal()] = running;
-		tasksPerState[ExecutionState.FINISHED.ordinal()] = finished;
-		tasksPerState[ExecutionState.CANCELING.ordinal()] = canceling;
-		tasksPerState[ExecutionState.CANCELED.ordinal()] = canceled;
-		tasksPerState[ExecutionState.FAILED.ordinal()] = failed;
-
-		JobDetails jobDetails = new JobDetails(jobId, name, startTime, endTime, duration, state, lastMod, tasksPerState, numTasks);
-		MultipleJobsDetails multipleJobsDetails = new MultipleJobsDetails(Collections.singleton(jobDetails));
+		JobSummaryInfo jobSummaryInfo = new JobSummaryInfo(jobId, name, startTime, endTime, duration, -1, -1, state);
+		JobsOverviewInfo jobsOverviewInfo = JobsOverviewInfo.create(Collections.singleton(jobSummaryInfo));
 
 		StringWriter sw = new StringWriter();
-		mapper.writeValue(sw, multipleJobsDetails);
+		mapper.writeValue(sw, jobsOverviewInfo);
 		return sw.toString();
 	}
 
@@ -284,14 +263,14 @@ class HistoryServerArchiveFetcher {
 	 */
 	private static void updateJobOverview(File webOverviewDir, File webDir) {
 		try (JsonGenerator gen = jacksonFactory.createGenerator(HistoryServer.createOrGetFile(webDir, JobsOverviewHeaders.URL))) {
-			File[] overviews = new File(webOverviewDir.getPath()).listFiles();
-			if (overviews != null) {
-				Collection<JobDetails> allJobs = new ArrayList<>(overviews.length);
-				for (File overview : overviews) {
-					MultipleJobsDetails subJobs = mapper.readValue(overview, MultipleJobsDetails.class);
-					allJobs.addAll(subJobs.getJobs());
+			File[] jobSummaryFiles = new File(webOverviewDir.getPath()).listFiles();
+			if (jobSummaryFiles != null) {
+				Collection<JobSummaryInfo> jobSummaries = new ArrayList<>(jobSummaryFiles.length);
+				for (File jobSummaryFile : jobSummaryFiles) {
+					JobsOverviewInfo jobsOverviewInfo = mapper.readValue(jobSummaryFile, JobsOverviewInfo.class);
+					jobSummaries.addAll(jobsOverviewInfo.getJobs());
 				}
-				mapper.writeValue(gen, new MultipleJobsDetails(allJobs));
+				mapper.writeValue(gen, JobsOverviewInfo.create(jobSummaries));
 			}
 		} catch (IOException ioe) {
 			LOG.error("Failed to update job overview.", ioe);

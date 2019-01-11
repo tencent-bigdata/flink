@@ -18,10 +18,10 @@
 
 package org.apache.flink.runtime.rest.handler.job.rescaling;
 
-import org.apache.flink.runtime.rest.messages.JobMessageParameters;
 import org.apache.flink.runtime.rest.messages.MessageParameters;
 import org.apache.flink.runtime.rest.messages.MessageQueryParameter;
 import org.apache.flink.runtime.rest.messages.RescalingParallelismQueryParameter;
+import org.apache.flink.runtime.rest.messages.job.JobMessageParameters;
 
 import java.util.Collection;
 import java.util.Collections;

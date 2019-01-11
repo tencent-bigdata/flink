@@ -1,0 +1,68 @@
+//
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+table.table.table-hover.table-clickable.table-activable.table-inner(md-table)
+  thead(md-head)
+    tr(md-row)
+      th(md-column) Name
+      th(md-column) Watermark
+        md-select(ng-model="watermarkAgg")
+          md-option(ng-repeat="agg in aggs" value="{{agg}}" ng-selected="{{agg == 'max'}}") {{agg}}
+      th(md-column) InQueue Usage
+        md-select(ng-model="inQueueUsageAgg")
+          md-option(ng-repeat="agg in aggs" value="{{agg}}" ng-selected="{{agg == 'max'}}") {{agg}}
+      th(md-column) OutQueue Usage
+        md-select(ng-model="outQueueUsageAgg")
+          md-option(ng-repeat="agg in aggs" value="{{agg}}" ng-selected="{{agg == 'max'}}") {{agg}}
+      th(md-column) Input Size
+        md-select(ng-model="bytesInAgg")
+          md-option(ng-repeat="agg in aggs" value="{{agg}}" ng-selected="{{agg == 'sum'}}") {{agg}}
+      th(md-column) Output Size
+        md-select(ng-model="bytesOutAgg")
+          md-option(ng-repeat="agg in aggs" value="{{agg}}" ng-selected="{{agg == 'sum'}}") {{agg}}
+      th(md-column) Input Rate
+        md-select(ng-model="bytesInRateAgg")
+          md-option(ng-repeat="agg in aggs" value="{{agg}}" ng-selected="{{agg == 'sum'}}") {{agg}}
+      th(md-column) Output Rate
+        md-select(ng-model="bytesOutRateAgg")
+          md-option(ng-repeat="agg in aggs" value="{{agg}}" ng-selected="{{agg == 'sum'}}") {{agg}}
+  tbody(md-body)
+    tr(md-row ng-repeat="vertex in vertices" ui-sref="single-vertex.tasks({ jobid: id, vertexid: vertex.id })")
+      td(md-cell)
+        .md-body-2 {{vertex.name}}
+        .md-caption {{vertex.id}}
+      td(md-cell)
+        span(ng-if="vertex.metrics.watermark[watermarkAgg] < 0") N/A
+        span(ng-if="vertex.metrics.watermark[watermarkAgg] >= 0" title="{{vertex.metrics.watermark[watermarkAgg]}}") {{vertex.metrics.watermark[watermarkAgg] | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}
+      td(md-cell)
+        span(ng-if="vertex.metrics.inQueueUsage[inQueueUsageAgg] < 0") N/A
+        span(ng-if="vertex.metrics.inQueueUsage[inQueueUsageAgg] >= 0") {{vertex.metrics.inQueueUsage[inQueueUsageAgg] | percentage}}
+      td(md-cell)
+        span(ng-if="vertex.metrics.outQueueUsage[outQueueUsageAgg] < 0") N/A
+        span(ng-if="vertex.metrics.outQueueUsage[outQueueUsageAgg] >= 0") {{vertex.metrics.outQueueUsage[outQueueUsageAgg] | percentage}}
+      td(md-cell)
+        span(ng-if="vertex.metrics.bytesIn[bytesInAgg] < 0") N/A
+        span(ng-if="vertex.metrics.bytesIn[bytesInAgg] >= 0") {{vertex.metrics.bytesIn[bytesInAgg] | humanizeBytes}}
+      td(md-cell)
+        span(ng-if="vertex.metrics.bytesOut[bytesOutAgg] < 0") N/A
+        span(ng-if="vertex.metrics.bytesOut[bytesOutAgg] >= 0") {{vertex.metrics.bytesOut[bytesOutAgg] | humanizeBytes}}
+      td(md-cell)
+         span(ng-if="vertex.metrics.bytesInRate[bytesInRateAgg] < 0") N/A
+         span(ng-if="vertex.metrics.bytesInRate[bytesInRateAgg] >= 0") {{vertex.metrics.bytesInRate[bytesInRateAgg] | humanizeBytes}}
+      td(md-cell)
+        span(ng-if="vertex.metrics.bytesOutRate[bytesOutRateAgg] < 0") N/A
+        span(ng-if="vertex.metrics.bytesOutRate[bytesOutRateAgg] >= 0") {{vertex.metrics.bytesOutRate[bytesOutRateAgg] | humanizeBytes}}

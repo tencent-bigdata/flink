@@ -20,17 +20,16 @@ package org.apache.flink.runtime.rest.handler.job;
 
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.runtime.executiongraph.AccessExecutionGraph;
-import org.apache.flink.runtime.messages.webmonitor.MultipleJobsDetails;
 import org.apache.flink.runtime.rest.handler.AbstractRestHandler;
 import org.apache.flink.runtime.rest.handler.HandlerRequest;
 import org.apache.flink.runtime.rest.handler.RestHandlerException;
 import org.apache.flink.runtime.rest.messages.EmptyMessageParameters;
 import org.apache.flink.runtime.rest.messages.EmptyRequestBody;
-import org.apache.flink.runtime.rest.messages.JobIDPathParameter;
 import org.apache.flink.runtime.rest.messages.MessageHeaders;
 import org.apache.flink.runtime.rest.messages.ResponseBody;
+import org.apache.flink.runtime.rest.messages.job.JobIDPathParameter;
+import org.apache.flink.runtime.rest.messages.job.JobsOverviewInfo;
 import org.apache.flink.runtime.webmonitor.RestfulGateway;
-import org.apache.flink.runtime.webmonitor.WebMonitorUtils;
 import org.apache.flink.runtime.webmonitor.history.ArchivedJson;
 import org.apache.flink.runtime.webmonitor.history.JsonArchivist;
 import org.apache.flink.runtime.webmonitor.retriever.GatewayRetriever;
@@ -44,30 +43,30 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Overview handler for jobs.
+ * Returns an overview of all running jobs in the cluster.
  */
-public class JobsOverviewHandler extends AbstractRestHandler<RestfulGateway, EmptyRequestBody, MultipleJobsDetails, EmptyMessageParameters> implements JsonArchivist {
+public class JobsOverviewHandler extends AbstractRestHandler<RestfulGateway, EmptyRequestBody, JobsOverviewInfo, EmptyMessageParameters> implements JsonArchivist {
 
 	public JobsOverviewHandler(
-			GatewayRetriever<? extends RestfulGateway> leaderRetriever,
-			Time timeout,
-			Map<String, String> responseHeaders,
-			MessageHeaders<EmptyRequestBody, MultipleJobsDetails, EmptyMessageParameters> messageHeaders) {
-		super(
-			leaderRetriever,
-			timeout,
-			responseHeaders,
-			messageHeaders);
+		GatewayRetriever<? extends RestfulGateway> leaderRetriever,
+		Time timeout,
+		Map<String, String> responseHeaders,
+		MessageHeaders<EmptyRequestBody, JobsOverviewInfo, EmptyMessageParameters> messageHeaders
+	) {
+		super(leaderRetriever, timeout, responseHeaders, messageHeaders);
 	}
 
 	@Override
-	protected CompletableFuture<MultipleJobsDetails> handleRequest(@Nonnull HandlerRequest<EmptyRequestBody, EmptyMessageParameters> request, @Nonnull RestfulGateway gateway) throws RestHandlerException {
-		return gateway.requestMultipleJobDetails(timeout);
+	protected CompletableFuture<JobsOverviewInfo> handleRequest(
+		@Nonnull HandlerRequest<EmptyRequestBody, EmptyMessageParameters> request,
+		@Nonnull RestfulGateway gateway
+	) throws RestHandlerException {
+		return gateway.requestJobsOverview(timeout);
 	}
 
 	@Override
 	public Collection<ArchivedJson> archiveJsonWithPath(AccessExecutionGraph graph) throws IOException {
-		ResponseBody json = new MultipleJobsDetails(Collections.singleton(WebMonitorUtils.createDetailsForJob(graph)));
+		ResponseBody json = JobsOverviewInfo.create(Collections.singleton(graph.getJobSummary()));
 		String path = getMessageHeaders().getTargetRestEndpointURL()
 			.replace(':' + JobIDPathParameter.KEY, graph.getJobID().toString());
 		return Collections.singletonList(new ArchivedJson(path, json));

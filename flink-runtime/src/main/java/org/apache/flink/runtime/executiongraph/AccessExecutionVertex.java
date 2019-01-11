@@ -20,6 +20,8 @@ package org.apache.flink.runtime.executiongraph;
 import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.taskmanager.TaskManagerLocation;
 
+import java.util.Collection;
+
 /**
  * Common interface for the runtime {@link ExecutionVertex} and {@link ArchivedExecutionVertex}.
  */
@@ -74,6 +76,13 @@ public interface AccessExecutionVertex {
 	 * @return taskmanager location for this execution vertex.
 	 */
 	TaskManagerLocation getCurrentAssignedResourceLocation();
+
+	/**
+	 * Returns the prior executions attempts.
+	 *
+	 * @return prior execution attempts.
+	 */
+	Collection<? extends AccessExecution> getPriorExecutionAttempts();
 
 	/**
 	 * Returns the execution for the given attempt number.
