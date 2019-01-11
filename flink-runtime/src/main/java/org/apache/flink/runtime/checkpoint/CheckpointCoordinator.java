@@ -34,6 +34,7 @@ import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
+import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration;
 import org.apache.flink.runtime.messages.checkpoint.AcknowledgeCheckpoint;
 import org.apache.flink.runtime.messages.checkpoint.DeclineCheckpoint;
 import org.apache.flink.runtime.state.CheckpointStorage;
@@ -95,6 +96,9 @@ public class CheckpointCoordinator {
 
 	/** The job whose checkpoint this coordinator coordinates */
 	private final JobID job;
+
+	/** The configuration for the checkpoint coordinator. */
+	private final CheckpointCoordinatorConfiguration configuration;
 
 	/** Default checkpoint properties **/
 	private final CheckpointProperties checkpointProperties;
@@ -186,11 +190,7 @@ public class CheckpointCoordinator {
 
 	public CheckpointCoordinator(
 			JobID job,
-			long baseInterval,
-			long checkpointTimeout,
-			long minPauseBetweenCheckpoints,
-			int maxConcurrentCheckpointAttempts,
-			CheckpointRetentionPolicy retentionPolicy,
+			CheckpointCoordinatorConfiguration configuration,
 			ExecutionVertex[] tasksToTrigger,
 			ExecutionVertex[] tasksToWaitFor,
 			ExecutionVertex[] tasksToCommitTo,
@@ -201,28 +201,19 @@ public class CheckpointCoordinator {
 			SharedStateRegistryFactory sharedStateRegistryFactory) {
 
 		// sanity checks
+		checkNotNull(configuration);
 		checkNotNull(checkpointStateBackend);
-		checkArgument(baseInterval > 0, "Checkpoint base interval must be larger than zero");
-		checkArgument(checkpointTimeout >= 1, "Checkpoint timeout must be larger than zero");
-		checkArgument(minPauseBetweenCheckpoints >= 0, "minPauseBetweenCheckpoints must be >= 0");
-		checkArgument(maxConcurrentCheckpointAttempts >= 1, "maxConcurrentCheckpointAttempts must be >= 1");
-
-		// max "in between duration" can be one year - this is to prevent numeric overflows
-		if (minPauseBetweenCheckpoints > 365L * 24 * 60 * 60 * 1_000) {
-			minPauseBetweenCheckpoints = 365L * 24 * 60 * 60 * 1_000;
-		}
-
-		// it does not make sense to schedule checkpoints more often then the desired
-		// time between checkpoints
-		if (baseInterval < minPauseBetweenCheckpoints) {
-			baseInterval = minPauseBetweenCheckpoints;
-		}
+		checkArgument(configuration.getCheckpointInterval() > 0, "Checkpoint base interval must be larger than zero");
+		checkArgument(configuration.getCheckpointTimeout() >= 1, "Checkpoint timeout must be larger than zero");
+		checkArgument(configuration.getMinPauseBetweenCheckpoints() >= 0, "minPauseBetweenCheckpoints must be >= 0");
+		checkArgument(configuration.getMaxConcurrentCheckpoints() >= 1, "maxConcurrentCheckpointAttempts must be >= 1");
 
 		this.job = checkNotNull(job);
-		this.baseInterval = baseInterval;
-		this.checkpointTimeout = checkpointTimeout;
-		this.minPauseBetweenCheckpointsNanos = minPauseBetweenCheckpoints * 1_000_000;
-		this.maxConcurrentCheckpointAttempts = maxConcurrentCheckpointAttempts;
+		this.configuration = configuration;
+		this.baseInterval = Math.max(configuration.getCheckpointInterval(), configuration.getMinPauseBetweenCheckpoints());
+		this.checkpointTimeout = configuration.getCheckpointTimeout();
+		this.minPauseBetweenCheckpointsNanos = configuration.getMinPauseBetweenCheckpoints() * 1_000_000;
+		this.maxConcurrentCheckpointAttempts = configuration.getMaxConcurrentCheckpoints();
 		this.tasksToTrigger = checkNotNull(tasksToTrigger);
 		this.tasksToWaitFor = checkNotNull(tasksToWaitFor);
 		this.tasksToCommitTo = checkNotNull(tasksToCommitTo);
@@ -244,7 +235,7 @@ public class CheckpointCoordinator {
 		this.timer.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
 		this.timer.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
 
-		this.checkpointProperties = CheckpointProperties.forCheckpoint(retentionPolicy);
+		this.checkpointProperties = CheckpointProperties.forCheckpoint(configuration.getCheckpointRetentionPolicy());
 
 		try {
 			this.checkpointStorage = checkpointStateBackend.createCheckpointStorage(job);

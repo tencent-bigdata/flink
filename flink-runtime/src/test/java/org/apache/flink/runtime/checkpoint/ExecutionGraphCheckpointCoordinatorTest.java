@@ -28,7 +28,7 @@ import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
-import org.apache.flink.runtime.jobmanager.scheduler.Scheduler;
+import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration;
 import org.apache.flink.runtime.jobmaster.slotpool.SlotProvider;
 import org.apache.flink.runtime.state.memory.MemoryStateBackend;
 import org.apache.flink.runtime.testingUtils.TestingUtils;
@@ -94,20 +94,23 @@ public class ExecutionGraphCheckpointCoordinatorTest {
 			timeout);
 
 		executionGraph.enableCheckpointing(
+			new CheckpointCoordinatorConfiguration(
 				100,
 				100,
 				100,
 				1,
 				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
-				Collections.emptyList(),
-				Collections.emptyList(),
-				Collections.emptyList(),
-				SavepointRestoreSettings.none(),
-				Collections.emptyList(),
-				counter,
-				store,
-				new MemoryStateBackend(),
-				CheckpointStatsTrackerTest.createTestTracker());
+				true
+			),
+			Collections.emptyList(),
+			Collections.emptyList(),
+			Collections.emptyList(),
+			SavepointRestoreSettings.none(),
+			Collections.emptyList(),
+			counter,
+			store,
+			new MemoryStateBackend(),
+			CheckpointStatsTrackerTest.createTestTracker());
 
 		JobVertex jobVertex = new JobVertex("MockVertex");
 		jobVertex.setInvokableClass(AbstractInvokable.class);

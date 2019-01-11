@@ -327,11 +327,7 @@ public class IndividualRestartsConcurrencyTest extends TestLogger {
 		final StandaloneCheckpointIDCounter standaloneCheckpointIDCounter = new StandaloneCheckpointIDCounter();
 
 		graph.enableCheckpointing(
-			checkpointCoordinatorConfiguration.getCheckpointInterval(),
-			checkpointCoordinatorConfiguration.getCheckpointTimeout(),
-			checkpointCoordinatorConfiguration.getMinPauseBetweenCheckpoints(),
-			checkpointCoordinatorConfiguration.getMaxConcurrentCheckpoints(),
-			checkpointCoordinatorConfiguration.getCheckpointRetentionPolicy(),
+			checkpointCoordinatorConfiguration,
 			allVertices,
 			allVertices,
 			allVertices,

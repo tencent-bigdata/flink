@@ -64,7 +64,9 @@ public class CheckpointCoordinatorConfiguration implements Serializable {
 
 		// sanity checks
 		if (checkpointInterval < 1 || checkpointTimeout < 1 ||
-			minPauseBetweenCheckpoints < 0 || maxConcurrentCheckpoints < 1) {
+			minPauseBetweenCheckpoints < 0 || minPauseBetweenCheckpoints > 365L * 24 * 60 * 60 * 1_000 ||
+			maxConcurrentCheckpoints < 1
+		) {
 			throw new IllegalArgumentException();
 		}
 

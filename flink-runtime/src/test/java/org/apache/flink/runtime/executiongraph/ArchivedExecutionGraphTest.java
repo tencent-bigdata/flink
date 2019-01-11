@@ -128,11 +128,14 @@ public class ArchivedExecutionGraphTest extends TestLogger {
 				new UnregisteredMetricsGroup());
 
 		runtimeGraph.enableCheckpointing(
-			100,
-			100,
-			100,
-			1,
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				100,
+				100,
+				100,
+				1,
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			Collections.<ExecutionJobVertex>emptyList(),
 			Collections.<ExecutionJobVertex>emptyList(),
 			Collections.<ExecutionJobVertex>emptyList(),

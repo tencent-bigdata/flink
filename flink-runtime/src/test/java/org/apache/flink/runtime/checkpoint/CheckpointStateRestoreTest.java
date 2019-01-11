@@ -27,6 +27,7 @@ import org.apache.flink.runtime.executiongraph.ExecutionJobVertex;
 import org.apache.flink.runtime.executiongraph.ExecutionVertex;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.OperatorID;
+import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration;
 import org.apache.flink.runtime.messages.checkpoint.AcknowledgeCheckpoint;
 import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.state.KeyedStateHandle;
@@ -97,11 +98,14 @@ public class CheckpointStateRestoreTest {
 
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				200000L,
-				200000L,
-				0,
-				Integer.MAX_VALUE,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					200000L,
+					200000L,
+					0,
+					Integer.MAX_VALUE,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { stateful1, stateful2, stateful3, stateless1, stateless2 },
 				new ExecutionVertex[] { stateful1, stateful2, stateful3, stateless1, stateless2 },
 				new ExecutionVertex[0],
@@ -175,11 +179,14 @@ public class CheckpointStateRestoreTest {
 		try {
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				new JobID(),
-				200000L,
-				200000L,
-				0,
-				Integer.MAX_VALUE,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					200000L,
+					200000L,
+					0,
+					Integer.MAX_VALUE,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { mock(ExecutionVertex.class) },
 				new ExecutionVertex[] { mock(ExecutionVertex.class) },
 				new ExecutionVertex[0],
@@ -233,11 +240,14 @@ public class CheckpointStateRestoreTest {
 
 		CheckpointCoordinator coord = new CheckpointCoordinator(
 			new JobID(),
-			Integer.MAX_VALUE,
-			Integer.MAX_VALUE,
-			0,
-			Integer.MAX_VALUE,
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				Integer.MAX_VALUE,
+				Integer.MAX_VALUE,
+				0,
+				Integer.MAX_VALUE,
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			new ExecutionVertex[] {},
 			new ExecutionVertex[] {},
 			new ExecutionVertex[] {},

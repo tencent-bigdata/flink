@@ -35,7 +35,6 @@ import org.apache.flink.runtime.blob.PermanentBlobKey;
 import org.apache.flink.runtime.blob.VoidBlobWriter;
 import org.apache.flink.runtime.checkpoint.CheckpointCoordinator;
 import org.apache.flink.runtime.checkpoint.CheckpointIDCounter;
-import org.apache.flink.runtime.checkpoint.CheckpointRetentionPolicy;
 import org.apache.flink.runtime.checkpoint.CheckpointStatsSnapshot;
 import org.apache.flink.runtime.checkpoint.CheckpointStatsTracker;
 import org.apache.flink.runtime.checkpoint.CompletedCheckpointStore;
@@ -467,24 +466,22 @@ public class ExecutionGraph implements AccessExecutionGraph {
 	}
 
 	public void enableCheckpointing(
-			long interval,
-			long checkpointTimeout,
-			long minPauseBetweenCheckpoints,
-			int maxConcurrentCheckpoints,
-			CheckpointRetentionPolicy retentionPolicy,
-			List<ExecutionJobVertex> verticesToTrigger,
-			List<ExecutionJobVertex> verticesToWaitFor,
-			List<ExecutionJobVertex> verticesToCommitTo,
-			SavepointRestoreSettings savepointRestoreSettings,
-			List<MasterTriggerRestoreHook<?>> masterHooks,
-			CheckpointIDCounter checkpointIDCounter,
-			CompletedCheckpointStore checkpointStore,
-			StateBackend checkpointStateBackend,
-			CheckpointStatsTracker statsTracker) {
+		CheckpointCoordinatorConfiguration configuration,
+		List<ExecutionJobVertex> verticesToTrigger,
+		List<ExecutionJobVertex> verticesToWaitFor,
+		List<ExecutionJobVertex> verticesToCommitTo,
+		SavepointRestoreSettings savepointRestoreSettings,
+		List<MasterTriggerRestoreHook<?>> masterHooks,
+		CheckpointIDCounter checkpointIDCounter,
+		CompletedCheckpointStore checkpointStore,
+		StateBackend checkpointStateBackend,
+		CheckpointStatsTracker statsTracker
+	) {
+		checkNotNull(configuration);
 
 		// simple sanity checks
-		checkArgument(interval >= 10, "checkpoint interval must not be below 10ms");
-		checkArgument(checkpointTimeout >= 10, "checkpoint timeout must not be below 10ms");
+		checkArgument(configuration.getCheckpointInterval() >= 10, "checkpoint interval must not be below 10ms");
+		checkArgument(configuration.getCheckpointTimeout() >= 10, "checkpoint timeout must not be below 10ms");
 
 		checkState(state == JobStatus.CREATED, "Job must be in CREATED state");
 		checkState(checkpointCoordinator == null, "checkpointing already enabled");
@@ -498,11 +495,7 @@ public class ExecutionGraph implements AccessExecutionGraph {
 		// create the coordinator that triggers and commits checkpoints and holds the state
 		checkpointCoordinator = new CheckpointCoordinator(
 			jobInformation.getJobId(),
-			interval,
-			checkpointTimeout,
-			minPauseBetweenCheckpoints,
-			maxConcurrentCheckpoints,
-			retentionPolicy,
+			configuration,
 			tasksToTrigger,
 			tasksToWaitFor,
 			tasksToCommitTo,
@@ -526,7 +519,7 @@ public class ExecutionGraph implements AccessExecutionGraph {
 
 		// interval of max long value indicates disable periodic checkpoint,
 		// the CheckpointActivatorDeactivator should be created only if the interval is not max value
-		if (interval != Long.MAX_VALUE) {
+		if (configuration.getCheckpointInterval() != Long.MAX_VALUE) {
 			// the periodic checkpoint scheduler is activated and deactivated as a result of
 			// job status changes (running -> on, all other states -> off)
 			registerJobStatusListener(checkpointCoordinator.createActivatorDeactivator());

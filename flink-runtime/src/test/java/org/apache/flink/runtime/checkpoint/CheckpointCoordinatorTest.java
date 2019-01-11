@@ -32,6 +32,7 @@ import org.apache.flink.runtime.executiongraph.ExecutionVertex;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.OperatorID;
+import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration;
 import org.apache.flink.runtime.messages.checkpoint.AcknowledgeCheckpoint;
 import org.apache.flink.runtime.messages.checkpoint.DeclineCheckpoint;
 import org.apache.flink.runtime.state.ChainedStateHandle;
@@ -131,11 +132,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 			// set up the coordinator and validate the initial state
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				600000,
-				600000,
-				0,
-				Integer.MAX_VALUE,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					600000,
+					600000,
+					0,
+					Integer.MAX_VALUE,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { triggerVertex1, triggerVertex2 },
 				new ExecutionVertex[] { ackVertex1, ackVertex2 },
 				new ExecutionVertex[] {},
@@ -192,11 +196,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 			// set up the coordinator and validate the initial state
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				600000,
-				600000,
-				0,
-				Integer.MAX_VALUE,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					600000,
+					600000,
+					0,
+					Integer.MAX_VALUE,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { triggerVertex1, triggerVertex2 },
 				new ExecutionVertex[] { ackVertex1, ackVertex2 },
 				new ExecutionVertex[] {},
@@ -244,11 +251,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 			// set up the coordinator and validate the initial state
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				600000,
-				600000,
-				0,
-				Integer.MAX_VALUE,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					600000,
+					600000,
+					0,
+					Integer.MAX_VALUE,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { triggerVertex1, triggerVertex2 },
 				new ExecutionVertex[] { ackVertex1, ackVertex2 },
 				new ExecutionVertex[] {},
@@ -297,11 +307,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 			// set up the coordinator and validate the initial state
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				600000,
-				600000,
-				0,
-				Integer.MAX_VALUE,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					600000,
+					600000,
+					0,
+					Integer.MAX_VALUE,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { vertex1, vertex2 },
 				new ExecutionVertex[] { vertex1, vertex2 },
 				new ExecutionVertex[] { vertex1, vertex2 },
@@ -400,11 +413,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 			// set up the coordinator and validate the initial state
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				600000,
-				600000,
-				0,
-				Integer.MAX_VALUE,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					600000,
+					600000,
+					0,
+					Integer.MAX_VALUE,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { vertex1, vertex2 },
 				new ExecutionVertex[] { vertex1, vertex2 },
 				new ExecutionVertex[] { vertex1, vertex2 },
@@ -520,11 +536,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 			// set up the coordinator and validate the initial state
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				600000,
-				600000,
-				0,
-				Integer.MAX_VALUE,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					600000,
+					600000,
+					0,
+					Integer.MAX_VALUE,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { vertex1, vertex2 },
 				new ExecutionVertex[] { vertex1, vertex2 },
 				new ExecutionVertex[] { vertex1, vertex2 },
@@ -688,11 +707,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 			// set up the coordinator and validate the initial state
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				600000,
-				600000,
-				0,
-				Integer.MAX_VALUE,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					600000,
+					600000,
+					0,
+					Integer.MAX_VALUE,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { triggerVertex1, triggerVertex2 },
 				new ExecutionVertex[] { ackVertex1, ackVertex2, ackVertex3 },
 				new ExecutionVertex[] { commitVertex },
@@ -819,11 +841,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 			// set up the coordinator and validate the initial state
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				600000,
-				600000,
-				0,
-				Integer.MAX_VALUE,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					600000,
+					600000,
+					0,
+					Integer.MAX_VALUE,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { triggerVertex1, triggerVertex2 },
 				new ExecutionVertex[] { ackVertex1, ackVertex2, ackVertex3 },
 				new ExecutionVertex[] { commitVertex },
@@ -984,11 +1009,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				600000,
-				200,
-				0,
-				Integer.MAX_VALUE,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					600000,
+					200,
+					0,
+					Integer.MAX_VALUE,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { triggerVertex },
 				new ExecutionVertex[] { ackVertex1, ackVertex2 },
 				new ExecutionVertex[] { commitVertex },
@@ -1062,11 +1090,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				200000,
-				200000,
-				0,
-				Integer.MAX_VALUE,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					200000,
+					200000,
+					0,
+					Integer.MAX_VALUE,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { triggerVertex },
 				new ExecutionVertex[] { ackVertex1, ackVertex2 },
 				new ExecutionVertex[] { commitVertex },
@@ -1126,11 +1157,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 
 		CheckpointCoordinator coord = new CheckpointCoordinator(
 			jobId,
-			20000L,
-			20000L,
-			0L,
-			1,
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				20000L,
+				20000L,
+				0L,
+				1,
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			new ExecutionVertex[] { triggerVertex },
 			new ExecutionVertex[] {triggerVertex, ackVertex1, ackVertex2},
 			new ExecutionVertex[0],
@@ -1259,11 +1293,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				10,        // periodic interval is 10 ms
-				200000,    // timeout is very long (200 s)
-				0,
-				Integer.MAX_VALUE,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					10,        // periodic interval is 10 ms
+					200000,    // timeout is very long (200 s)
+					0,
+					Integer.MAX_VALUE,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { triggerVertex },
 				new ExecutionVertex[] { ackVertex },
 				new ExecutionVertex[] { commitVertex },
@@ -1349,11 +1386,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 
 		final CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				2,           // periodic interval is 2 ms
-				200_000,     // timeout is very long (200 s)
-				delay,       // 50 ms delay between checkpoints
-				1,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					2,           // periodic interval is 2 ms
+					200_000,     // timeout is very long (200 s)
+					delay,       // 50 ms delay between checkpoints
+					1,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { vertex },
 				new ExecutionVertex[] { vertex },
 				new ExecutionVertex[] { vertex },
@@ -1423,11 +1463,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 		// set up the coordinator and validate the initial state
 		CheckpointCoordinator coord = new CheckpointCoordinator(
 			jid,
-			600000,
-			600000,
-			0,
-			Integer.MAX_VALUE,
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				600000,
+				600000,
+				0,
+				Integer.MAX_VALUE,
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			new ExecutionVertex[] { vertex1, vertex2 },
 			new ExecutionVertex[] { vertex1, vertex2 },
 			new ExecutionVertex[] { vertex1, vertex2 },
@@ -1575,11 +1618,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 		// set up the coordinator and validate the initial state
 		CheckpointCoordinator coord = new CheckpointCoordinator(
 			jid,
-			600000,
-			600000,
-			0,
-			Integer.MAX_VALUE,
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				600000,
+				600000,
+				0,
+				Integer.MAX_VALUE,
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			new ExecutionVertex[] { vertex1, vertex2 },
 			new ExecutionVertex[] { vertex1, vertex2 },
 			new ExecutionVertex[] { vertex1, vertex2 },
@@ -1669,11 +1715,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				10,        // periodic interval is 10 ms
-				200000,    // timeout is very long (200 s)
-				0L,        // no extra delay
-				maxConcurrentAttempts,
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					10,        // periodic interval is 10 ms
+					200000,    // timeout is very long (200 s)
+					0L,        // no extra delay
+					maxConcurrentAttempts,
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { triggerVertex },
 				new ExecutionVertex[] { ackVertex },
 				new ExecutionVertex[] { commitVertex },
@@ -1743,11 +1792,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				10,        // periodic interval is 10 ms
-				200000,    // timeout is very long (200 s)
-				0L,        // no extra delay
-				maxConcurrentAttempts, // max two concurrent checkpoints
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					10,        // periodic interval is 10 ms
+					200000,    // timeout is very long (200 s)
+					0L,        // no extra delay
+					maxConcurrentAttempts, // max two concurrent checkpoints
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { triggerVertex },
 				new ExecutionVertex[] { ackVertex },
 				new ExecutionVertex[] { commitVertex },
@@ -1820,11 +1872,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				10,        // periodic interval is 10 ms
-				200000,    // timeout is very long (200 s)
-				0L,        // no extra delay
-				2, // max two concurrent checkpoints
-				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				new CheckpointCoordinatorConfiguration(
+					10,        // periodic interval is 10 ms
+					200000,    // timeout is very long (200 s)
+					0L,        // no extra delay
+					2, // max two concurrent checkpoints
+					CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+					true
+				),
 				new ExecutionVertex[] { triggerVertex },
 				new ExecutionVertex[] { ackVertex },
 				new ExecutionVertex[] { commitVertex },
@@ -1873,11 +1928,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 
 		CheckpointCoordinator coord = new CheckpointCoordinator(
 			jobId,
-			100000,
-			200000,
-			0L,
-			1, // max one checkpoint at a time => should not affect savepoints
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				100000,
+				200000,
+				0L,
+				1, // max one checkpoint at a time => should not affect savepoints
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			new ExecutionVertex[] { vertex1 },
 			new ExecutionVertex[] { vertex1 },
 			new ExecutionVertex[] { vertex1 },
@@ -1927,11 +1985,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 
 		CheckpointCoordinator coord = new CheckpointCoordinator(
 			jobId,
-			100000,
-			200000,
-			100000000L, // very long min delay => should not affect savepoints
-			1,
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				100000,
+				200000,
+				100000000L, // very long min delay => should not affect savepoints
+				1,
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			new ExecutionVertex[] { vertex1 },
 			new ExecutionVertex[] { vertex1 },
 			new ExecutionVertex[] { vertex1 },
@@ -1990,11 +2051,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 		// set up the coordinator and validate the initial state
 		CheckpointCoordinator coord = new CheckpointCoordinator(
 			jid,
-			600000,
-			600000,
-			0,
-			Integer.MAX_VALUE,
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				600000,
+				600000,
+				0,
+				Integer.MAX_VALUE,
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			arrayExecutionVertices,
 			arrayExecutionVertices,
 			arrayExecutionVertices,
@@ -2105,11 +2169,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 		// set up the coordinator and validate the initial state
 		CheckpointCoordinator coord = new CheckpointCoordinator(
 			jid,
-			600000,
-			600000,
-			0,
-			Integer.MAX_VALUE,
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				600000,
+				600000,
+				0,
+				Integer.MAX_VALUE,
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			arrayExecutionVertices,
 			arrayExecutionVertices,
 			arrayExecutionVertices,
@@ -2252,11 +2319,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 		// set up the coordinator and validate the initial state
 		CheckpointCoordinator coord = new CheckpointCoordinator(
 			jid,
-			600000,
-			600000,
-			0,
-			Integer.MAX_VALUE,
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				600000,
+				600000,
+				0,
+				Integer.MAX_VALUE,
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			arrayExecutionVertices,
 			arrayExecutionVertices,
 			arrayExecutionVertices,
@@ -2537,11 +2607,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 		// set up the coordinator and validate the initial state
 		CheckpointCoordinator coord = new CheckpointCoordinator(
 			new JobID(),
-			600000,
-			600000,
-			0,
-			Integer.MAX_VALUE,
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				600000,
+				600000,
+				0,
+				Integer.MAX_VALUE,
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			newJobVertex1.getTaskVertices(),
 			newJobVertex1.getTaskVertices(),
 			newJobVertex1.getTaskVertices(),
@@ -2689,11 +2762,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 			// set up the coordinator and validate the initial state
 			CheckpointCoordinator coord = new CheckpointCoordinator(
 				jid,
-				600000,
-				600000,
-				0,
-				Integer.MAX_VALUE,
-				CheckpointRetentionPolicy.RETAIN_ON_FAILURE,
+				new CheckpointCoordinatorConfiguration(
+					600000,
+					600000,
+					0,
+					Integer.MAX_VALUE,
+					CheckpointRetentionPolicy.RETAIN_ON_FAILURE,
+					true
+				),
 				new ExecutionVertex[] { vertex1 },
 				new ExecutionVertex[] { vertex1 },
 				new ExecutionVertex[] { vertex1 },
@@ -3180,11 +3256,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 		// set up the coordinator and validate the initial state
 		CheckpointCoordinator coord = new CheckpointCoordinator(
 			new JobID(),
-			600000,
-			600000,
-			0,
-			Integer.MAX_VALUE,
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				600000,
+				600000,
+				0,
+				Integer.MAX_VALUE,
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			new ExecutionVertex[] { vertex1 },
 			new ExecutionVertex[] { vertex1 },
 			new ExecutionVertex[] { vertex1 },
@@ -3388,11 +3467,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 		// set up the coordinator and validate the initial state
 		CheckpointCoordinator coord = new CheckpointCoordinator(
 			new JobID(),
-			600000,
-			600000,
-			0,
-			Integer.MAX_VALUE,
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				600000,
+				600000,
+				0,
+				Integer.MAX_VALUE,
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			new ExecutionVertex[]{vertex1},
 			new ExecutionVertex[]{vertex1},
 			new ExecutionVertex[]{vertex1},
@@ -3427,11 +3509,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 		// set up the coordinator and validate the initial state
 		CheckpointCoordinator coord = new CheckpointCoordinator(
 			new JobID(),
-			600000,
-			600000,
-			0,
-			Integer.MAX_VALUE,
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				600000,
+				600000,
+				0,
+				Integer.MAX_VALUE,
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			new ExecutionVertex[]{vertex1},
 			new ExecutionVertex[]{vertex1},
 			new ExecutionVertex[]{vertex1},
@@ -3490,11 +3575,14 @@ public class CheckpointCoordinatorTest extends TestLogger {
 		// set up the coordinator and validate the initial state
 		CheckpointCoordinator coord = new CheckpointCoordinator(
 			jid,
-			600000,
-			600000,
-			0,
-			Integer.MAX_VALUE,
-			CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+			new CheckpointCoordinatorConfiguration(
+				600000,
+				600000,
+				0,
+				Integer.MAX_VALUE,
+				CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION,
+				true
+			),
 			arrayExecutionVertices,
 			arrayExecutionVertices,
 			arrayExecutionVertices,
