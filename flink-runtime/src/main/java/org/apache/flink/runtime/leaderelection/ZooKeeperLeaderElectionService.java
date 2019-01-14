@@ -98,8 +98,6 @@ public class ZooKeeperLeaderElectionService implements LeaderElectionService, Un
 		this.client = checkNotNull(client, "CuratorFramework client");
 		this.leaderPath = checkNotNull(leaderPath, "leaderPath");
 		this.latchPath = checkNotNull(latchPath, "latchPath");
-		this.leaderSessionID = null;
-		this.leaderContender = null;
 	}
 
 	@Override

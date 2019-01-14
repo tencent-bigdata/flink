@@ -338,6 +338,9 @@ public class ZooKeeperLeaderElectionTest extends TestLogger {
 			contender.waitForError(timeout);
 			assertNotNull(contender.getError());
 			assertTrue(ExceptionUtils.findThrowable(contender.getError(), KeeperException.NoNodeException.class).isPresent());
+
+			// a fake leader cannot overwrite leader info
+			assertEquals(leaderElectionService.getLeaderSessionID(), listener.getLeaderSessionID());
 		} finally {
 			if (leaderElectionService != null) {
 				leaderElectionService.stop();
