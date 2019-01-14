@@ -168,7 +168,8 @@ public class ZooKeeperLeaderElectionService implements LeaderElectionService, Un
 		return (state.get() == State.STARTED) && leaderSessionId.equals(this.leaderSessionID) && hasLeadership.get();
 	}
 
-	private void reset() throws Exception {
+	@VisibleForTesting
+	void reset() throws Exception {
 		notLeader();
 		setNode(null);
 

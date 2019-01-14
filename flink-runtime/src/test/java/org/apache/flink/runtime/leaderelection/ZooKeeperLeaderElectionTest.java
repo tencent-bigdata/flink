@@ -23,6 +23,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.HighAvailabilityOptions;
 import org.apache.flink.runtime.leaderretrieval.ZooKeeperLeaderRetrievalService;
 import org.apache.flink.runtime.util.ZooKeeperUtils;
+import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.TestLogger;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -34,16 +35,14 @@ import org.apache.curator.test.TestingServer;
 import org.apache.zookeeper.KeeperException;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -53,12 +52,15 @@ import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -296,77 +298,46 @@ public class ZooKeeperLeaderElectionTest extends TestLogger {
 		}
 	}
 
-	/**
-	 * Tests that the current leader is notified when his leader connection information in ZooKeeper
-	 * are overwritten. The leader must re-establish the correct leader connection information in
-	 * ZooKeeper.
-	 */
 	@Test
-	@Ignore
-	public void testMultipleLeaders() throws Exception {
-		final String FAULTY_CONTENDER_URL = "faultyContender";
-		final String leaderPath = "/leader";
-
-		configuration.setString(HighAvailabilityOptions.HA_ZOOKEEPER_LEADER_PATH, leaderPath);
-
+	public void testContenderWithIncorrectSessionIdCannotPublishLeaderInfo() throws Exception {
 		ZooKeeperLeaderElectionService leaderElectionService = null;
 		ZooKeeperLeaderRetrievalService leaderRetrievalService = null;
-		ZooKeeperLeaderRetrievalService leaderRetrievalService2 = null;
-		TestingListener listener = new TestingListener();
-		TestingListener listener2 = new TestingListener();
-		TestingContender contender;
 
 		try {
-			leaderElectionService = ZooKeeperUtils.createLeaderElectionService(client, configuration);
-			leaderRetrievalService = ZooKeeperUtils.createLeaderRetrievalService(client, configuration);
-			leaderRetrievalService2 = ZooKeeperUtils.createLeaderRetrievalService(client, configuration);
+			leaderElectionService = spy(ZooKeeperUtils.createLeaderElectionService(client, configuration));
+			doReturn(true).when(leaderElectionService).hasLeadership(any());
 
-			contender = new TestingContender(TEST_URL, leaderElectionService);
+			leaderRetrievalService = ZooKeeperUtils.createLeaderRetrievalService(client, configuration);
+
+			TestingContender contender = new TestingContender(TEST_URL, leaderElectionService);
+			TestingListener listener = new TestingListener();
 
 			leaderElectionService.start(contender);
 			leaderRetrievalService.start(listener);
 
+			contender.waitForLeader(timeout);
+			assertTrue(contender.isLeader());
+			assertEquals(leaderElectionService.getLeaderSessionID(), contender.getLeaderSessionID());
+
+			UUID leaderSessionId = contender.getLeaderSessionID();
+
 			listener.waitForNewLeader(timeout);
-
-			assertEquals(listener.getLeaderSessionID(), contender.getLeaderSessionID());
 			assertEquals(TEST_URL, listener.getAddress());
+			assertEquals(leaderElectionService.getLeaderSessionID(), listener.getLeaderSessionID());
 
-			CuratorFramework client = ZooKeeperUtils.startCuratorFramework(configuration);
+			// reset to delete previous election node
+			leaderElectionService.reset();
 
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			ObjectOutputStream oos = new ObjectOutputStream(baos);
+			contender.waitForLeader(timeout);
+			assertTrue(contender.isLeader());
+			assertEquals(leaderElectionService.getLeaderSessionID(), contender.getLeaderSessionID());
+			assertNotEquals(leaderElectionService.getLeaderSessionID(), leaderSessionId);
 
-			oos.writeUTF(FAULTY_CONTENDER_URL);
-			oos.writeObject(null);
+			contender.grantLeadership(leaderSessionId);
 
-			oos.close();
-
-			// overwrite the current leader address, the leader should notice that and correct it
-			boolean dataWritten = false;
-
-			while(!dataWritten) {
-				client.delete().forPath(leaderPath);
-
-				try {
-					client.create().forPath(leaderPath, baos.toByteArray());
-
-					dataWritten = true;
-				} catch (KeeperException.NodeExistsException e) {
-					// this can happen if the leader election service was faster
-				}
-			}
-
-			leaderRetrievalService2.start(listener2);
-
-			listener2.waitForNewLeader(timeout);
-
-			if (FAULTY_CONTENDER_URL.equals(listener2.getAddress())) {
-				listener2.waitForNewLeader(timeout);
-			}
-
-			assertEquals(listener2.getLeaderSessionID(), contender.getLeaderSessionID());
-			assertEquals(listener2.getAddress(), contender.getAddress());
-
+			contender.waitForError(timeout);
+			assertNotNull(contender.getError());
+			assertTrue(ExceptionUtils.findThrowable(contender.getError(), KeeperException.NoNodeException.class).isPresent());
 		} finally {
 			if (leaderElectionService != null) {
 				leaderElectionService.stop();
@@ -374,10 +345,6 @@ public class ZooKeeperLeaderElectionTest extends TestLogger {
 
 			if (leaderRetrievalService != null) {
 				leaderRetrievalService.stop();
-			}
-
-			if (leaderRetrievalService2 != null) {
-				leaderRetrievalService2.stop();
 			}
 		}
 	}
