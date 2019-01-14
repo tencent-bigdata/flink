@@ -34,11 +34,11 @@ nav.navbar.navbar-default.navbar-fixed-top.navbar-main(ng-if="job")
 
 
   .navbar-info.last.first.pull-right(ng-if!="job.isStoppable && job.state=='RUNNING'")
-    span.navbar-info-button.btn.btn-default(ng-click="stopJob($event)")
+    span.navbar-info-button.btn.btn-default.hide
       | Stop
 
   .navbar-info.last.first.pull-right(ng-if="job.state=='RUNNING' || job.state=='CREATED' || job.state=='RESTARTING'")
-    span.navbar-info-button.btn.btn-default(ng-click="cancelJob($event)")
+    span.navbar-info-button.btn.btn-default.hide
       | Cancel
 
   .navbar-info.first.last.hidden-xs.hidden-sm
