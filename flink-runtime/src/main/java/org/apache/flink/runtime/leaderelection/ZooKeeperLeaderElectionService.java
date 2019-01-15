@@ -58,6 +58,14 @@ import static org.apache.flink.util.Preconditions.checkState;
 public class ZooKeeperLeaderElectionService implements LeaderElectionService, UnhandledErrorListener {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperLeaderElectionService.class);
+	private static final String CONTENDER_PREFIX = "contender-";
+
+	public static String getElectionNodePath(String latchPath, UUID leaderSessionID) {
+		checkNotNull(latchPath, "latch path");
+		checkNotNull(leaderSessionID, "leader session id");
+
+		return String.format("%s/%s%010d", latchPath, CONTENDER_PREFIX, leaderSessionID.getLeastSignificantBits());
+	}
 
 	public enum State {
 		LATENT,
@@ -72,7 +80,6 @@ public class ZooKeeperLeaderElectionService implements LeaderElectionService, Un
 
 	private final String leaderPath;
 	private final String latchPath;
-	private final String contenderPrefix = "contender-";
 	private final AtomicReference<String> ourPath = new AtomicReference<>();
 	private final AtomicReference<Future<?>> startTask = new AtomicReference<>();
 
@@ -187,7 +194,7 @@ public class ZooKeeperLeaderElectionService implements LeaderElectionService, Un
 		client.create().creatingParentContainersIfNeeded()
 			.withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
 			.inBackground(callback)
-			.forPath(ZKPaths.makePath(latchPath, contenderPrefix));
+			.forPath(ZKPaths.makePath(latchPath, CONTENDER_PREFIX));
 	}
 
 	private void getChildren() throws Exception {
@@ -202,7 +209,7 @@ public class ZooKeeperLeaderElectionService implements LeaderElectionService, Un
 
 	private void checkLeadership(List<String> children) throws Exception {
 		final String localOurPath = ourPath.get();
-		final List<String> sortedChildren = LockInternals.getSortedChildren(contenderPrefix, sorter, children);
+		final List<String> sortedChildren = LockInternals.getSortedChildren(CONTENDER_PREFIX, sorter, children);
 		final int ourIndex = (localOurPath != null) ? sortedChildren.indexOf(ZKPaths.getNodeFromPath(localOurPath)) : -1;
 
 		if (ourIndex < 0) {
@@ -243,7 +250,7 @@ public class ZooKeeperLeaderElectionService implements LeaderElectionService, Un
 
 		if (!oldValue) {
 			String electionNodeNumber = electionNodePath.substring(
-				electionNodePath.indexOf(contenderPrefix) + contenderPrefix.length());
+				electionNodePath.indexOf(CONTENDER_PREFIX) + CONTENDER_PREFIX.length());
 
 			leaderSessionID = new UUID(0, Long.valueOf(electionNodeNumber));
 
@@ -333,7 +340,7 @@ public class ZooKeeperLeaderElectionService implements LeaderElectionService, Un
 
 			oos.close();
 
-			String electionNodePath = electionNodePathFromSessionId(leaderSessionID);
+			String electionNodePath = getElectionNodePath(latchPath, leaderSessionID);
 
 			if (electionNodePath != null) {
 				while (hasLeadership(leaderSessionID)) {
@@ -374,10 +381,6 @@ public class ZooKeeperLeaderElectionService implements LeaderElectionService, Un
 		} catch (Exception e) {
 			leaderContender.handleError(new Exception("Could not write leader address and leader session ID to ZooKeeper.", e));
 		}
-	}
-
-	private String electionNodePathFromSessionId(UUID leaderSessionID) {
-		return String.format("%s/%s%010d", latchPath, contenderPrefix, leaderSessionID.getLeastSignificantBits());
 	}
 
 	private void handleStateChange(ConnectionState newState) {
