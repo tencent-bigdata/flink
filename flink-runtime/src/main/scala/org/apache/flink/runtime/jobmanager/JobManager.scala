@@ -187,7 +187,7 @@ class JobManager(
     }
 
     try {
-      submittedJobGraphs.start(this)
+      submittedJobGraphs.start()
     } catch {
       case e: Exception =>
         log.error("Could not start the submitted job graphs service.", e)
@@ -1369,7 +1369,7 @@ class JobManager(
             }
 
             try {
-              submittedJobGraphs.putJobGraph(new SubmittedJobGraph(jobGraph, jobInfo))
+              submittedJobGraphs.putJobGraph(leaderSessionID.get, new SubmittedJobGraph(jobGraph, jobInfo))
             } catch {
               case t: Throwable =>
                 // Don't restart the execution if this fails. Otherwise, the
@@ -1734,10 +1734,9 @@ class JobManager(
               // ...otherwise, we can have lingering resources when there is a  concurrent shutdown
               // and the ZooKeeper client is closed. Not removing the job immediately allow the
               // shutdown to release all resources.
-              submittedJobGraphs.removeJobGraph(jobID)
+              submittedJobGraphs.removeJobGraph(leaderSessionID.get, jobID)
               true
             } else {
-              submittedJobGraphs.releaseJobGraph(jobID)
               false
             }
           } catch {

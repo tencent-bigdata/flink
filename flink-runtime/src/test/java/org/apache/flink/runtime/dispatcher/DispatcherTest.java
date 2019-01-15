@@ -304,13 +304,13 @@ public class DispatcherTest extends TestLogger {
 		final SubmittedJobGraph submittedJobGraph = submittedJobGraphStore.recoverJobGraph(TEST_JOB_ID);
 
 		// pretend that other Dispatcher has removed job from submittedJobGraphStore
-		submittedJobGraphStore.removeJobGraph(TEST_JOB_ID);
+		submittedJobGraphStore.removeJobGraph(UUID.randomUUID(), TEST_JOB_ID);
 		dispatcher.onRemovedJobGraph(TEST_JOB_ID);
 		assertThat(dispatcherGateway.listJobs(TIMEOUT).get(), empty());
 
 		// pretend that other Dispatcher has added a job to submittedJobGraphStore
 		runningJobsRegistry.clearJob(TEST_JOB_ID);
-		submittedJobGraphStore.putJobGraph(submittedJobGraph);
+		submittedJobGraphStore.putJobGraph(UUID.randomUUID(), submittedJobGraph);
 		dispatcher.onAddedJobGraph(TEST_JOB_ID);
 		createdJobManagerRunnerLatch.await();
 		assertThat(dispatcherGateway.listJobs(TIMEOUT).get(), hasSize(1));
@@ -325,7 +325,7 @@ public class DispatcherTest extends TestLogger {
 
 		dispatcherLeaderElectionService.isLeader(UUID.randomUUID()).get();
 
-		submittedJobGraphStore.putJobGraph(new SubmittedJobGraph(jobGraph, null));
+		submittedJobGraphStore.putJobGraph(UUID.randomUUID(), new SubmittedJobGraph(jobGraph, null));
 		dispatcher.onAddedJobGraph(TEST_JOB_ID);
 
 		final CompletableFuture<Throwable> errorFuture = fatalErrorHandler.getErrorFuture();
@@ -343,7 +343,7 @@ public class DispatcherTest extends TestLogger {
 
 		dispatcherLeaderElectionService.isLeader(UUID.randomUUID()).get();
 
-		submittedJobGraphStore.putJobGraph(new SubmittedJobGraph(jobGraph, null));
+		submittedJobGraphStore.putJobGraph(UUID.randomUUID(), new SubmittedJobGraph(jobGraph, null));
 		runningJobsRegistry.setJobFinished(TEST_JOB_ID);
 		dispatcher.onAddedJobGraph(TEST_JOB_ID);
 
@@ -543,7 +543,7 @@ public class DispatcherTest extends TestLogger {
 		dispatcher = createAndStartDispatcher(heartbeatServices, haServices, new ExpectedJobIdJobManagerRunnerFactory(TEST_JOB_ID, createdJobManagerRunnerLatch));
 
 		final SubmittedJobGraph submittedJobGraph = new SubmittedJobGraph(jobGraph, null);
-		submittedJobGraphStore.putJobGraph(submittedJobGraph);
+		submittedJobGraphStore.putJobGraph(UUID.randomUUID(), submittedJobGraph);
 
 		submittedJobGraphStore.setRecoverJobGraphFunction(
 			(JobID jobId, Map<JobID, SubmittedJobGraph> submittedJobs) -> {
@@ -573,7 +573,7 @@ public class DispatcherTest extends TestLogger {
 		final JobGraph failingJobGraph = createFailingJobGraph(testException);
 
 		final SubmittedJobGraph submittedJobGraph = new SubmittedJobGraph(failingJobGraph, null);
-		submittedJobGraphStore.putJobGraph(submittedJobGraph);
+		submittedJobGraphStore.putJobGraph(UUID.randomUUID(), submittedJobGraph);
 
 		electDispatcher();
 

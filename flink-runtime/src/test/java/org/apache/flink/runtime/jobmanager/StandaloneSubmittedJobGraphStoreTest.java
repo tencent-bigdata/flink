@@ -24,6 +24,8 @@ import org.apache.flink.runtime.akka.ListeningBehaviour;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.junit.Test;
 
+import java.util.UUID;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
@@ -42,10 +44,10 @@ public class StandaloneSubmittedJobGraphStoreTest {
 
 		assertEquals(0, jobGraphs.getJobIds().size());
 
-		jobGraphs.putJobGraph(jobGraph);
+		jobGraphs.putJobGraph(UUID.randomUUID(), jobGraph);
 		assertEquals(0, jobGraphs.getJobIds().size());
 
-		jobGraphs.removeJobGraph(jobGraph.getJobGraph().getJobID());
+		jobGraphs.removeJobGraph(UUID.randomUUID(), jobGraph.getJobGraph().getJobID());
 		assertEquals(0, jobGraphs.getJobIds().size());
 
 		assertNull(jobGraphs.recoverJobGraph(new JobID()));

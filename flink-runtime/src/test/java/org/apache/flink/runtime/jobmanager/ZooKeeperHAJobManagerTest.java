@@ -56,6 +56,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.util.Collection;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
@@ -161,7 +162,7 @@ public class ZooKeeperHAJobManagerTest extends TestLogger {
 
 				assertThat(recoveredJobGraph, is(notNullValue()));
 
-				otherSubmittedJobGraphStore.removeJobGraph(jobId);
+				otherSubmittedJobGraphStore.removeJobGraph(UUID.randomUUID(), jobId);
 
 				jobIds = otherSubmittedJobGraphStore.getJobIds();
 

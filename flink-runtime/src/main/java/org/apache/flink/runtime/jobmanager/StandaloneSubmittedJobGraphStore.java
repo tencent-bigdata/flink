@@ -23,6 +23,7 @@ import org.apache.flink.runtime.jobgraph.JobGraph;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.UUID;
 
 /**
  * {@link SubmittedJobGraph} instances for JobManagers running in {@link HighAvailabilityMode#NONE}.
@@ -33,7 +34,7 @@ import java.util.Collections;
 public class StandaloneSubmittedJobGraphStore implements SubmittedJobGraphStore {
 
 	@Override
-	public void start(SubmittedJobGraphListener jobGraphListener) throws Exception {
+	public void start() throws Exception {
 		// Nothing to do
 	}
 
@@ -43,18 +44,13 @@ public class StandaloneSubmittedJobGraphStore implements SubmittedJobGraphStore 
 	}
 
 	@Override
-	public void putJobGraph(SubmittedJobGraph jobGraph) {
+	public void putJobGraph(UUID sessionId, SubmittedJobGraph jobGraph) {
 		// Nothing to do
 	}
 
 	@Override
-	public void removeJobGraph(JobID jobId) {
+	public void removeJobGraph(UUID sessionId, JobID jobId) {
 		// Nothing to do
-	}
-
-	@Override
-	public void releaseJobGraph(JobID jobId) {
-		// nothing to do
 	}
 
 	@Override

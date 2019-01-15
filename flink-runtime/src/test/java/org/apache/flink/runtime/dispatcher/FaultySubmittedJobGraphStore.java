@@ -23,6 +23,7 @@ import org.apache.flink.runtime.jobmanager.SubmittedJobGraph;
 import org.apache.flink.runtime.testutils.InMemorySubmittedJobGraphStore;
 
 import javax.annotation.Nullable;
+import java.util.UUID;
 
 /**
  * {@link InMemorySubmittedJobGraphStore} implementation which can throw artifical errors for
@@ -54,11 +55,11 @@ final class FaultySubmittedJobGraphStore extends InMemorySubmittedJobGraphStore 
 	}
 
 	@Override
-	public synchronized void removeJobGraph(JobID jobId) throws Exception {
+	public synchronized void removeJobGraph(UUID sessionId, JobID jobId) throws Exception {
 		if (removalFailure != null) {
 			throw removalFailure;
 		} else {
-			super.removeJobGraph(jobId);
+			super.removeJobGraph(sessionId, jobId);
 		}
 	}
 }

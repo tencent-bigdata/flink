@@ -33,6 +33,8 @@ import org.junit.Test;
 
 import javax.annotation.Nonnull;
 
+import java.util.UUID;
+
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -71,14 +73,14 @@ public class ZooKeeperSubmittedJobGraphStoreTest extends TestLogger {
 			otherSubmittedJobGraphStore.start(null);
 
 			final SubmittedJobGraph jobGraph = new SubmittedJobGraph(new JobGraph(), null);
-			submittedJobGraphStore.putJobGraph(jobGraph);
+			submittedJobGraphStore.putJobGraph(UUID.randomUUID(), jobGraph);
 
 			final SubmittedJobGraph recoveredJobGraph = otherSubmittedJobGraphStore.recoverJobGraph(jobGraph.getJobId());
 
 			assertThat(recoveredJobGraph, is(notNullValue()));
 
 			try {
-				otherSubmittedJobGraphStore.removeJobGraph(recoveredJobGraph.getJobId());
+				otherSubmittedJobGraphStore.removeJobGraph(UUID.randomUUID(), recoveredJobGraph.getJobId());
 				fail("It should not be possible to remove the JobGraph since the first store still has a lock on it.");
 			} catch (Exception ignored) {
 				// expected
@@ -87,7 +89,7 @@ public class ZooKeeperSubmittedJobGraphStoreTest extends TestLogger {
 			submittedJobGraphStore.stop();
 
 			// now we should be able to delete the job graph
-			otherSubmittedJobGraphStore.removeJobGraph(recoveredJobGraph.getJobId());
+			otherSubmittedJobGraphStore.removeJobGraph(UUID.randomUUID(), recoveredJobGraph.getJobId());
 
 			assertThat(otherSubmittedJobGraphStore.recoverJobGraph(recoveredJobGraph.getJobId()), is(nullValue()));
 
@@ -100,7 +102,7 @@ public class ZooKeeperSubmittedJobGraphStoreTest extends TestLogger {
 		return new ZooKeeperSubmittedJobGraphStore(
 			client,
 			"/foobar",
-			stateStorage);
+			"", stateStorage);
 	}
 
 }

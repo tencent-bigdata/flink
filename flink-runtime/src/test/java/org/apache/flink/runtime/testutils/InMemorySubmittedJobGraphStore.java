@@ -25,13 +25,12 @@ import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.function.BiFunctionWithException;
 import org.apache.flink.util.function.FunctionWithException;
 
-import javax.annotation.Nullable;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.UUID;
 
 import static java.util.Objects.requireNonNull;
 
@@ -62,7 +61,7 @@ public class InMemorySubmittedJobGraphStore implements SubmittedJobGraphStore {
 	}
 
 	@Override
-	public synchronized void start(@Nullable SubmittedJobGraphListener jobGraphListener) throws Exception {
+	public synchronized void start() throws Exception {
 		started = true;
 	}
 
@@ -85,20 +84,15 @@ public class InMemorySubmittedJobGraphStore implements SubmittedJobGraphStore {
 	}
 
 	@Override
-	public synchronized void putJobGraph(SubmittedJobGraph jobGraph) throws Exception {
+	public synchronized void putJobGraph(UUID sessionId, SubmittedJobGraph jobGraph) throws Exception {
 		verifyIsStarted();
 		storedJobs.put(jobGraph.getJobId(), jobGraph);
 	}
 
 	@Override
-	public synchronized void removeJobGraph(JobID jobId) throws Exception {
+	public synchronized void removeJobGraph(UUID sessionId, JobID jobId) throws Exception {
 		verifyIsStarted();
 		storedJobs.remove(jobId);
-	}
-
-	@Override
-	public void releaseJobGraph(JobID jobId) {
-		verifyIsStarted();
 	}
 
 	@Override

@@ -19,11 +19,11 @@
 package org.apache.flink.runtime.jobmanager;
 
 import org.apache.flink.api.common.JobID;
-import org.apache.flink.runtime.jobgraph.JobGraph;
 
 import javax.annotation.Nullable;
 
 import java.util.Collection;
+import java.util.UUID;
 
 /**
  * {@link SubmittedJobGraph} instances for recovery.
@@ -33,7 +33,7 @@ public interface SubmittedJobGraphStore {
 	/**
 	 * Starts the {@link SubmittedJobGraphStore} service.
 	 */
-	void start(SubmittedJobGraphListener jobGraphListener) throws Exception;
+	void start() throws Exception;
 
 	/**
 	 * Stops the {@link SubmittedJobGraphStore} service.
@@ -52,23 +52,12 @@ public interface SubmittedJobGraphStore {
 	 *
 	 * <p>If a job graph with the same {@link JobID} exists, it is replaced.
 	 */
-	void putJobGraph(SubmittedJobGraph jobGraph) throws Exception;
+	void putJobGraph(UUID sessionId, SubmittedJobGraph jobGraph) throws Exception;
 
 	/**
 	 * Removes the {@link SubmittedJobGraph} with the given {@link JobID} if it exists.
 	 */
-	void removeJobGraph(JobID jobId) throws Exception;
-
-	/**
-	 * Releases the locks on the specified {@link JobGraph}.
-	 *
-	 * Releasing the locks allows that another instance can delete the job from
-	 * the {@link SubmittedJobGraphStore}.
-	 *
-	 * @param jobId specifying the job to release the locks for
-	 * @throws Exception if the locks cannot be released
-	 */
-	void releaseJobGraph(JobID jobId) throws Exception;
+	void removeJobGraph(UUID sessionId, JobID jobId) throws Exception;
 
 	/**
 	 * Get all job ids of submitted job graphs to the submitted job graph store.

@@ -27,6 +27,7 @@ import org.apache.flink.util.Preconditions;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.UUID;
 
 /**
  * {@link SubmittedJobGraphStore} implementation for a single job.
@@ -40,7 +41,7 @@ public class SingleJobSubmittedJobGraphStore implements SubmittedJobGraphStore {
 	}
 
 	@Override
-	public void start(SubmittedJobGraphListener jobGraphListener) throws Exception {
+	public void start() throws Exception {
 		// noop
 	}
 
@@ -59,19 +60,14 @@ public class SingleJobSubmittedJobGraphStore implements SubmittedJobGraphStore {
 	}
 
 	@Override
-	public void putJobGraph(SubmittedJobGraph jobGraph) throws Exception {
+	public void putJobGraph(UUID sessionId, SubmittedJobGraph jobGraph) throws Exception {
 		if (!jobGraph.getJobId().equals(jobGraph.getJobId())) {
 			throw new FlinkException("Cannot put additional jobs into this submitted job graph store.");
 		}
 	}
 
 	@Override
-	public void removeJobGraph(JobID jobId) {
-		// ignore
-	}
-
-	@Override
-	public void releaseJobGraph(JobID jobId) {
+	public void removeJobGraph(UUID sessionId, JobID jobId) {
 		// ignore
 	}
 

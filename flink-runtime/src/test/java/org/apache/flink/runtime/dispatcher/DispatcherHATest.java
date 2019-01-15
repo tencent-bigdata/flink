@@ -274,7 +274,7 @@ public class DispatcherHATest extends TestLogger {
 		}
 
 		@Override
-		public void start(SubmittedJobGraphListener jobGraphListener) throws Exception {
+		public void start() throws Exception {
 			isStarted = true;
 		}
 
@@ -292,17 +292,14 @@ public class DispatcherHATest extends TestLogger {
 		}
 
 		@Override
-		public void putJobGraph(SubmittedJobGraph jobGraph) throws Exception {
+		public void putJobGraph(UUID sessionId, SubmittedJobGraph jobGraph) throws Exception {
 			throw new UnsupportedOperationException("Should not be called.");
 		}
 
 		@Override
-		public void removeJobGraph(JobID jobId) throws Exception {
+		public void removeJobGraph(UUID sessionId, JobID jobId) throws Exception {
 			throw new UnsupportedOperationException("Should not be called.");
 		}
-
-		@Override
-		public void releaseJobGraph(JobID jobId) throws Exception {}
 
 		@Override
 		public Collection<JobID> getJobIds() throws Exception {

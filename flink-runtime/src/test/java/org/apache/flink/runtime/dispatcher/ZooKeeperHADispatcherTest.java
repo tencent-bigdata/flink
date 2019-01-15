@@ -186,7 +186,7 @@ public class ZooKeeperHADispatcherTest extends TestLogger {
 
 				// check that the other submitted job graph store can remove the job graph after the original leader
 				// has lost its leadership
-				otherSubmittedJobGraphStore.removeJobGraph(jobId);
+				otherSubmittedJobGraphStore.removeJobGraph(UUID.randomUUID(), jobId);
 
 				jobIds = otherSubmittedJobGraphStore.getJobIds();
 

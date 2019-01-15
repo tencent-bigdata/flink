@@ -224,8 +224,8 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 	public void start() throws Exception {
 		super.start();
 
-		submittedJobGraphStore.start(this);
 		leaderElectionService.start(this);
+		submittedJobGraphStore.start();
 
 		registerDispatcherMetrics(jobManagerMetricGroup);
 	}
@@ -265,13 +265,15 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 	}
 
 	private CompletableFuture<Void> persistAndRunJob(JobGraph jobGraph) throws Exception {
-		submittedJobGraphStore.putJobGraph(new SubmittedJobGraph(jobGraph, null));
+		UUID sessionId = getFencingToken().toUUID();
+
+		submittedJobGraphStore.putJobGraph(sessionId, new SubmittedJobGraph(jobGraph, null));
 
 		final CompletableFuture<Void> runJobFuture = runJob(jobGraph);
 
 		return runJobFuture.whenComplete(BiConsumerWithException.unchecked((Object ignored, Throwable throwable) -> {
 			if (throwable != null) {
-				submittedJobGraphStore.removeJobGraph(jobGraph.getJobID());
+				submittedJobGraphStore.removeJobGraph(sessionId, jobGraph.getJobID());
 			}
 		}));
 	}
@@ -592,7 +594,8 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 		boolean cleanupHABlobs = false;
 		if (cleanupHA) {
 			try {
-				submittedJobGraphStore.removeJobGraph(jobId);
+				UUID sessionId = getFencingToken().toUUID();
+				submittedJobGraphStore.removeJobGraph(sessionId, jobId);
 
 				// only clean up the HA blobs if we could remove the job from HA storage
 				cleanupHABlobs = true;
@@ -604,12 +607,6 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 				runningJobsRegistry.clearJob(jobId);
 			} catch (IOException e) {
 				log.warn("Could not properly remove job {} from the running jobs registry.", jobId, e);
-			}
-		} else {
-			try {
-				submittedJobGraphStore.releaseJobGraph(jobId);
-			} catch (Exception e) {
-				log.warn("Could not properly release job {} from submitted job graph store.", jobId, e);
 			}
 		}
 
@@ -638,24 +635,10 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 	/**
 	 * Recovers all jobs persisted via the submitted job graph store.
 	 */
-	@VisibleForTesting
-	Collection<JobGraph> recoverJobs() throws Exception {
+	private Collection<JobGraph> recoverJobs() throws Exception {
 		log.info("Recovering all persisted jobs.");
 		final Collection<JobID> jobIds = submittedJobGraphStore.getJobIds();
-
-		try {
-			return recoverJobGraphs(jobIds);
-		} catch (Exception e) {
-			// release all recovered job graphs
-			for (JobID jobId : jobIds) {
-				try {
-					submittedJobGraphStore.releaseJobGraph(jobId);
-				} catch (Exception ie) {
-					e.addSuppressed(ie);
-				}
-			}
-			throw e;
-		}
+		return recoverJobGraphs(jobIds);
 	}
 
 	@Nonnull
@@ -815,10 +798,6 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 					BiFunctionWithException.unchecked((Boolean confirmLeadership, Collection<JobGraph> recoveredJobs) -> {
 						if (confirmLeadership) {
 							leaderElectionService.confirmLeaderSessionID(newLeaderSessionID);
-						} else {
-							for (JobGraph recoveredJob : recoveredJobs) {
-								submittedJobGraphStore.releaseJobGraph(recoveredJob.getJobID());
-							}
 						}
 						return null;
 					}),
@@ -946,11 +925,7 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 					final CompletableFuture<Void> submissionFuture = recoveredJob.thenComposeAsync(
 						(Optional<JobGraph> jobGraphOptional) -> jobGraphOptional.map(
 							FunctionUtils.uncheckedFunction(jobGraph -> tryRunRecoveredJobGraph(jobGraph, dispatcherId).thenAcceptAsync(
-								FunctionUtils.uncheckedConsumer((Boolean isRecoveredJobRunning) -> {
-										if (!isRecoveredJobRunning) {
-											submittedJobGraphStore.releaseJobGraph(jobId);
-										}
-									}),
+								FunctionUtils.uncheckedConsumer((Boolean isRecoveredJobRunning) -> { }),
 									getRpcService().getExecutor())))
 							.orElse(CompletableFuture.completedFuture(null)),
 						getUnfencedMainThreadExecutor());

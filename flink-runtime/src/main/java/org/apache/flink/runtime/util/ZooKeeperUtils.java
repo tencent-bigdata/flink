@@ -254,13 +254,18 @@ public class ZooKeeperUtils {
 		RetrievableStateStorageHelper<SubmittedJobGraph> stateStorage = createFileSystemStateStorage(configuration, "submittedJobGraph");
 
 		// ZooKeeper submitted jobs root dir
-		String zooKeeperSubmittedJobsPath = ZKPaths.makePath(
+		String storePath = ZKPaths.makePath(
 			namespace,
 			configuration.getString(HighAvailabilityOptions.HA_ZOOKEEPER_JOBGRAPHS_PATH));
 
+		final String latchPath = ZKPaths.makePath(
+			namespace,
+			configuration.getString(HighAvailabilityOptions.HA_ZOOKEEPER_LATCH_PATH));
+
 		return new ZooKeeperSubmittedJobGraphStore(
 			client,
-			zooKeeperSubmittedJobsPath,
+			storePath,
+			latchPath,
 			stateStorage);
 	}
 

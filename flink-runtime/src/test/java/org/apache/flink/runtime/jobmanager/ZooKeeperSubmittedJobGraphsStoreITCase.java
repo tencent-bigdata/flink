@@ -89,7 +89,7 @@ public class ZooKeeperSubmittedJobGraphsStoreITCase extends TestLogger {
 		ZooKeeperSubmittedJobGraphStore jobGraphs = new ZooKeeperSubmittedJobGraphStore(
 			ZooKeeper.createClient(),
 			"/testPutAndRemoveJobGraph",
-			localStateStorage);
+			"", localStateStorage);
 
 		try {
 			SubmittedJobGraphListener listener = mock(SubmittedJobGraphListener.class);
@@ -102,7 +102,7 @@ public class ZooKeeperSubmittedJobGraphsStoreITCase extends TestLogger {
 			assertEquals(0, jobGraphs.getJobIds().size());
 
 			// Add initial
-			jobGraphs.putJobGraph(jobGraph);
+			jobGraphs.putJobGraph(UUID.randomUUID(), jobGraph);
 
 			// Verify initial job graph
 			Collection<JobID> jobIds = jobGraphs.getJobIds();
@@ -114,7 +114,7 @@ public class ZooKeeperSubmittedJobGraphsStoreITCase extends TestLogger {
 
 			// Update (same ID)
 			jobGraph = createSubmittedJobGraph(jobGraph.getJobId(), 1);
-			jobGraphs.putJobGraph(jobGraph);
+			jobGraphs.putJobGraph(UUID.randomUUID(), jobGraph);
 
 			// Verify updated
 			jobIds = jobGraphs.getJobIds();
@@ -125,7 +125,7 @@ public class ZooKeeperSubmittedJobGraphsStoreITCase extends TestLogger {
 			verifyJobGraphs(jobGraph, jobGraphs.recoverJobGraph(jobId));
 
 			// Remove
-			jobGraphs.removeJobGraph(jobGraph.getJobId());
+			jobGraphs.removeJobGraph(UUID.randomUUID(), jobGraph.getJobId());
 
 			// Empty state
 			assertEquals(0, jobGraphs.getJobIds().size());
@@ -135,7 +135,7 @@ public class ZooKeeperSubmittedJobGraphsStoreITCase extends TestLogger {
 			verify(listener, never()).onRemovedJobGraph(any(JobID.class));
 
 			// Don't fail if called again
-			jobGraphs.removeJobGraph(jobGraph.getJobId());
+			jobGraphs.removeJobGraph(UUID.randomUUID(), jobGraph.getJobId());
 		}
 		finally {
 			jobGraphs.stop();
@@ -145,7 +145,7 @@ public class ZooKeeperSubmittedJobGraphsStoreITCase extends TestLogger {
 	@Test
 	public void testRecoverJobGraphs() throws Exception {
 		ZooKeeperSubmittedJobGraphStore jobGraphs = new ZooKeeperSubmittedJobGraphStore(
-				ZooKeeper.createClient(), "/testRecoverJobGraphs", localStateStorage);
+				ZooKeeper.createClient(), "/testRecoverJobGraphs", "", localStateStorage);
 
 		try {
 			SubmittedJobGraphListener listener = mock(SubmittedJobGraphListener.class);
@@ -161,7 +161,7 @@ public class ZooKeeperSubmittedJobGraphsStoreITCase extends TestLogger {
 
 			// Add all
 			for (SubmittedJobGraph jobGraph : expected.values()) {
-				jobGraphs.putJobGraph(jobGraph);
+				jobGraphs.putJobGraph(UUID.randomUUID(), jobGraph);
 			}
 
 			Collection<JobID> actual = jobGraphs.getJobIds();
@@ -174,7 +174,7 @@ public class ZooKeeperSubmittedJobGraphsStoreITCase extends TestLogger {
 
 				verifyJobGraphs(expected.get(jobGraph.getJobId()), jobGraph);
 
-				jobGraphs.removeJobGraph(jobGraph.getJobId());
+				jobGraphs.removeJobGraph(UUID.randomUUID(), jobGraph.getJobId());
 			}
 
 			// Empty state
@@ -196,10 +196,10 @@ public class ZooKeeperSubmittedJobGraphsStoreITCase extends TestLogger {
 
 		try {
 			jobGraphs = new ZooKeeperSubmittedJobGraphStore(
-					ZooKeeper.createClient(), "/testConcurrentAddJobGraph", localStateStorage);
+					ZooKeeper.createClient(), "/testConcurrentAddJobGraph", "", localStateStorage);
 
 			otherJobGraphs = new ZooKeeperSubmittedJobGraphStore(
-					ZooKeeper.createClient(), "/testConcurrentAddJobGraph", localStateStorage);
+					ZooKeeper.createClient(), "/testConcurrentAddJobGraph", "", localStateStorage);
 
 
 			SubmittedJobGraph jobGraph = createSubmittedJobGraph(new JobID(), 0);
@@ -224,14 +224,14 @@ public class ZooKeeperSubmittedJobGraphsStoreITCase extends TestLogger {
 			jobGraphs.start(listener);
 			otherJobGraphs.start(null);
 
-			jobGraphs.putJobGraph(jobGraph);
+			jobGraphs.putJobGraph(UUID.randomUUID(), jobGraph);
 
 			// Everything is cool... not much happening ;)
 			verify(listener, never()).onAddedJobGraph(any(JobID.class));
 			verify(listener, never()).onRemovedJobGraph(any(JobID.class));
 
 			// This bad boy adds the other job graph
-			otherJobGraphs.putJobGraph(otherJobGraph);
+			otherJobGraphs.putJobGraph(UUID.randomUUID(), otherJobGraph);
 
 			// Wait for the cache to call back
 			sync.await();
@@ -255,19 +255,19 @@ public class ZooKeeperSubmittedJobGraphsStoreITCase extends TestLogger {
 	@Test(expected = IllegalStateException.class)
 	public void testUpdateJobGraphYouDidNotGetOrAdd() throws Exception {
 		ZooKeeperSubmittedJobGraphStore jobGraphs = new ZooKeeperSubmittedJobGraphStore(
-				ZooKeeper.createClient(), "/testUpdateJobGraphYouDidNotGetOrAdd", localStateStorage);
+				ZooKeeper.createClient(), "/testUpdateJobGraphYouDidNotGetOrAdd", "", localStateStorage);
 
 		ZooKeeperSubmittedJobGraphStore otherJobGraphs = new ZooKeeperSubmittedJobGraphStore(
-				ZooKeeper.createClient(), "/testUpdateJobGraphYouDidNotGetOrAdd", localStateStorage);
+				ZooKeeper.createClient(), "/testUpdateJobGraphYouDidNotGetOrAdd", "", localStateStorage);
 
 		jobGraphs.start(null);
 		otherJobGraphs.start(null);
 
 		SubmittedJobGraph jobGraph = createSubmittedJobGraph(new JobID(), 0);
 
-		jobGraphs.putJobGraph(jobGraph);
+		jobGraphs.putJobGraph(UUID.randomUUID(), jobGraph);
 
-		otherJobGraphs.putJobGraph(jobGraph);
+		otherJobGraphs.putJobGraph(UUID.randomUUID(), jobGraph);
 	}
 
 	// ---------------------------------------------------------------------------------------------
