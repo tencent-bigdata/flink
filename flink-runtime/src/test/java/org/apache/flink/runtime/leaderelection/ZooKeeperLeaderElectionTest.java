@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -309,8 +310,19 @@ public class ZooKeeperLeaderElectionTest extends TestLogger {
 
 			leaderRetrievalService = ZooKeeperUtils.createLeaderRetrievalService(client, configuration);
 
+			CountDownLatch latch = new CountDownLatch(2);
+
 			TestingContender contender = new TestingContender(TEST_URL, leaderElectionService);
-			TestingListener listener = new TestingListener();
+			TestingListener listener = new TestingListener() {
+				@Override
+				public void notifyLeaderAddress(String leaderAddress, UUID leaderSessionID) {
+					super.notifyLeaderAddress(leaderAddress, leaderSessionID);
+
+					// TestingListener#waitForNewLeader is unaware of session id changed without
+					// address changed. So we use a CountDownLatch to ensure the order.
+					latch.countDown();
+				}
+			};
 
 			leaderElectionService.start(contender);
 			leaderRetrievalService.start(listener);
@@ -332,6 +344,11 @@ public class ZooKeeperLeaderElectionTest extends TestLogger {
 			assertTrue(contender.isLeader());
 			assertEquals(leaderElectionService.getLeaderSessionID(), contender.getLeaderSessionID());
 			assertNotEquals(leaderElectionService.getLeaderSessionID(), leaderSessionId);
+
+			// same function as listener#waitForNewLeader
+			latch.await();
+			assertEquals(TEST_URL, listener.getAddress());
+			assertEquals(leaderElectionService.getLeaderSessionID(), listener.getLeaderSessionID());
 
 			contender.grantLeadership(leaderSessionId);
 
