@@ -18,12 +18,20 @@
 package org.apache.flink.streaming.examples.wordcount;
 
 import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.api.common.state.ValueState;
+import org.apache.flink.api.common.state.ValueStateDescriptor;
+import org.apache.flink.api.common.typeutils.base.IntSerializer;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
-import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.examples.wordcount.util.WordCountData;
 import org.apache.flink.util.Collector;
+
+import java.io.Serializable;
+import java.util.Iterator;
+import java.util.Random;
 
 /**
  * Implements the "WordCount" program that computes a simple word occurrence
@@ -59,34 +67,34 @@ public class WordCount {
 		// make parameters available in the web interface
 		env.getConfig().setGlobalJobParameters(params);
 
+		env.enableCheckpointing(10000);
+
 		// get input data
-		DataStream<String> text;
-		if (params.has("input")) {
-			// read the text file from given input path
-			text = env.readTextFile(params.get("input"));
-		} else {
-			System.out.println("Executing WordCount example with default input data set.");
-			System.out.println("Use --input to specify file input.");
-			// get default test text data
-			text = env.fromElements(WordCountData.WORDS);
-		}
-
-		DataStream<Tuple2<String, Integer>> counts =
-			// split up the lines in pairs (2-tuples) containing: (word,1)
-			text.flatMap(new Tokenizer())
-			// group by the tuple field "0" and sum up tuple field "1"
-			.keyBy(0).sum(1);
-
-		// emit result
-		if (params.has("output")) {
-			counts.writeAsText(params.get("output"));
-		} else {
-			System.out.println("Printing result to stdout. Use --output to specify output path.");
-			counts.print();
-		}
+		env.fromCollection(new WordIterator(), String.class)
+			.keyBy(w -> w)
+			.map(new RichMapFunction<String, Integer>() {
+				@Override
+				public Integer map(String value) throws Exception {
+					ValueStateDescriptor<Integer> stateDesc =
+						new ValueStateDescriptor<>("count", IntSerializer.INSTANCE, 0);
+					ValueState<Integer> state = getRuntimeContext().getState(stateDesc);
+					int count = state.value();
+					count++;
+					if (count % 100000 == 0) {
+						throw new Exception("Test Exception");
+					}
+					state.update(count);
+					return count;
+				}
+			}).addSink(new SinkFunction<Integer>() {
+				@Override
+				public void invoke(Integer value) throws Exception {
+					// nothing to do
+				}
+			});
 
 		// execute program
-		env.execute("Streaming WordCount");
+		env.execute("Failure Streaming WordCount");
 	}
 
 	// *************************************************************************
@@ -112,6 +120,21 @@ public class WordCount {
 					out.collect(new Tuple2<>(token, 1));
 				}
 			}
+		}
+	}
+
+	private static class WordIterator implements Iterator<String>, Serializable {
+
+		Random random = new Random();
+
+		@Override
+		public boolean hasNext() {
+			return true;
+		}
+
+		@Override
+		public String next() {
+			return Integer.toString(random.nextInt(100));
 		}
 	}
 

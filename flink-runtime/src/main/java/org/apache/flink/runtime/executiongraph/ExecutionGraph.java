@@ -281,6 +281,9 @@ public class ExecutionGraph implements AccessExecutionGraph {
 	 * strong reference to any user-defined classes.*/
 	private volatile ErrorInfo failureInfo;
 
+	/** The tracker for failures. */
+	private final ExceptionHistoryTracker exceptionHistoryTracker;
+
 	/**
 	 * Future for an ongoing or completed scheduling action.
 	 */
@@ -422,6 +425,7 @@ public class ExecutionGraph implements AccessExecutionGraph {
 		// the failover strategy must be instantiated last, so that the execution graph
 		// is ready by the time the failover strategy sees it
 		this.failoverStrategy = checkNotNull(failoverStrategyFactory.create(this), "null failover strategy");
+		this.exceptionHistoryTracker = new ExceptionHistoryTracker(20);
 
 		this.schedulingFuture = null;
 		LOG.info("Job recovers via failover strategy: {}", failoverStrategy.getStrategyName());
@@ -664,8 +668,18 @@ public class ExecutionGraph implements AccessExecutionGraph {
 		return failureCause;
 	}
 
+	@Override
 	public ErrorInfo getFailureInfo() {
 		return failureInfo;
+	}
+
+	public ExceptionHistoryTracker getExceptionHistoryTracker() {
+		return exceptionHistoryTracker;
+	}
+
+	@Override
+	public ExceptionTracesSnapshot getExceptionTracesSnapshot() {
+		return exceptionHistoryTracker.snapshot();
 	}
 
 	/**
@@ -1425,7 +1439,6 @@ public class ExecutionGraph implements AccessExecutionGraph {
 
 	private void initFailureCause(Throwable t) {
 		this.failureCause = t;
-		this.failureInfo = new ErrorInfo(t, System.currentTimeMillis());
 	}
 
 	// ------------------------------------------------------------------------
@@ -1816,7 +1829,6 @@ public class ExecutionGraph implements AccessExecutionGraph {
 		// see what this means for us. currently, the first FAILED state means -> FAILED
 		if (newExecutionState == ExecutionState.FAILED) {
 			final Throwable ex = error != null ? error : new FlinkException("Unknown Error (missing cause)");
-			long timestamp = execution.getStateTimestamp(ExecutionState.FAILED);
 
 			// by filtering out late failure calls, we can save some work in
 			// avoiding redundant local failover

@@ -27,6 +27,7 @@ import org.apache.flink.runtime.concurrent.FutureUtils;
 import org.apache.flink.runtime.executiongraph.AccessExecutionGraph;
 import org.apache.flink.runtime.executiongraph.ArchivedExecutionGraph;
 import org.apache.flink.runtime.executiongraph.ErrorInfo;
+import org.apache.flink.runtime.executiongraph.ExceptionTracesSnapshot;
 import org.apache.flink.runtime.executiongraph.ExecutionGraph;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobmanager.JobManager;
@@ -389,6 +390,7 @@ public class ExecutionGraphCacheTest extends TestLogger {
 				new long[0],
 				JobStatus.RUNNING,
 				new ErrorInfo(new FlinkException("Test"), 42L),
+				new ExceptionTracesSnapshot(),
 				"",
 				new StringifiedAccumulatorResult[0],
 				Collections.emptyMap(),

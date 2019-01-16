@@ -17,29 +17,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 -->
-<div ng-if="exceptions['root-exception']" class="panel panel-default panel-multi">
-  <div class="panel-heading clearfix">
-    <div class="panel-title">Root exception</div>
-  </div>
-  <div class="panel-heading clearfix">
-    <div ng-if="exceptions['timestamp'] != -1" class="panel-info thin last"><strong>Timestamp:</strong> {{ exceptions['timestamp'] | amDateFormat:'YYYY-MM-DD, H:mm:ss' }}
-    </div>
-  </div>
-  <div class="panel-body">
-    <pre class="exception">{{ exceptions['root-exception'] }}</pre>
-  </div>
-</div>
-<div ng-repeat="exception in exceptions['all-exceptions']" class="panel panel-default panel-multi">
-  <div class="panel-heading clearfix">
-    <div class="panel-title">{{ exception.task }}</div>
-  </div>
-  <div class="panel-heading clearfix">
-    <div ng-if="exception.timestamp != -1" class="panel-info thin"><strong>Timestamp:</strong> {{ exception.timestamp | amDateFormat:'YYYY-MM-DD, H:mm:ss' }}
-    </div>
-    <div class="panel-info thin last"><strong>Location:</strong> {{ exception.location }}
-    </div>
-  </div>
-  <div class="panel-body">
-    <pre class="exception">{{ exception.exception }}</pre>
-  </div>
-</div>
+<table md-table="md-table" class="table table-hover table-clickable table-activable table-inner">
+  <thead md-head="md-head" md-order="order">
+    <tr md-row="md-row">
+      <th md-column="md-column" md-order-by="time">Time</th>
+      <th md-column="md-column" md-order-by="taskName">Task Name</th>
+      <th md-column="md-column" md-order-by="executionId">Execution</th>
+      <th md-column="md-column" md-order-by="executor.id">Executor</th>
+      <th md-column="md-column" md-order-by="failure">Failure</th>
+    </tr>
+  </thead>
+  <tbody md-body="md-body">
+    <tr md-row="md-row" ng-repeat="exception in exceptions | orderBy: order | limitTo: limit: ((page - 1) * limit)">
+      <td md-cell="md-cell">{{exception.time | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}</td>
+      <td md-cell="md-cell">{{exception.taskName}}</td>
+      <td md-cell="md-cell">
+        <div class="md-body-2">{{exception.executionId}}</div>
+        <div class="md-caption">attempt-{{exception.attemptNumber}}</div>
+      </td>
+      <td md-cell="md-cell"><span ng-if="exception.executor">
+          <div class="md-body-2">{{exception.executor.id}}</div>
+          <div class="md-caption">{{exception.executor.host}}:{{exception.executor.port}}</div></span><span ng-if="!(exception.executor)">N/A</span></td>
+      <td md-cell="md-cell">
+        <md-content style="width:500px;">{{exception.failure}}</md-content>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<md-table-pagination md-limit="limit" md-limit-options="[5, 10, 20]" md-page="page" md-total="{{exceptions.length}}" md-page-select="md-page-select" class="bg-light"></md-table-pagination>

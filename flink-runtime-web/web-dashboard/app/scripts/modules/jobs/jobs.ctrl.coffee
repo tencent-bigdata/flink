@@ -255,9 +255,25 @@ angular.module('flinkApp')
 
 # --------------------------------------
 
-.controller 'JobExceptionsController', ($scope, $state, $stateParams, JobsService) ->
-  JobsService.loadExceptions($scope.id).then (data) ->
-    $scope.exceptions = data
+.controller 'JobExceptionsController', ($scope, $state, $stateParams, $interval, flinkConfig, JobsService) ->
+  $scope.exceptions = []
+  $scope.page = 1
+  $scope.limit = 5
+  $scope.order = "-time"
+
+  loadExceptions = ->
+    JobsService.loadExceptions($scope.id).then (data) ->
+      $scope.exceptions = data.exceptions
+
+  loadExceptions()
+
+  refresh = $interval ->
+    loadExceptions()
+
+  , flinkConfig["refresh-interval"]
+
+  $scope.$on '$destroy', ->
+    $interval.cancel(refresh)
 
 # --------------------------------------
 

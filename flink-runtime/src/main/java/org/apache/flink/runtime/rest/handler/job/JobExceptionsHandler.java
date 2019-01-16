@@ -19,39 +19,35 @@
 package org.apache.flink.runtime.rest.handler.job;
 
 import org.apache.flink.api.common.time.Time;
-import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.executiongraph.AccessExecutionGraph;
-import org.apache.flink.runtime.executiongraph.AccessExecutionVertex;
-import org.apache.flink.runtime.executiongraph.ErrorInfo;
+import org.apache.flink.runtime.executiongraph.ExceptionTrace;
+import org.apache.flink.runtime.executiongraph.ExceptionTracesSnapshot;
 import org.apache.flink.runtime.rest.handler.HandlerRequest;
 import org.apache.flink.runtime.rest.handler.legacy.ExecutionGraphCache;
 import org.apache.flink.runtime.rest.messages.EmptyRequestBody;
-import org.apache.flink.runtime.rest.messages.JobExceptionsInfo;
 import org.apache.flink.runtime.rest.messages.MessageHeaders;
 import org.apache.flink.runtime.rest.messages.ResponseBody;
+import org.apache.flink.runtime.rest.messages.job.ExceptionInfo;
+import org.apache.flink.runtime.rest.messages.job.ExecutorInfo;
+import org.apache.flink.runtime.rest.messages.job.JobExceptionsInfo;
 import org.apache.flink.runtime.rest.messages.job.JobIDPathParameter;
 import org.apache.flink.runtime.rest.messages.job.JobMessageParameters;
-import org.apache.flink.runtime.taskmanager.TaskManagerLocation;
 import org.apache.flink.runtime.webmonitor.RestfulGateway;
 import org.apache.flink.runtime.webmonitor.history.ArchivedJson;
 import org.apache.flink.runtime.webmonitor.history.JsonArchivist;
 import org.apache.flink.runtime.webmonitor.retriever.GatewayRetriever;
-import org.apache.flink.util.ExceptionUtils;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 /**
  * Handler serving the job exceptions.
  */
 public class JobExceptionsHandler extends AbstractExecutionGraphHandler<JobExceptionsInfo, JobMessageParameters> implements JsonArchivist {
-
-	static final int MAX_NUMBER_EXCEPTION_TO_REPORT = 20;
 
 	public JobExceptionsHandler(
 			GatewayRetriever<? extends RestfulGateway> leaderRetriever,
@@ -84,36 +80,32 @@ public class JobExceptionsHandler extends AbstractExecutionGraphHandler<JobExcep
 	}
 
 	private static JobExceptionsInfo createJobExceptionsInfo(AccessExecutionGraph executionGraph) {
-		ErrorInfo rootException = executionGraph.getFailureInfo();
-		String rootExceptionMessage = null;
-		Long rootTimestamp = null;
-		if (rootException != null) {
-			rootExceptionMessage = rootException.getExceptionAsString();
-			rootTimestamp = rootException.getTimestamp();
-		}
+		ExceptionTracesSnapshot exceptionTracesSnapshot = executionGraph.getExceptionTracesSnapshot();
 
-		List<JobExceptionsInfo.ExecutionExceptionInfo> taskExceptionList = new ArrayList<>();
-		boolean truncated = false;
-		for (AccessExecutionVertex task : executionGraph.getAllExecutionVertices()) {
-			String t = task.getFailureCauseAsString();
-			if (t != null && !t.equals(ExceptionUtils.STRINGIFIED_NULL_EXCEPTION)) {
-				if (taskExceptionList.size() >= MAX_NUMBER_EXCEPTION_TO_REPORT) {
-					truncated = true;
-					break;
-				}
+		int numExceptions = exceptionTracesSnapshot.getNumFailures();
+		Collection<ExceptionInfo> execeptionInfos = exceptionTracesSnapshot.getExceptionTraces().stream()
+			.map(failureTrace -> createExceptionInfo(failureTrace))
+			.collect(Collectors.toList());
 
-				TaskManagerLocation location = task.getCurrentAssignedResourceLocation();
-				String locationString = location != null ?
-					location.getFQDNHostname() + ':' + location.dataPort() : "(unassigned)";
-				long timestamp = task.getStateTimestamp(ExecutionState.FAILED);
-				taskExceptionList.add(new JobExceptionsInfo.ExecutionExceptionInfo(
-					t,
-					task.getTaskNameWithSubtaskIndex(),
-					locationString,
-					timestamp == 0 ? -1 : timestamp));
-			}
-		}
+		return new JobExceptionsInfo(numExceptions, execeptionInfos);
+	}
 
-		return new JobExceptionsInfo(rootExceptionMessage, rootTimestamp, taskExceptionList, truncated);
+	private static ExceptionInfo createExceptionInfo(ExceptionTrace exceptionTrace) {
+		ExecutorInfo executorInfo =
+			exceptionTrace.getTaskManagerLocation() == null ? null :
+				new ExecutorInfo(
+					exceptionTrace.getTaskManagerLocation().getResourceID(),
+					exceptionTrace.getTaskManagerLocation().getFQDNHostname(),
+					exceptionTrace.getTaskManagerLocation().dataPort()
+				);
+
+		return new ExceptionInfo(
+			exceptionTrace.getFailInstant(),
+			exceptionTrace.getFailCause(),
+			exceptionTrace.getExecutionId(),
+			exceptionTrace.getTaskName(),
+			exceptionTrace.getAttemptNumber(),
+			executorInfo
+		);
 	}
 }

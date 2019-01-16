@@ -83,6 +83,8 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
 	@Nullable
 	private final ErrorInfo failureCause;
 
+	private final ExceptionTracesSnapshot exceptionTracesSnapshot;
+
 	// ------ Fields that are only relevant for archived execution graphs ------------
 	private final String jsonPlan;
 	private final StringifiedAccumulatorResult[] archivedUserAccumulators;
@@ -104,6 +106,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
 			long[] stateTimestamps,
 			JobStatus state,
 			@Nullable ErrorInfo failureCause,
+			ExceptionTracesSnapshot exceptionTracesSnapshot,
 			String jsonPlan,
 			StringifiedAccumulatorResult[] archivedUserAccumulators,
 			Map<String, SerializedValue<OptionalFailure<Object>>> serializedUserAccumulators,
@@ -119,6 +122,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
 		this.stateTimestamps = Preconditions.checkNotNull(stateTimestamps);
 		this.state = Preconditions.checkNotNull(state);
 		this.failureCause = failureCause;
+		this.exceptionTracesSnapshot = Preconditions.checkNotNull(exceptionTracesSnapshot);
 		this.jsonPlan = Preconditions.checkNotNull(jsonPlan);
 		this.archivedUserAccumulators = Preconditions.checkNotNull(archivedUserAccumulators);
 		this.serializedUserAccumulators = Preconditions.checkNotNull(serializedUserAccumulators);
@@ -170,6 +174,11 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
 	@Override
 	public ErrorInfo getFailureInfo() {
 		return failureCause;
+	}
+
+	@Override
+	public ExceptionTracesSnapshot getExceptionTracesSnapshot() {
+		return exceptionTracesSnapshot;
 	}
 
 	@Override
@@ -348,6 +357,7 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
 			timestamps,
 			executionGraph.getState(),
 			executionGraph.getFailureInfo(),
+			executionGraph.getExceptionTracesSnapshot(),
 			executionGraph.getJsonPlan(),
 			executionGraph.getAccumulatorResultsStringified(),
 			serializedUserAccumulators,

@@ -16,15 +16,20 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.rest.messages;
+package org.apache.flink.runtime.rest.messages.job;
+
+import org.apache.flink.runtime.clusterframework.types.ResourceID;
+import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
+import org.apache.flink.runtime.rest.messages.RestResponseMarshallingTestBase;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
+import java.util.Random;
 
 /**
  * Tests that the {@link JobExceptionsInfo} can be marshalled and unmarshalled.
  */
-public class JobExceptionsInfoTest extends RestResponseMarshallingTestBase<JobExceptionsInfo>  {
+public class JobExceptionsInfoTest extends RestResponseMarshallingTestBase<JobExceptionsInfo> {
 	@Override
 	protected Class<JobExceptionsInfo> getTestResponseClass() {
 		return JobExceptionsInfo.class;
@@ -32,21 +37,25 @@ public class JobExceptionsInfoTest extends RestResponseMarshallingTestBase<JobEx
 
 	@Override
 	protected JobExceptionsInfo getTestResponseInstance() throws Exception {
-		List<JobExceptionsInfo.ExecutionExceptionInfo> executionTaskExceptionInfoList = new ArrayList<>();
-		executionTaskExceptionInfoList.add(new JobExceptionsInfo.ExecutionExceptionInfo(
-			"exception1",
-			"task1",
-			"location1",
-			System.currentTimeMillis()));
-		executionTaskExceptionInfoList.add(new JobExceptionsInfo.ExecutionExceptionInfo(
-			"exception2",
-			"task2",
-			"location2",
-			System.currentTimeMillis()));
-		return new JobExceptionsInfo(
-			"root exception",
-			System.currentTimeMillis(),
-			executionTaskExceptionInfoList,
-			false);
+		Random random = new Random();
+
+		int numExceptions = random.nextInt(20);
+		Collection<ExceptionInfo> exceptionInfos = new ArrayList<>(numExceptions);
+		for (int i = 0; i < numExceptions; ++i) {
+			exceptionInfos.add(createRandomExceptionInfo(random));
+		}
+
+		return new JobExceptionsInfo(numExceptions, exceptionInfos);
+	}
+
+	private static ExceptionInfo createRandomExceptionInfo(Random random) {
+		return new ExceptionInfo(
+			random.nextLong(),
+			"failure" + random.nextInt(),
+			new ExecutionAttemptID(),
+			"task" + random.nextInt(),
+			random.nextInt(),
+			new ExecutorInfo(ResourceID.generate(), "host" + random.nextInt(), random.nextInt())
+		);
 	}
 }
