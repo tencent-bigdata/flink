@@ -29,8 +29,7 @@ import org.apache.flink.metrics.groups.UnregisteredMetricsGroup;
 import org.apache.flink.runtime.accumulators.StringifiedAccumulatorResult;
 import org.apache.flink.runtime.akka.AkkaUtils;
 import org.apache.flink.runtime.checkpoint.CheckpointRetentionPolicy;
-import org.apache.flink.runtime.checkpoint.CheckpointStatsSnapshot;
-import org.apache.flink.runtime.checkpoint.CheckpointStatsTracker;
+import org.apache.flink.runtime.checkpoint.CheckpointTracesSnapshot;
 import org.apache.flink.runtime.checkpoint.MasterTriggerRestoreHook;
 import org.apache.flink.runtime.checkpoint.StandaloneCheckpointIDCounter;
 import org.apache.flink.runtime.checkpoint.StandaloneCompletedCheckpointStore;
@@ -120,12 +119,6 @@ public class ArchivedExecutionGraphTest extends TestLogger {
 		List<ExecutionJobVertex> jobVertices = new ArrayList<>();
 		jobVertices.add(runtimeGraph.getJobVertex(v1ID));
 		jobVertices.add(runtimeGraph.getJobVertex(v2ID));
-		
-		CheckpointStatsTracker statsTracker = new CheckpointStatsTracker(
-				0,
-				jobVertices,
-				mock(CheckpointCoordinatorConfiguration.class),
-				new UnregisteredMetricsGroup());
 
 		runtimeGraph.enableCheckpointing(
 			new CheckpointCoordinatorConfiguration(
@@ -144,7 +137,7 @@ public class ArchivedExecutionGraphTest extends TestLogger {
 			new StandaloneCheckpointIDCounter(),
 			new StandaloneCompletedCheckpointStore(1),
 			new MemoryStateBackend(),
-			statsTracker);
+			new UnregisteredMetricsGroup());
 
 		runtimeGraph.setJsonPlan("{}");
 
@@ -190,20 +183,10 @@ public class ArchivedExecutionGraphTest extends TestLogger {
 		// -------------------------------------------------------------------------------------------------------------
 		// CheckpointStats
 		// -------------------------------------------------------------------------------------------------------------
-		CheckpointStatsSnapshot runtimeSnapshot = runtimeGraph.getCheckpointStatsSnapshot();
-		CheckpointStatsSnapshot archivedSnapshot = archivedGraph.getCheckpointStatsSnapshot();
+		CheckpointTracesSnapshot runtimeSnapshot = runtimeGraph.getCheckpointTracesSnapshot();
+		CheckpointTracesSnapshot archivedSnapshot = archivedGraph.getCheckpointTracesSnapshot();
 
-		assertEquals(runtimeSnapshot.getSummaryStats().getEndToEndDurationStats().getAverage(), archivedSnapshot.getSummaryStats().getEndToEndDurationStats().getAverage());
-		assertEquals(runtimeSnapshot.getSummaryStats().getEndToEndDurationStats().getMinimum(), archivedSnapshot.getSummaryStats().getEndToEndDurationStats().getMinimum());
-		assertEquals(runtimeSnapshot.getSummaryStats().getEndToEndDurationStats().getMaximum(), archivedSnapshot.getSummaryStats().getEndToEndDurationStats().getMaximum());
-
-		assertEquals(runtimeSnapshot.getSummaryStats().getStateSizeStats().getAverage(), archivedSnapshot.getSummaryStats().getStateSizeStats().getAverage());
-		assertEquals(runtimeSnapshot.getSummaryStats().getStateSizeStats().getMinimum(), archivedSnapshot.getSummaryStats().getStateSizeStats().getMinimum());
-		assertEquals(runtimeSnapshot.getSummaryStats().getStateSizeStats().getMaximum(), archivedSnapshot.getSummaryStats().getStateSizeStats().getMaximum());
-
-		assertEquals(runtimeSnapshot.getCounts().getTotalNumberOfCheckpoints(), archivedSnapshot.getCounts().getTotalNumberOfCheckpoints());
-		assertEquals(runtimeSnapshot.getCounts().getNumberOfCompletedCheckpoints(), archivedSnapshot.getCounts().getNumberOfCompletedCheckpoints());
-		assertEquals(runtimeSnapshot.getCounts().getNumberOfInProgressCheckpoints(), archivedSnapshot.getCounts().getNumberOfInProgressCheckpoints());
+		assertEquals(runtimeSnapshot, archivedSnapshot);
 
 		// -------------------------------------------------------------------------------------------------------------
 		// ArchivedExecutionConfig

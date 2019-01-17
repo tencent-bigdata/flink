@@ -23,6 +23,7 @@ import org.apache.flink.runtime.checkpoint.savepoint.Savepoint;
 import org.apache.flink.runtime.checkpoint.savepoint.SavepointV2;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.executiongraph.ExecutionVertex;
+import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.runtime.state.CheckpointMetadataOutputStream;
 import org.apache.flink.runtime.state.CheckpointStorageLocation;
@@ -35,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -85,14 +85,21 @@ public class PendingCheckpoint {
 
 	private final long checkpointTimestamp;
 
-	private final Map<OperatorID, OperatorState> operatorStates;
+	private volatile CheckpointStatus checkpointStatus;
+
+	private volatile long terminateTimestamp;
+
+	private volatile String failure;
 
 	private final Map<ExecutionAttemptID, ExecutionVertex> notYetAcknowledgedTasks;
 
+	private final Set<ExecutionAttemptID> acknowledgedTasks;
+
 	private final List<MasterState> masterState;
 
-	/** Set of acknowledged tasks. */
-	private final Set<ExecutionAttemptID> acknowledgedTasks;
+	private final Map<OperatorID, OperatorState> operatorStates;
+
+	private final Map<JobVertexID, VertexCheckpointTracker> vertexTrackers;
 
 	/** The checkpoint properties. */
 	private final CheckpointProperties props;
@@ -109,10 +116,6 @@ public class PendingCheckpoint {
 	private int numAcknowledgedTasks;
 
 	private boolean discarded;
-
-	/** Optional stats tracker callback. */
-	@Nullable
-	private PendingCheckpointStats statsCallback;
 
 	private volatile ScheduledFuture<?> cancellerHandle;
 
@@ -138,10 +141,32 @@ public class PendingCheckpoint {
 		this.targetLocation = checkNotNull(targetLocation);
 		this.executor = Preconditions.checkNotNull(executor);
 
+		this.checkpointStatus = CheckpointStatus.PENDING;
+		this.terminateTimestamp = -1;
+		this.failure = null;
 		this.operatorStates = new HashMap<>();
 		this.masterState = new ArrayList<>();
 		this.acknowledgedTasks = new HashSet<>(verticesToConfirm.size());
 		this.onCompletionPromise = new CompletableFuture<>();
+
+		this.vertexTrackers = new HashMap<>();
+
+		Map<JobVertexID, Set<Integer>> tasksToConfirmByVertex = new HashMap<>();
+		for (ExecutionVertex task : verticesToConfirm.values()) {
+			JobVertexID vertexId = task.getJobvertexId();
+			int taskIndex = task.getParallelSubtaskIndex();
+
+			Set<Integer> vertexTasksToConfirm =
+				tasksToConfirmByVertex.computeIfAbsent(vertexId, (k) -> new HashSet<>());
+			vertexTasksToConfirm.add(taskIndex);
+		}
+
+		for (Map.Entry<JobVertexID, Set<Integer>> vertexEntry : tasksToConfirmByVertex.entrySet()) {
+			JobVertexID vertexId = vertexEntry.getKey();
+			Set<Integer> vertexTasksToConform = vertexEntry.getValue();
+			VertexCheckpointTracker vertexTracker = new VertexCheckpointTracker(vertexTasksToConform);
+			vertexTrackers.put(vertexId, vertexTracker);
+		}
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -174,6 +199,22 @@ public class PendingCheckpoint {
 		return operatorStates;
 	}
 
+	public Map<JobVertexID, VertexCheckpointTracker> getVertexTrackers() {
+		return vertexTrackers;
+	}
+
+	public CheckpointStatus getCheckpointStatus() {
+		return checkpointStatus;
+	}
+
+	public long getTerminateTimestamp() {
+		return terminateTimestamp;
+	}
+
+	public String getFailure() {
+		return failure;
+	}
+
 	public boolean isFullyAcknowledged() {
 		return this.notYetAcknowledgedTasks.isEmpty() && !discarded;
 	}
@@ -199,15 +240,6 @@ public class PendingCheckpoint {
 
 	CheckpointProperties getProps() {
 		return props;
-	}
-
-	/**
-	 * Sets the callback for tracking this pending checkpoint.
-	 *
-	 * @param trackerCallback Callback for collecting subtask stats.
-	 */
-	void setStatsCallback(@Nullable PendingCheckpointStats trackerCallback) {
-		this.statsCallback = trackerCallback;
 	}
 
 	/**
@@ -245,6 +277,15 @@ public class PendingCheckpoint {
 		return onCompletionPromise;
 	}
 
+	public void complete() {
+		synchronized (lock) {
+			checkState(isFullyAcknowledged(), "Pending checkpoint has not been fully acknowledged yet.");
+
+			terminateTimestamp = System.currentTimeMillis();
+			checkpointStatus = CheckpointStatus.COMPLETED;
+		}
+	}
+
 	public CompletedCheckpoint finalizeCheckpoint() throws IOException {
 
 		synchronized (lock) {
@@ -273,16 +314,6 @@ public class PendingCheckpoint {
 
 				onCompletionPromise.complete(completed);
 
-				// to prevent null-pointers from concurrent modification, copy reference onto stack
-				PendingCheckpointStats statsCallback = this.statsCallback;
-				if (statsCallback != null) {
-					// Finalize the statsCallback and give the completed checkpoint a
-					// callback for discards.
-					CompletedCheckpointStats.DiscardCallback discardCallback =
-							statsCallback.reportCompletedCheckpoint(finalizedLocation.getExternalPointer());
-					completed.setDiscardCallback(discardCallback);
-				}
-
 				// mark this pending checkpoint as disposed, but do NOT drop the state
 				dispose(false);
 
@@ -301,13 +332,14 @@ public class PendingCheckpoint {
 	 *
 	 * @param executionAttemptId of the acknowledged task
 	 * @param operatorSubtaskStates of the acknowledged task
-	 * @param metrics Checkpoint metrics for the stats
+	 * @param taskCheckpointTrace Checkpoint metrics for the stats
 	 * @return TaskAcknowledgeResult of the operation
 	 */
 	public TaskAcknowledgeResult acknowledgeTask(
-			ExecutionAttemptID executionAttemptId,
-			TaskStateSnapshot operatorSubtaskStates,
-			CheckpointMetrics metrics) {
+		ExecutionAttemptID executionAttemptId,
+		TaskStateSnapshot operatorSubtaskStates,
+		TaskCheckpointTrace taskCheckpointTrace
+	) {
 
 		synchronized (lock) {
 			if (discarded) {
@@ -328,9 +360,6 @@ public class PendingCheckpoint {
 
 			List<OperatorID> operatorIDs = vertex.getJobVertex().getOperatorIDs();
 			int subtaskIndex = vertex.getParallelSubtaskIndex();
-			long ackTimestamp = System.currentTimeMillis();
-
-			long stateSize = 0L;
 
 			if (operatorSubtaskStates != null) {
 				for (OperatorID operatorID : operatorIDs) {
@@ -354,29 +383,15 @@ public class PendingCheckpoint {
 					}
 
 					operatorState.putState(subtaskIndex, operatorSubtaskState);
-					stateSize += operatorSubtaskState.getStateSize();
 				}
 			}
 
 			++numAcknowledgedTasks;
 
-			// publish the checkpoint statistics
-			// to prevent null-pointers from concurrent modification, copy reference onto stack
-			final PendingCheckpointStats statsCallback = this.statsCallback;
-			if (statsCallback != null) {
-				// Do this in millis because the web frontend works with them
-				long alignmentDurationMillis = metrics.getAlignmentDurationNanos() / 1_000_000;
-
-				SubtaskStateStats subtaskStateStats = new SubtaskStateStats(
-					subtaskIndex,
-					ackTimestamp,
-					stateSize,
-					metrics.getSyncDurationMillis(),
-					metrics.getAsyncDurationMillis(),
-					metrics.getBytesBufferedInAlignment(),
-					alignmentDurationMillis);
-
-				statsCallback.reportSubtaskStats(vertex.getJobvertexId(), subtaskStateStats);
+			JobVertexID vertexId = vertex.getJobvertexId();
+			VertexCheckpointTracker vertexTracker = vertexTrackers.get(vertexId);
+			if (vertexTracker != null) {
+				vertexTracker.collectTaskTrace(subtaskIndex, taskCheckpointTrace);
 			}
 
 			return TaskAcknowledgeResult.SUCCESS;
@@ -408,30 +423,18 @@ public class PendingCheckpoint {
 	 * Aborts a checkpoint because it expired (took too long).
 	 */
 	public void abortExpired() {
-		try {
-			Exception cause = new Exception("Checkpoint expired before completing");
-			onCompletionPromise.completeExceptionally(cause);
-			reportFailedCheckpoint(cause);
-		} finally {
-			dispose(true);
-		}
+		abortWithCause(new Exception("Checkpoint expired before completing"));
 	}
 
 	/**
 	 * Aborts the pending checkpoint because a newer completed checkpoint subsumed it.
 	 */
 	public void abortSubsumed() {
-		try {
-			Exception cause = new Exception("Checkpoints has been subsumed");
-			onCompletionPromise.completeExceptionally(cause);
-			reportFailedCheckpoint(cause);
-
-			if (props.forceCheckpoint()) {
-				throw new IllegalStateException("Bug: forced checkpoints must never be subsumed");
-			}
-		} finally {
-			dispose(true);
+		if (props.forceCheckpoint()) {
+			throw new IllegalStateException("Bug: forced checkpoints must never be subsumed");
 		}
+
+		abortWithCause(new Exception("Checkpoint has been subsumed"));
 	}
 
 
@@ -449,8 +452,10 @@ public class PendingCheckpoint {
 
 	private void abortWithCause(@Nonnull Exception cause) {
 		try {
+			checkpointStatus = CheckpointStatus.FAILED;
+			failure = ExceptionUtils.stringifyException(cause);
+			terminateTimestamp = System.currentTimeMillis();
 			onCompletionPromise.completeExceptionally(cause);
-			reportFailedCheckpoint(cause);
 		} finally {
 			dispose(true);
 		}
@@ -503,17 +508,31 @@ public class PendingCheckpoint {
 		}
 	}
 
-	/**
-	 * Reports a failed checkpoint with the given optional cause.
-	 *
-	 * @param cause The failure cause or <code>null</code>.
-	 */
-	private void reportFailedCheckpoint(Exception cause) {
-		// to prevent null-pointers from concurrent modification, copy reference onto stack
-		final PendingCheckpointStats statsCallback = this.statsCallback;
-		if (statsCallback != null) {
-			long failureTimestamp = System.currentTimeMillis();
-			statsCallback.reportFailedCheckpoint(failureTimestamp, cause);
+
+	CheckpointTrace getCheckpointTrace() {
+		synchronized (lock) {
+			long duration = terminateTimestamp > 0 ?
+				terminateTimestamp - checkpointTimestamp :
+				System.currentTimeMillis() - checkpointTimestamp;
+
+			Map<JobVertexID, VertexCheckpointTrace> vertexTraces = new HashMap<>();
+			for (Map.Entry<JobVertexID, VertexCheckpointTracker> vertexEntry : vertexTrackers.entrySet()) {
+				JobVertexID vertexId = vertexEntry.getKey();
+				VertexCheckpointTracker vertexTracker = vertexEntry.getValue();
+				VertexCheckpointTrace vertexTrace = vertexTracker.getVertexTrace();
+				vertexTraces.put(vertexId, vertexTrace);
+			}
+
+			return new CheckpointTrace(
+				checkpointId,
+				props.getCheckpointType(),
+				checkpointStatus,
+				checkpointTimestamp,
+				terminateTimestamp,
+				duration,
+				failure,
+				vertexTraces
+			);
 		}
 	}
 

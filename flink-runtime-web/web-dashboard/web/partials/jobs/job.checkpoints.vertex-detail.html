@@ -1,0 +1,53 @@
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+-->
+<div class="panel panel-default panel-dashboard">
+  <div class="panel-heading">Checkpoint {{checkpointId}} - {{vertexName}}</div>
+  <div class="panel-body">
+    <table md-table="md-table" class="table table-hover table-clickable">
+      <thead md-head="md-head" md-order="order">
+        <tr md-row="md-row">
+          <th md-column="md-column" md-order-by="index">ID</th>
+          <th md-column="md-column" md-order-by="startTime">Start Time</th>
+          <th md-column="md-column" md-order-by="endTime">End Time</th>
+          <th md-column="md-column" md-order-by="metrics.alignDuration">Align Time</th>
+          <th md-column="md-column" md-order-by="metrics.syncDuration">Sync Time</th>
+          <th md-column="md-column" md-order-by="metrics.asyncDuration">Async Time</th>
+          <th md-column="md-column" md-order-by="metrics.duration">Duration</th>
+          <th md-column="md-column" md-order-by="metrics.size">Size</th>
+        </tr>
+      </thead>
+      <tbody md-body="md-body">
+        <tr md-row="md-row" ng-repeat="task in tasks | orderBy: order | limitTo: limit: ((page - 1) * limit)">
+          <td md-cell="md-cell">{{task.index}}
+            <td md-cell="md-cell">{{task.startTime | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}</td>
+            <td md-cell="md-cell">{{task.endTime | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}</td>
+            <td md-cell="md-cell"><span ng-if="task.metrics.alignDuration &lt; 0">N/A</span><span ng-if="task.metrics.alignDuration &gt;= 0">{{task.metrics.alignDuration | humanizeDuration:true}}</span></td>
+            <td md-cell="md-cell"><span ng-if="task.metrics.syncDuration &lt; 0">N/A</span><span ng-if="task.metrics.syncDuration &gt;= 0">{{task.metrics.syncDuration | humanizeDuration:true}}</span></td>
+            <td md-cell="md-cell"><span ng-if="task.metrics.asyncDuration &lt; 0">N/A</span><span ng-if="task.metrics.asyncDuration &gt;= 0">{{task.metrics.asyncDuration | humanizeDuration:true}}</span></td>
+            <td md-cell="md-cell"><span ng-if="task.metrics.duration &lt; 0">N/A</span><span ng-if="task.metrics.duration &gt;= 0">{{task.metrics.duration | humanizeDuration:true}}</span></td>
+            <td md-cell="md-cell"><span ng-if="task.metrics.size &lt; 0">N/A</span><span ng-if="task.metrics.size &gt;= 0">{{task.metrics.size | humanizeBytes}}</span></td>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <md-table-pagination md-limit="limit" md-limit-options="[5, 10, 20]" md-page="page" md-total="{{tasks.length}}" md-page-select="md-page-select" class="bg-light"></md-table-pagination>
+  </div>
+</div>

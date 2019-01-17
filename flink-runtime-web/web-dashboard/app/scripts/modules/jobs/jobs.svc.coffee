@@ -65,13 +65,30 @@ angular.module('flinkApp')
 
     deferred.promise
 
-  # General checkpoint stats like counts, history, etc.
-  @getCheckpointStats = (jobId) ->
+  @loadCheckpoints = (jobId) ->
     deferred = $q.defer()
 
     $http.get flinkConfig.jobServer + "jobs/" + jobId + "/checkpoints"
-    .success (data, status, headers, config) =>
+    .success (data) ->
       deferred.resolve(data)
+
+    deferred.promise
+
+  @loadCheckpoint = (jobId, checkpointId) ->
+    deferred = $q.defer()
+
+    $http.get flinkConfig.jobServer + "jobs/" + jobId + "/checkpoints/" + checkpointId
+    .success (data) ->
+      deferred.resolve(data)
+
+    deferred.promise
+
+  @loadCheckpointVertex = (jobId, checkpointId, vertexId) ->
+    deferred = $q.defer()
+
+    $http.get flinkConfig.jobServer + "jobs/" + jobId + "/checkpoints/" + checkpointId + "/vertices/" + vertexId
+      .success (data) ->
+        deferred.resolve(data)
 
     deferred.promise
 
@@ -199,36 +216,6 @@ angular.module('flinkApp')
           subtaskAccumulators = data.subtasks
 
           deferred.resolve({ main: accumulators, subtasks: subtaskAccumulators })
-
-    deferred.promise
-
-  # Detailed checkpoint stats for a single checkpoint
-  @getCheckpointDetails = (checkpointid) ->
-    deferred = $q.defer()
-
-    deferreds.job.promise.then (data) =>
-      $http.get flinkConfig.jobServer + "jobs/" + currentJob.jid + "/checkpoints/details/" + checkpointid
-      .success (data) ->
-        # If no data available, we are done.
-        if (angular.equals({}, data))
-          deferred.resolve(null)
-        else
-          deferred.resolve(data)
-
-    deferred.promise
-
-  # Detailed subtask stats for a single checkpoint
-  @getCheckpointSubtaskDetails = (checkpointid, vertexid) ->
-    deferred = $q.defer()
-
-    deferreds.job.promise.then (data) =>
-      $http.get flinkConfig.jobServer + "jobs/" + currentJob.jid + "/checkpoints/details/" + checkpointid + "/subtasks/" + vertexid
-      .success (data) ->
-        # If no data available, we are done.
-        if (angular.equals({}, data))
-          deferred.resolve(null)
-        else
-          deferred.resolve(data)
 
     deferred.promise
 

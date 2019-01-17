@@ -21,8 +21,8 @@ package org.apache.flink.runtime.jobgraph.tasks;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTracker;
 import org.apache.flink.runtime.execution.Environment;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -216,11 +216,11 @@ public abstract class AbstractInvokable {
 	 *
 	 * @param checkpointMetaData Meta data for about this checkpoint
 	 * @param checkpointOptions Options for performing this checkpoint
-	 * @param checkpointMetrics Metrics about this checkpoint
+	 * @param checkpointTracker Tracker for this checkpoint
 	 *
 	 * @throws Exception Exceptions thrown as the result of triggering a checkpoint are forwarded.
 	 */
-	public void triggerCheckpointOnBarrier(CheckpointMetaData checkpointMetaData, CheckpointOptions checkpointOptions, CheckpointMetrics checkpointMetrics) throws Exception {
+	public void triggerCheckpointOnBarrier(CheckpointMetaData checkpointMetaData, CheckpointOptions checkpointOptions, TaskCheckpointTracker checkpointTracker) throws Exception {
 		throw new UnsupportedOperationException(String.format("triggerCheckpointOnBarrier not supported by %s", this.getClass().getName()));
 	}
 

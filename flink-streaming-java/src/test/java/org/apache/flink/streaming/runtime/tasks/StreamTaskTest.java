@@ -32,11 +32,11 @@ import org.apache.flink.runtime.blob.PermanentBlobCache;
 import org.apache.flink.runtime.blob.TransientBlobCache;
 import org.apache.flink.runtime.broadcast.BroadcastVariableManager;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
 import org.apache.flink.runtime.checkpoint.OperatorSubtaskState;
 import org.apache.flink.runtime.checkpoint.StateObjectCollection;
 import org.apache.flink.runtime.checkpoint.SubtaskState;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.clusterframework.types.AllocationID;
 import org.apache.flink.runtime.deployment.InputGateDeploymentDescriptor;
@@ -478,7 +478,7 @@ public class StreamTaskTest extends TestLogger {
 			any(JobID.class),
 			any(ExecutionAttemptID.class),
 			anyLong(),
-			any(CheckpointMetrics.class),
+			any(TaskCheckpointTrace.class),
 			any(TaskStateSnapshot.class));
 
 		TaskStateManager taskStateManager = new TaskStateManagerImpl(
@@ -538,7 +538,7 @@ public class StreamTaskTest extends TestLogger {
 			any(JobID.class),
 			any(ExecutionAttemptID.class),
 			eq(checkpointId),
-			any(CheckpointMetrics.class),
+			any(TaskCheckpointTrace.class),
 			subtaskStateCaptor.capture());
 
 		TaskStateSnapshot subtaskStates = subtaskStateCaptor.getValue();
@@ -650,7 +650,7 @@ public class StreamTaskTest extends TestLogger {
 		}
 
 		// check that the checkpoint has not been acknowledged
-		verify(mockEnvironment, never()).acknowledgeCheckpoint(eq(checkpointId), any(CheckpointMetrics.class), any(TaskStateSnapshot.class));
+		verify(mockEnvironment, never()).acknowledgeCheckpoint(eq(checkpointId), any(TaskCheckpointTrace.class), any(TaskStateSnapshot.class));
 
 		// check that the state handles have been discarded
 		verify(managedKeyedStateHandle).discardState();
@@ -689,7 +689,7 @@ public class StreamTaskTest extends TestLogger {
 			any(JobID.class),
 			any(ExecutionAttemptID.class),
 			anyLong(),
-			any(CheckpointMetrics.class),
+			any(TaskCheckpointTrace.class),
 			nullable(TaskStateSnapshot.class));
 
 		TaskStateManager taskStateManager = new TaskStateManagerImpl(

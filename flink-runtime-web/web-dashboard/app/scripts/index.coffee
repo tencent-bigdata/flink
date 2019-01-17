@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-angular.module('flinkApp', ['ui.router', 'angularMoment', 'dndLists', 'ngMaterial', 'md.data.table'])
+angular.module('flinkApp', ['ui.router', 'angularMoment', 'dndLists', 'ngMaterial', 'md.data.table', 'chart.js'])
 
 # --------------------------------------
 
@@ -119,39 +119,46 @@ angular.module('flinkApp', ['ui.router', 'angularMoment', 'dndLists', 'ngMateria
 
   .state "single-job.checkpoints",
     url: "/checkpoints"
-    redirectTo: "single-job.checkpoints.overview"
+    redirectTo: "single-job.checkpoints.main.overview"
     views:
       details:
         templateUrl: "partials/jobs/job.checkpoints.html"
         controller: 'JobCheckpointsController'
 
-  .state "single-job.checkpoints.overview",
+  .state "single-job.checkpoints.main",
+    url: ""
+    redirectTo: "single-job.checkpoints.main.overview"
+    views:
+      'checkpoints':
+        templateUrl: "partials/jobs/job.checkpoints.main.html"
+
+  .state "single-job.checkpoints.main.config",
+    url: ""
+    views:
+      'node-details':
+        templateUrl: "partials/jobs/job.checkpoints.config.html"
+        controller: 'JobCheckpointsConfigController'
+
+  .state "single-job.checkpoints.main.overview",
     url: ""
     views:
       'node-details':
         templateUrl: "partials/jobs/job.checkpoints.overview.html"
         controller: 'JobCheckpointsOverviewController'
 
-  .state "single-job.checkpoints.history",
-    url: ""
+  .state "single-job.checkpoints.checkpoint-detail",
+    url: "/{checkpointid}"
     views:
-      'node-details':
-        templateUrl: "partials/jobs/job.checkpoints.history.html"
-        controller: 'JobCheckpointsHistoryController'
+      'checkpoints':
+        templateUrl: "partials/jobs/job.checkpoints.checkpoint-detail.html"
+        controller: 'JobCheckpointsCheckpointDetailController'
 
-  .state "single-job.checkpoints.summary",
-    url: ""
+  .state "single-job.checkpoints.vertex-detail",
+    url: "/{checkpointid}/vertices/{vertexid}"
     views:
-      'node-details':
-        templateUrl: "partials/jobs/job.checkpoints.summary.html"
-        controller: 'JobCheckpointsSummaryController'
-
-  .state "single-job.checkpoints.config",
-    url: ""
-    views:
-      'node-details':
-        templateUrl: "partials/jobs/job.checkpoints.config.html"
-        controller: 'JobCheckpointsConfigController'
+      'checkpoints':
+        templateUrl: "partials/jobs/job.checkpoints.vertex-detail.html"
+        controller: 'JobCheckpointsVertexDetailController'
 
   .state "single-job.exceptions",
     url: "/exceptions"

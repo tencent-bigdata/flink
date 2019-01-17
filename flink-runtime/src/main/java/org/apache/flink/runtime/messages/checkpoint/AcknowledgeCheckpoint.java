@@ -20,9 +20,11 @@ package org.apache.flink.runtime.messages.checkpoint;
 
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.JobID;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
+
+import java.util.Objects;
 
 /**
  * This message is sent from the {@link org.apache.flink.runtime.taskmanager.TaskManager} to the
@@ -38,7 +40,7 @@ public class AcknowledgeCheckpoint extends AbstractCheckpointMessage implements 
 
 	private final TaskStateSnapshot subtaskState;
 
-	private final CheckpointMetrics checkpointMetrics;
+	private final TaskCheckpointTrace taskCheckpointTrace;
 
 	// ------------------------------------------------------------------------
 
@@ -46,18 +48,18 @@ public class AcknowledgeCheckpoint extends AbstractCheckpointMessage implements 
 			JobID job,
 			ExecutionAttemptID taskExecutionId,
 			long checkpointId,
-			CheckpointMetrics checkpointMetrics,
+			TaskCheckpointTrace taskCheckpointTrace,
 			TaskStateSnapshot subtaskState) {
 
 		super(job, taskExecutionId, checkpointId);
 
 		this.subtaskState = subtaskState;
-		this.checkpointMetrics = checkpointMetrics;
+		this.taskCheckpointTrace = taskCheckpointTrace;
 	}
 
 	@VisibleForTesting
 	public AcknowledgeCheckpoint(JobID jobId, ExecutionAttemptID taskExecutionId, long checkpointId) {
-		this(jobId, taskExecutionId, checkpointId, new CheckpointMetrics(), null);
+		this(jobId, taskExecutionId, checkpointId, new TaskCheckpointTrace(), null);
 	}
 
 	// ------------------------------------------------------------------------
@@ -68,8 +70,8 @@ public class AcknowledgeCheckpoint extends AbstractCheckpointMessage implements 
 		return subtaskState;
 	}
 
-	public CheckpointMetrics getCheckpointMetrics() {
-		return checkpointMetrics;
+	public TaskCheckpointTrace getTaskCheckpointTrace() {
+		return taskCheckpointTrace;
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -87,8 +89,7 @@ public class AcknowledgeCheckpoint extends AbstractCheckpointMessage implements 
 		}
 
 		AcknowledgeCheckpoint that = (AcknowledgeCheckpoint) o;
-		return subtaskState != null ?
-				subtaskState.equals(that.subtaskState) : that.subtaskState == null;
+		return Objects.equals(subtaskState, that.subtaskState);
 
 	}
 

@@ -17,33 +17,90 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 -->
-<div>
-  <table class="table checkpoint-overview">
-    <thead>
-      <tr>
-        <td><strong>Checkpoint Counts</strong></td>
-        <td>Triggered: {{ checkpointStats['counts']['total'] }}<span>In Progress: {{ checkpointStats['counts']['in_progress'] }}</span><span>Completed: {{ checkpointStats['counts']['completed'] }}</span><span>Failed: {{ checkpointStats['counts']['failed'] }}</span><span>Restored: {{ checkpointStats['counts']['restored'] }}</span></td>
-      </tr>
-      <tr>
-        <td><strong>Latest Completed Checkpoint</strong></td>
-        <td ng-if="checkpointStats['latest']['completed']">ID: {{ checkpointStats['latest']['completed']['id'] }}<span>Completion Time: {{ checkpointStats['latest']['completed']['latest_ack_timestamp'] | amDateFormat:'H:mm:ss' }}</span><span>End to End Duration: {{ checkpointStats['latest']['completed']['end_to_end_duration'] | humanizeDuration }}</span><span>State Size: {{ checkpointStats['latest']['completed']['state_size'] | humanizeBytes }}</span><span><i aria-hidden="true" class="fa fa-caret-square-o-right"></i> <a ui-sref="^.details({checkpointId: checkpointStats['latest']['completed']['id']})">More details</a></span></td>
-        <td ng-if="!checkpointStats['latest']['completed']">None</td>
-      </tr>
-      <tr>
-        <td><strong>Latest Failed Checkpoint</strong></td>
-        <td ng-if="checkpointStats['latest']['failed']">ID: {{ checkpointStats['latest']['failed']['id'] }}<span>Failure Time: {{ checkpointStats['latest']['failed']['failure_timestamp'] | amDateFormat:'H:mm:ss' }}</span><span ng-if="checkpointStats['latest']['failed']['failure_message']">Cause: {{ checkpointStats['latest']['failed']['failure_message'] }}</span><span ng-if="!checkpointStats['latest']['failed']['failure_message']">Cause: n/a</span><span><i aria-hidden="true" class="fa fa-caret-square-o-right"></i> <a ui-sref="^.details({checkpointId: checkpointStats['latest']['failed']['id']})">More details</a></span></td>
-        <td ng-if="!checkpointStats['latest']['failed']">None</td>
-      </tr>
-      <tr>
-        <td><strong>Latest Savepoint</strong></td>
-        <td ng-if="checkpointStats['latest']['savepoint']">ID: {{ checkpointStats['latest']['savepoint']['id'] }}<span>Completion Time: {{ checkpointStats['latest']['savepoint']['latest_ack_timestamp'] | amDateFormat:'H:mm:ss' }}</span><span>State Size: {{ checkpointStats['latest']['savepoint']['state_size'] | humanizeBytes }}</span><span>Path: {{ checkpointStats['latest']['savepoint']['external_path'] }}</span><span><i aria-hidden="true" class="fa fa-caret-square-o-right"></i> <a ui-sref="^.details({checkpointId: checkpointStats['latest']['savepoint']['id']})">More details</a></span></td>
-        <td ng-if="!checkpointStats['latest']['savepoint']">None</td>
-      </tr>
-      <tr>
-        <td><strong>Latest Restore</strong></td>
-        <td ng-if="checkpointStats['latest']['restored']">ID: {{ checkpointStats['latest']['restored']['id'] }}<span>Restore Time: {{ checkpointStats['latest']['restored']['restore_timestamp'] | amDateFormat:'H:mm:ss' }}</span><span ng-if="checkpointStats['latest']['restored']['is_savepoint']">Type: Savepoint</span><span ng-if="!checkpointStats['latest']['restored']['is_savepoint']">Type: Checkpoint</span><span ng-if="checkpointStats['latest']['restored']['external_path']">Path: {{ checkpointStats['latest']['restored']['external_path'] }}</span></td>
-        <td ng-if="!checkpointStats['latest']['restored']">None</td>
-      </tr>
-    </thead>
-  </table>
+<div class="row">
+  <div class="col-md-6">
+    <div class="panel panel-default panel-lg">
+      <div class="panel-heading">
+        <div class="huge">Checkpoints</div>
+        <canvas id="checkpointsOverview" chart-data="checkpointCounts" chart-labels="checkpointLabels" chart-colors="checkpointColors" chart-options="chartOptions" class="chart chart-doughnut"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="panel panel-default panel-lg">
+      <div class="panel-heading">
+        <div class="huge">Last Completed Checkpoint</div>
+      </div>
+      <div class="list-group">
+        <div class="list-group-item">
+          <div class="row">
+            <div class="col-xs-6">Start Time</div>
+            <div class="col-xs-6">
+              <div class="text-right"><span ng-if="lastCompletedCheckpoint">{{ lastCompletedCheckpoint.startTime | amDateFormat:'YYYY-MM-DD, H:mm:ss' }}</span><span ng-if="!lastCompletedCheckpoint">N/A</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="list-group-item">
+          <div class="row">
+            <div class="col-xs-6">End Time</div>
+            <div class="col-xs-6">
+              <div class="text-right"><span ng-if="lastCompletedCheckpoint">{{ lastCompletedCheckpoint.endTime | amDateFormat:'YYYY-MM-DD, H:mm:ss' }}</span><span ng-if="!lastCompletedCheckpoint">N/A</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="list-group-item">
+          <div class="row">
+            <div class="col-xs-6">Duration</div>
+            <div class="col-xs-6">
+              <div class="text-right"><span ng-if="lastCompletedCheckpoint">{{ lastCompletedCheckpoint.duration | humanizeDuration:true }}</span><span ng-if="!lastCompletedCheckpoint">N/A</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="list-group-item">
+          <div class="row">
+            <div class="col-xs-6">Size</div>
+            <div class="col-xs-6">
+              <div class="text-right"><span ng-if="lastCompletedCheckpoint">{{ lastCompletedCheckpoint.size | humanizeBytes }}</span><span ng-if="!lastCompletedCheckpoint">N/A</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="panel panel-default panel-dashboard">
+  <div class="panel-heading">Checkpoint Details</div>
+  <div class="panel-body">
+    <table md-table="md-table" class="table table-hover table-clickable">
+      <thead md-head="md-head" md-order="order">
+        <tr md-row="md-row">
+          <th md-column="md-column" md-order-by="id">ID</th>
+          <th md-column="md-column" md-order-by="startTime">Start Time</th>
+          <th md-column="md-column" md-order-by="endTime">End Time</th>
+          <th md-column="md-column" md-order-by="numTasks">Total Tasks</th>
+          <th md-column="md-column" md-order-by="numAcknowledgedTasks">Ack Tasks</th>
+          <th md-column="md-column" md-order-by="duration">Duration</th>
+          <th md-column="md-column" md-order-by="size">Size</th>
+          <th md-column="md-column" md-order-by="status">Status</th>
+        </tr>
+      </thead>
+      <tbody md-body="md-body">
+        <tr md-row="md-row" ng-repeat="checkpoint in checkpoints | orderBy: order | limitTo: limit: ((page - 1) * limit)" ui-sref="single-job.checkpoints.checkpoint-detail({ jobid: id, checkpointid: checkpoint.id})">
+          <td md-cell="md-cell">
+            <div class="md-caption">{{checkpoint.id}}</div>
+          </td>
+          <td md-cell="md-cell">{{checkpoint.startTime | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}</td>
+          <td md-cell="md-cell"><span ng-if="checkpoint.endTime &gt;= 0">{{checkpoint.endTime | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}</span><span ng-if="checkpoint.endTime &lt; 0">N/A</span></td>
+          <td md-cell="md-cell">{{checkpoint.numTasks}}</td>
+          <td md-cell="md-cell">{{checkpoint.numAcknowledgedTasks}}</td>
+          <td md-cell="md-cell" title="{{checkpoint.duration | humanizeDuration:false}}">{{checkpoint.duration | humanizeDuration:true}}</td>
+          <td md-cell="md-cell">{{checkpoint.size}}</td>
+          <td md-cell="md-cell">
+            <bs-label status="{{checkpoint.status}}">{{checkpoint.status}}</bs-label>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <md-table-pagination md-limit="limit" md-limit-options="[5, 10, 20]" md-page="page" md-total="{{checkpoints.length}}" md-page-select="md-page-select" class="bg-light"></md-table-pagination>
+  </div>
 </div>

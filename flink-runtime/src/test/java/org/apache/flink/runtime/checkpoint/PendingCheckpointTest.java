@@ -48,7 +48,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -67,15 +69,18 @@ public class PendingCheckpointTest {
 
 	private static final Map<ExecutionAttemptID, ExecutionVertex> ACK_TASKS = new HashMap<>();
 	private static final ExecutionAttemptID ATTEMPT_ID = new ExecutionAttemptID();
+	private static final JobVertexID VERTEX_ID = new JobVertexID();
 
 	static {
 		ExecutionJobVertex jobVertex = mock(ExecutionJobVertex.class);
 		when(jobVertex.getOperatorIDs()).thenReturn(Collections.singletonList(new OperatorID()));
+		when(jobVertex.getJobVertexId()).thenReturn(VERTEX_ID);
 
 		ExecutionVertex vertex = mock(ExecutionVertex.class);
 		when(vertex.getMaxParallelism()).thenReturn(128);
 		when(vertex.getTotalNumberOfParallelSubtasks()).thenReturn(1);
 		when(vertex.getJobVertex()).thenReturn(jobVertex);
+		when(vertex.getJobvertexId()).thenReturn(VERTEX_ID);
 		ACK_TASKS.put(ATTEMPT_ID, vertex);
 	}
 
@@ -142,7 +147,7 @@ public class PendingCheckpointTest {
 		future = pending.getCompletionFuture();
 
 		assertFalse(future.isDone());
-		pending.acknowledgeTask(ATTEMPT_ID, null, new CheckpointMetrics());
+		pending.acknowledgeTask(ATTEMPT_ID, null, new TaskCheckpointTrace());
 		assertTrue(pending.isFullyAcknowledged());
 		pending.finalizeCheckpoint();
 		assertTrue(future.isDone());
@@ -216,67 +221,53 @@ public class PendingCheckpointTest {
 	}
 
 	/**
-	 * Tests that the stats callbacks happen if the callback is registered.
+	 * Tests that task traces are correctly collected.
 	 */
 	@Test
-	public void testPendingCheckpointStatsCallbacks() throws Exception {
-		{
-			// Complete successfully
-			PendingCheckpointStats callback = mock(PendingCheckpointStats.class);
-			PendingCheckpoint pending = createPendingCheckpoint(
-					CheckpointProperties.forCheckpoint(CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION));
-			pending.setStatsCallback(callback);
+	public void testCollectTaskTrace() throws Exception {
+		PendingCheckpoint checkpoint = createPendingCheckpoint(
+			CheckpointProperties.forCheckpoint(CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION));
+		Map<JobVertexID, VertexCheckpointTracker> vertexTrackers = checkpoint.getVertexTrackers();
+		assertNotNull(vertexTrackers);
 
-			pending.acknowledgeTask(ATTEMPT_ID, null, new CheckpointMetrics());
-			verify(callback, times(1)).reportSubtaskStats(nullable(JobVertexID.class), any(SubtaskStateStats.class));
+		VertexCheckpointTracker vertexTracker = vertexTrackers.get(VERTEX_ID);
+		assertNotNull(vertexTracker);
+		assertEquals(1, vertexTracker.getNumTasks());
+		assertEquals(0, vertexTracker.getNumAcknowledgedTasks());
 
-			pending.finalizeCheckpoint();
-			verify(callback, times(1)).reportCompletedCheckpoint(any(String.class));
-		}
+		checkpoint.acknowledgeTask(ATTEMPT_ID, null, new TaskCheckpointTrace());
 
-		{
-			// Fail subsumed
-			PendingCheckpointStats callback = mock(PendingCheckpointStats.class);
-			PendingCheckpoint pending = createPendingCheckpoint(
-					CheckpointProperties.forCheckpoint(CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION));
-			pending.setStatsCallback(callback);
+		vertexTrackers = checkpoint.getVertexTrackers();
+		vertexTracker = vertexTrackers.get(VERTEX_ID);
+		assertEquals(1, vertexTracker.getNumTasks());
+		assertEquals(1, vertexTracker.getNumAcknowledgedTasks());
+	}
 
-			pending.abortSubsumed();
-			verify(callback, times(1)).reportFailedCheckpoint(anyLong(), any(Exception.class));
-		}
+	@Test
+	public void testCompleteCheckpoint() throws Exception {
+		PendingCheckpoint checkpoint = createPendingCheckpoint(
+			CheckpointProperties.forCheckpoint(CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION));
+		assertEquals(CheckpointStatus.PENDING, checkpoint.getCheckpointStatus());
+		assertEquals(-1, checkpoint.getTerminateTimestamp());
 
-		{
-			// Fail subsumed
-			PendingCheckpointStats callback = mock(PendingCheckpointStats.class);
-			PendingCheckpoint pending = createPendingCheckpoint(
-					CheckpointProperties.forCheckpoint(CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION));
-			pending.setStatsCallback(callback);
+		checkpoint.acknowledgeTask(ATTEMPT_ID, null, new TaskCheckpointTrace());
+		assertTrue(checkpoint.isFullyAcknowledged());
 
-			pending.abortDeclined();
-			verify(callback, times(1)).reportFailedCheckpoint(anyLong(), any(Exception.class));
-		}
+		checkpoint.complete();
+		assertEquals(CheckpointStatus.COMPLETED, checkpoint.getCheckpointStatus());
+	}
 
-		{
-			// Fail subsumed
-			PendingCheckpointStats callback = mock(PendingCheckpointStats.class);
-			PendingCheckpoint pending = createPendingCheckpoint(
-					CheckpointProperties.forCheckpoint(CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION));
-			pending.setStatsCallback(callback);
+	@Test
+	public void testAbortCheckpoint() throws Exception {
+		PendingCheckpoint checkpoint = createPendingCheckpoint(
+			CheckpointProperties.forCheckpoint(CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION));
+		assertEquals(CheckpointStatus.PENDING, checkpoint.getCheckpointStatus());
+		assertEquals(-1, checkpoint.getTerminateTimestamp());
 
-			pending.abortError(new Exception("Expected test error"));
-			verify(callback, times(1)).reportFailedCheckpoint(anyLong(), any(Exception.class));
-		}
-
-		{
-			// Fail subsumed
-			PendingCheckpointStats callback = mock(PendingCheckpointStats.class);
-			PendingCheckpoint pending = createPendingCheckpoint(
-					CheckpointProperties.forCheckpoint(CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION));
-			pending.setStatsCallback(callback);
-
-			pending.abortExpired();
-			verify(callback, times(1)).reportFailedCheckpoint(anyLong(), any(Exception.class));
-		}
+		checkpoint.abortDeclined();
+		assertEquals(CheckpointStatus.FAILED, checkpoint.getCheckpointStatus());
+		assertNotNull(checkpoint.getFailure());
+		assertTrue(checkpoint.getTerminateTimestamp() > 0);
 	}
 
 	/**
@@ -289,7 +280,7 @@ public class PendingCheckpointTest {
 	public void testNullSubtaskStateLeadsToStatelessTask() throws Exception {
 		PendingCheckpoint pending = createPendingCheckpoint(
 				CheckpointProperties.forCheckpoint(CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION));
-		pending.acknowledgeTask(ATTEMPT_ID, null, mock(CheckpointMetrics.class));
+		pending.acknowledgeTask(ATTEMPT_ID, null, mock(TaskCheckpointTrace.class));
 		Assert.assertTrue(pending.getOperatorStates().isEmpty());
 	}
 
@@ -303,7 +294,7 @@ public class PendingCheckpointTest {
 	public void testNonNullSubtaskStateLeadsToStatefulTask() throws Exception {
 		PendingCheckpoint pending = createPendingCheckpoint(
 				CheckpointProperties.forCheckpoint(CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION));
-		pending.acknowledgeTask(ATTEMPT_ID, mock(TaskStateSnapshot.class), mock(CheckpointMetrics.class));
+		pending.acknowledgeTask(ATTEMPT_ID, mock(TaskStateSnapshot.class), mock(TaskCheckpointTrace.class));
 		Assert.assertFalse(pending.getOperatorStates().isEmpty());
 	}
 

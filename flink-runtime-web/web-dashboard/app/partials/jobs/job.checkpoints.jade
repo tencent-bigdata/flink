@@ -15,19 +15,4 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-.panel.panel-default.panel-multi
-  nav.navbar.navbar-default.navbar-secondary-additional
-    ul.nav.nav-tabs
-      li(ui-sref-active='active')
-        a(ui-sref=".overview") Overview
-
-      li(ui-sref-active='active')
-        a(ui-sref=".history") History
-
-      li(ui-sref-active='active')
-        a(ui-sref=".summary") Summary
-
-      li(ui-sref-active='active')
-        a(ui-sref=".config") Configuration
-
-  .panel-body.clean#node-details(ui-view="node-details")
+#checkpoints(ui-view="checkpoints")

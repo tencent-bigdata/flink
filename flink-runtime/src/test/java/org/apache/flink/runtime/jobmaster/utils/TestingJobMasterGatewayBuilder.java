@@ -23,7 +23,7 @@ import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.api.java.tuple.Tuple5;
 import org.apache.flink.api.java.tuple.Tuple6;
 import org.apache.flink.queryablestate.KvStateID;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.clusterframework.types.AllocationID;
 import org.apache.flink.runtime.clusterframework.types.ResourceID;
@@ -95,7 +95,7 @@ public class TestingJobMasterGatewayBuilder {
 	private BiFunction<String, Boolean, CompletableFuture<String>> triggerSavepointFunction = (targetDirectory, ignoredB) -> CompletableFuture.completedFuture(targetDirectory != null ? targetDirectory : UUID.randomUUID().toString());
 	private Function<JobVertexID, CompletableFuture<OperatorBackPressureStatsResponse>> requestOperatorBackPressureStatsFunction = ignored -> CompletableFuture.completedFuture(OperatorBackPressureStatsResponse.of(null));
 	private BiConsumer<AllocationID, Throwable> notifyAllocationFailureConsumer = (ignoredA, ignoredB) -> {};
-	private Consumer<Tuple5<JobID, ExecutionAttemptID, Long, CheckpointMetrics, TaskStateSnapshot>> acknowledgeCheckpointConsumer = ignored -> {};
+	private Consumer<Tuple5<JobID, ExecutionAttemptID, Long, TaskCheckpointTrace, TaskStateSnapshot>> acknowledgeCheckpointConsumer = ignored -> {};
 	private Consumer<DeclineCheckpoint> declineCheckpointConsumer = ignored -> {};
 	private Supplier<JobMasterId> fencingTokenSupplier = () -> JOB_MASTER_ID;
 	private BiFunction<JobID, String, CompletableFuture<KvStateLocation>> requestKvStateLocationFunction = (ignoredA, registrationName) -> FutureUtils.completedExceptionally(new UnknownKvStateLocation(registrationName));
@@ -217,7 +217,7 @@ public class TestingJobMasterGatewayBuilder {
 		return this;
 	}
 
-	public TestingJobMasterGatewayBuilder setAcknowledgeCheckpointConsumer(Consumer<Tuple5<JobID, ExecutionAttemptID, Long, CheckpointMetrics, TaskStateSnapshot>> acknowledgeCheckpointConsumer) {
+	public TestingJobMasterGatewayBuilder setAcknowledgeCheckpointConsumer(Consumer<Tuple5<JobID, ExecutionAttemptID, Long, TaskCheckpointTrace, TaskStateSnapshot>> acknowledgeCheckpointConsumer) {
 		this.acknowledgeCheckpointConsumer = acknowledgeCheckpointConsumer;
 		return this;
 	}

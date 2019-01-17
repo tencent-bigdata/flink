@@ -25,7 +25,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.accumulators.AccumulatorRegistry;
 import org.apache.flink.runtime.broadcast.BroadcastVariableManager;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
@@ -167,9 +167,9 @@ public interface Environment {
 	 * any state in the checkpoint.
 	 * 
 	 * @param checkpointId ID of this checkpoint
-	 * @param checkpointMetrics metrics for this checkpoint
+	 * @param checkpointTrace trace for this checkpoint
 	 */
-	void acknowledgeCheckpoint(long checkpointId, CheckpointMetrics checkpointMetrics);
+	void acknowledgeCheckpoint(long checkpointId, TaskCheckpointTrace checkpointTrace);
 
 	/**
 	 * Confirms that the invokable has successfully completed all required steps for
@@ -177,10 +177,10 @@ public interface Environment {
 	 * the given state in the checkpoint.
 	 *
 	 * @param checkpointId ID of this checkpoint
-	 * @param checkpointMetrics metrics for this checkpoint
+	 * @param checkpointTrace trace for this checkpoint
 	 * @param subtaskState All state handles for the checkpointed state
 	 */
-	void acknowledgeCheckpoint(long checkpointId, CheckpointMetrics checkpointMetrics, TaskStateSnapshot subtaskState);
+	void acknowledgeCheckpoint(long checkpointId, TaskCheckpointTrace checkpointTrace, TaskStateSnapshot subtaskState);
 
 	/**
 	 * Declines a checkpoint. This tells the checkpoint coordinator that this task will

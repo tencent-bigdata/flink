@@ -35,12 +35,12 @@ limitations under the License.
 <!--    tbody(ng-if="checkpointStats['checkpoints'] && checkpointStats['checkpoints'].length > 0")-->
 <!--      tr(ng-repeat="checkpoint in checkpointStats['checkpoints']" ng-class="{'bg-warning': checkpoint['status'] == 'FAILED'}")-->
 <!--        td {{ checkpoint['id'] }}-->
-<!--        td(ng-if="checkpoint['status'] == 'IN_PROGRESS'") #[i(aria-hidden="true").fa.fa-circle-o-notch.fa-spin.fa-fw] In Progress-->
+<!--        td(ng-if="checkpoint['status'] == 'PENDING'") #[i(aria-hidden="true").fa.fa-circle-o-notch.fa-spin.fa-fw] In Progress-->
 <!--        td(ng-if="checkpoint['status'] == 'COMPLETED'") #[i(aria-hidden="true").fa.fa-check]-->
 <!--        td(ng-if="checkpoint['status'] == 'FAILED'") #[i(aria-hidden="true").fa.fa-remove] Failed-->
 <!--        td {{ checkpoint['subtasks']['acknowledged'] }}/{{ checkpoint['subtasks']['count'] }}-->
 <!--          = ' '-->
-<!--          span(ng-if="checkpoint['status'] == 'IN_PROGRESS'") ({{ checkpoint['subtasks']['acknowledged']/checkpoint['subtasks']['count'] | percentage }})-->
+<!--          span(ng-if="checkpoint['status'] == 'PENDING'") ({{ checkpoint['subtasks']['acknowledged']/checkpoint['subtasks']['count'] | percentage }})-->
 <!--        td {{ checkpoint['trigger_timestamp'] | amDateFormat:'H:mm:ss' }}-->
 <!--        td {{ checkpoint['latest_ack_timestamp'] | amDateFormat:'H:mm:ss' }}-->
 <!--        td {{ checkpoint['duration'] | humanizeDuration }}-->

@@ -69,11 +69,11 @@ public interface CheckpointBarrierHandler {
 	boolean isEmpty();
 
 	/**
-	 * Gets the time that the latest alignment took, in nanoseconds.
+	 * Gets the time that the latest alignment took, in milliseconds.
 	 * If there is currently an alignment in progress, it will return the time spent in the
 	 * current alignment so far.
 	 *
-	 * @return The duration in nanoseconds
+	 * @return The duration in milliseconds.
 	 */
-	long getAlignmentDurationNanos();
+	long getAlignmentDuration();
 }

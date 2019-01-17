@@ -24,8 +24,8 @@ import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.core.fs.CloseableRegistry;
 import org.apache.flink.core.fs.FileSystemSafetyNet;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTracker;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.execution.CancelTaskException;
 import org.apache.flink.runtime.execution.Environment;
@@ -557,13 +557,13 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	public boolean triggerCheckpoint(CheckpointMetaData checkpointMetaData, CheckpointOptions checkpointOptions) throws Exception {
 		try {
 			// No alignment if we inject a checkpoint
-			CheckpointMetrics checkpointMetrics = new CheckpointMetrics()
-					.setBytesBufferedInAlignment(0L)
-					.setAlignmentDurationNanos(0L);
+			long now = System.currentTimeMillis();
+			TaskCheckpointTracker checkpointTracker = new TaskCheckpointTracker()
+				.setAlignStartInstant(now)
+				.setAlignEndInstant(now);
 
-			return performCheckpoint(checkpointMetaData, checkpointOptions, checkpointMetrics);
-		}
-		catch (Exception e) {
+			return performCheckpoint(checkpointMetaData, checkpointOptions, checkpointTracker);
+		} catch (Exception e) {
 			// propagate exceptions only if the task is still in "running" state
 			if (isRunning) {
 				throw new Exception("Could not perform checkpoint " + checkpointMetaData.getCheckpointId() +
@@ -578,19 +578,18 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 
 	@Override
 	public void triggerCheckpointOnBarrier(
-			CheckpointMetaData checkpointMetaData,
-			CheckpointOptions checkpointOptions,
-			CheckpointMetrics checkpointMetrics) throws Exception {
+		CheckpointMetaData checkpointMetaData,
+		CheckpointOptions checkpointOptions,
+		TaskCheckpointTracker checkpointTracker
+	) throws Exception {
 
 		try {
-			performCheckpoint(checkpointMetaData, checkpointOptions, checkpointMetrics);
-		}
-		catch (CancelTaskException e) {
+			performCheckpoint(checkpointMetaData, checkpointOptions, checkpointTracker);
+		} catch (CancelTaskException e) {
 			LOG.info("Operator {} was cancelled while performing checkpoint {}.",
 					getName(), checkpointMetaData.getCheckpointId());
 			throw e;
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			throw new Exception("Could not perform checkpoint " + checkpointMetaData.getCheckpointId() + " for operator " +
 				getName() + '.', e);
 		}
@@ -610,9 +609,10 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	}
 
 	private boolean performCheckpoint(
-			CheckpointMetaData checkpointMetaData,
-			CheckpointOptions checkpointOptions,
-			CheckpointMetrics checkpointMetrics) throws Exception {
+		CheckpointMetaData checkpointMetaData,
+		CheckpointOptions checkpointOptions,
+		TaskCheckpointTracker checkpointTracker
+	) throws Exception {
 
 		LOG.debug("Starting checkpoint ({}) {} on task {}",
 			checkpointMetaData.getCheckpointId(), checkpointOptions.getCheckpointType(), getName());
@@ -638,7 +638,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 
 				// Step (3): Take the state snapshot. This should be largely asynchronous, to not
 				//           impact progress of the streaming topology
-				checkpointState(checkpointMetaData, checkpointOptions, checkpointMetrics);
+				checkpointState(checkpointMetaData, checkpointOptions, checkpointTracker);
 				return true;
 			}
 			else {
@@ -711,20 +711,23 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	}
 
 	private void checkpointState(
-			CheckpointMetaData checkpointMetaData,
-			CheckpointOptions checkpointOptions,
-			CheckpointMetrics checkpointMetrics) throws Exception {
+		CheckpointMetaData checkpointMetaData,
+		CheckpointOptions checkpointOptions,
+		TaskCheckpointTracker checkpointTracker
+	) throws Exception {
 
 		CheckpointStreamFactory storage = checkpointStorage.resolveCheckpointStorageLocation(
 				checkpointMetaData.getCheckpointId(),
 				checkpointOptions.getTargetLocation());
 
-		CheckpointingOperation checkpointingOperation = new CheckpointingOperation(
-			this,
-			checkpointMetaData,
-			checkpointOptions,
-			storage,
-			checkpointMetrics);
+		CheckpointingOperation checkpointingOperation =
+			new CheckpointingOperation(
+				this,
+				checkpointMetaData,
+				checkpointOptions,
+				storage,
+				checkpointTracker
+			);
 
 		checkpointingOperation.executeCheckpointing();
 	}
@@ -812,9 +815,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 		private final Map<OperatorID, OperatorSnapshotFutures> operatorSnapshotsInProgress;
 
 		private final CheckpointMetaData checkpointMetaData;
-		private final CheckpointMetrics checkpointMetrics;
-
-		private final long asyncStartNanos;
+		private final TaskCheckpointTracker checkpointTracker;
 
 		private final AtomicReference<CheckpointingOperation.AsyncCheckpointState> asyncCheckpointState = new AtomicReference<>(
 			CheckpointingOperation.AsyncCheckpointState.RUNNING);
@@ -823,18 +824,19 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 			StreamTask<?, ?> owner,
 			Map<OperatorID, OperatorSnapshotFutures> operatorSnapshotsInProgress,
 			CheckpointMetaData checkpointMetaData,
-			CheckpointMetrics checkpointMetrics,
-			long asyncStartNanos) {
+			TaskCheckpointTracker checkpointTracker
+		) {
 
 			this.owner = Preconditions.checkNotNull(owner);
 			this.operatorSnapshotsInProgress = Preconditions.checkNotNull(operatorSnapshotsInProgress);
 			this.checkpointMetaData = Preconditions.checkNotNull(checkpointMetaData);
-			this.checkpointMetrics = Preconditions.checkNotNull(checkpointMetrics);
-			this.asyncStartNanos = asyncStartNanos;
+			this.checkpointTracker = Preconditions.checkNotNull(checkpointTracker);
 		}
 
 		@Override
 		public void run() {
+			checkpointTracker.setAsyncStartInstant(System.currentTimeMillis());
+
 			FileSystemSafetyNet.initializeSafetyNetForThread();
 			try {
 
@@ -862,18 +864,16 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 						finalizedSnapshots.getTaskLocalState());
 				}
 
-				final long asyncEndNanos = System.nanoTime();
-				final long asyncDurationMillis = (asyncEndNanos - asyncStartNanos) / 1_000_000L;
-
-				checkpointMetrics.setAsyncDurationMillis(asyncDurationMillis);
+				checkpointTracker.setAsyncEndInstant(System.currentTimeMillis());
+				checkpointTracker.setSize(jobManagerTaskOperatorSubtaskStates.getStateSize());
 
 				if (asyncCheckpointState.compareAndSet(CheckpointingOperation.AsyncCheckpointState.RUNNING,
 					CheckpointingOperation.AsyncCheckpointState.COMPLETED)) {
 
 					reportCompletedSnapshotStates(
 						jobManagerTaskOperatorSubtaskStates,
-						localTaskOperatorSubtaskStates,
-						asyncDurationMillis);
+						localTaskOperatorSubtaskStates
+					);
 
 				} else {
 					LOG.debug("{} - asynchronous part of checkpoint {} could not be completed because it was closed before.",
@@ -890,8 +890,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 
 		private void reportCompletedSnapshotStates(
 			TaskStateSnapshot acknowledgedTaskStateSnapshot,
-			TaskStateSnapshot localTaskStateSnapshot,
-			long asyncDurationMillis) {
+			TaskStateSnapshot localTaskStateSnapshot
+		) {
 
 			TaskStateManager taskStateManager = owner.getEnvironment().getTaskStateManager();
 
@@ -907,12 +907,12 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 			// stateless without the need to assign them uids to match their (always empty) states.
 			taskStateManager.reportTaskStateSnapshots(
 				checkpointMetaData,
-				checkpointMetrics,
+				checkpointTracker.getTaskTrace(),
 				hasAckState ? acknowledgedTaskStateSnapshot : null,
 				hasLocalState ? localTaskStateSnapshot : null);
 
 			LOG.debug("{} - finished asynchronous part of checkpoint {}. Asynchronous duration: {} ms",
-				owner.getName(), checkpointMetaData.getCheckpointId(), asyncDurationMillis);
+				owner.getName(), checkpointMetaData.getCheckpointId(), checkpointTracker.getAsyncDuration());
 
 			LOG.trace("{} - reported the following states in snapshot for checkpoint {}: {}.",
 				owner.getName(), checkpointMetaData.getCheckpointId(), acknowledgedTaskStateSnapshot);
@@ -1019,68 +1019,57 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 
 		private final CheckpointMetaData checkpointMetaData;
 		private final CheckpointOptions checkpointOptions;
-		private final CheckpointMetrics checkpointMetrics;
+		private final TaskCheckpointTracker checkpointTracker;
 		private final CheckpointStreamFactory storageLocation;
 
 		private final StreamOperator<?>[] allOperators;
-
-		private long startSyncPartNano;
-		private long startAsyncPartNano;
 
 		// ------------------------
 
 		private final Map<OperatorID, OperatorSnapshotFutures> operatorSnapshotsInProgress;
 
 		public CheckpointingOperation(
-				StreamTask<?, ?> owner,
-				CheckpointMetaData checkpointMetaData,
-				CheckpointOptions checkpointOptions,
-				CheckpointStreamFactory checkpointStorageLocation,
-				CheckpointMetrics checkpointMetrics) {
+			StreamTask<?, ?> owner,
+			CheckpointMetaData checkpointMetaData,
+			CheckpointOptions checkpointOptions,
+			CheckpointStreamFactory checkpointStorageLocation,
+			TaskCheckpointTracker checkpointTracker
+		) {
 
 			this.owner = Preconditions.checkNotNull(owner);
 			this.checkpointMetaData = Preconditions.checkNotNull(checkpointMetaData);
 			this.checkpointOptions = Preconditions.checkNotNull(checkpointOptions);
-			this.checkpointMetrics = Preconditions.checkNotNull(checkpointMetrics);
+			this.checkpointTracker = Preconditions.checkNotNull(checkpointTracker);
 			this.storageLocation = Preconditions.checkNotNull(checkpointStorageLocation);
 			this.allOperators = owner.operatorChain.getAllOperators();
 			this.operatorSnapshotsInProgress = new HashMap<>(allOperators.length);
 		}
 
 		public void executeCheckpointing() throws Exception {
-			startSyncPartNano = System.nanoTime();
+			checkpointTracker.setSyncStartInstant(System.currentTimeMillis());
 
 			try {
 				for (StreamOperator<?> op : allOperators) {
 					checkpointStreamOperator(op);
 				}
 
-				if (LOG.isDebugEnabled()) {
-					LOG.debug("Finished synchronous checkpoints for checkpoint {} on task {}",
-						checkpointMetaData.getCheckpointId(), owner.getName());
-				}
-
-				startAsyncPartNano = System.nanoTime();
-
-				checkpointMetrics.setSyncDurationMillis((startAsyncPartNano - startSyncPartNano) / 1_000_000);
+				checkpointTracker.setSyncEndInstant(System.currentTimeMillis());
 
 				// we are transferring ownership over snapshotInProgressList for cleanup to the thread, active on submit
-				AsyncCheckpointRunnable asyncCheckpointRunnable = new AsyncCheckpointRunnable(
-					owner,
-					operatorSnapshotsInProgress,
-					checkpointMetaData,
-					checkpointMetrics,
-					startAsyncPartNano);
+				AsyncCheckpointRunnable asyncCheckpointRunnable =
+					new AsyncCheckpointRunnable(
+						owner,
+						operatorSnapshotsInProgress,
+						checkpointMetaData,
+						checkpointTracker
+					);
 
 				owner.cancelables.registerCloseable(asyncCheckpointRunnable);
 				owner.asyncOperationsThreadPool.submit(asyncCheckpointRunnable);
 
 				if (LOG.isDebugEnabled()) {
-					LOG.debug("{} - finished synchronous part of checkpoint {}. " +
-							"Alignment duration: {} ms, snapshot duration {} ms",
-						owner.getName(), checkpointMetaData.getCheckpointId(),
-						checkpointMetrics.getAlignmentDurationNanos() / 1_000_000,
-						checkpointMetrics.getSyncDurationMillis());
+					LOG.debug("Finished synchronous checkpoints for checkpoint {} on task {}, cost {} ms",
+						checkpointMetaData.getCheckpointId(), owner.getName(), checkpointTracker.getSyncDuration());
 				}
 			} catch (Exception ex) {
 				// Cleanup to release resources
@@ -1098,8 +1087,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 					LOG.debug("{} - did NOT finish synchronous part of checkpoint {}. " +
 							"Alignment duration: {} ms, snapshot duration {} ms",
 						owner.getName(), checkpointMetaData.getCheckpointId(),
-						checkpointMetrics.getAlignmentDurationNanos() / 1_000_000,
-						checkpointMetrics.getSyncDurationMillis());
+						checkpointTracker.getAlignDuration(),
+						checkpointTracker.getSyncDuration());
 				}
 
 				owner.synchronousCheckpointExceptionHandler.tryHandleCheckpointException(checkpointMetaData, ex);

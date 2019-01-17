@@ -26,6 +26,7 @@ import org.apache.flink.api.common.accumulators.Accumulator;
 import org.apache.flink.api.common.accumulators.AccumulatorHelper;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.runtime.JobException;
 import org.apache.flink.runtime.StoppingException;
 import org.apache.flink.runtime.accumulators.AccumulatorSnapshot;
@@ -35,8 +36,7 @@ import org.apache.flink.runtime.blob.PermanentBlobKey;
 import org.apache.flink.runtime.blob.VoidBlobWriter;
 import org.apache.flink.runtime.checkpoint.CheckpointCoordinator;
 import org.apache.flink.runtime.checkpoint.CheckpointIDCounter;
-import org.apache.flink.runtime.checkpoint.CheckpointStatsSnapshot;
-import org.apache.flink.runtime.checkpoint.CheckpointStatsTracker;
+import org.apache.flink.runtime.checkpoint.CheckpointTracesSnapshot;
 import org.apache.flink.runtime.checkpoint.CompletedCheckpointStore;
 import org.apache.flink.runtime.checkpoint.MasterTriggerRestoreHook;
 import org.apache.flink.runtime.clusterframework.types.AllocationID;
@@ -292,10 +292,6 @@ public class ExecutionGraph implements AccessExecutionGraph {
 	/** The coordinator for checkpoints, if snapshot checkpoints are enabled. */
 	private CheckpointCoordinator checkpointCoordinator;
 
-	/** Checkpoint stats tracker separate from the coordinator in order to be
-	 * available after archiving. */
-	private CheckpointStatsTracker checkpointStatsTracker;
-
 	// ------ Fields that are only relevant for archived execution graphs ------------
 	private String jsonPlan;
 
@@ -478,7 +474,7 @@ public class ExecutionGraph implements AccessExecutionGraph {
 		CheckpointIDCounter checkpointIDCounter,
 		CompletedCheckpointStore checkpointStore,
 		StateBackend checkpointStateBackend,
-		CheckpointStatsTracker statsTracker
+		MetricGroup metricGroup
 	) {
 		checkNotNull(configuration);
 
@@ -493,8 +489,6 @@ public class ExecutionGraph implements AccessExecutionGraph {
 		ExecutionVertex[] tasksToWaitFor = collectExecutionVertices(verticesToWaitFor);
 		ExecutionVertex[] tasksToCommitTo = collectExecutionVertices(verticesToCommitTo);
 
-		checkpointStatsTracker = checkNotNull(statsTracker, "CheckpointStatsTracker");
-
 		// create the coordinator that triggers and commits checkpoints and holds the state
 		checkpointCoordinator = new CheckpointCoordinator(
 			jobInformation.getJobId(),
@@ -506,7 +500,8 @@ public class ExecutionGraph implements AccessExecutionGraph {
 			checkpointStore,
 			checkpointStateBackend,
 			ioExecutor,
-			SharedStateRegistry.DEFAULT_FACTORY);
+			SharedStateRegistry.DEFAULT_FACTORY,
+			metricGroup);
 
 		// initialize the checkpoint coordinator
 		checkpointCoordinator.initialize(savepointRestoreSettings, tasks, userClassLoader);
@@ -517,8 +512,6 @@ public class ExecutionGraph implements AccessExecutionGraph {
 				LOG.warn("Trying to register multiple checkpoint hooks with the name: {}", hook.getIdentifier());
 			}
 		}
-
-		checkpointCoordinator.setCheckpointStatsTracker(checkpointStatsTracker);
 
 		// interval of max long value indicates disable periodic checkpoint,
 		// the CheckpointActivatorDeactivator should be created only if the interval is not max value
@@ -544,17 +537,17 @@ public class ExecutionGraph implements AccessExecutionGraph {
 
 	@Override
 	public CheckpointCoordinatorConfiguration getCheckpointCoordinatorConfiguration() {
-		if (checkpointStatsTracker != null) {
-			return checkpointStatsTracker.getJobCheckpointingConfiguration();
+		if (checkpointCoordinator != null) {
+			return checkpointCoordinator.getConfiguration();
 		} else {
 			return null;
 		}
 	}
 
 	@Override
-	public CheckpointStatsSnapshot getCheckpointStatsSnapshot() {
-		if (checkpointStatsTracker != null) {
-			return checkpointStatsTracker.createSnapshot();
+	public CheckpointTracesSnapshot getCheckpointTracesSnapshot() {
+		if (checkpointCoordinator != null) {
+			return checkpointCoordinator.getCheckpointTraces();
 		} else {
 			return null;
 		}

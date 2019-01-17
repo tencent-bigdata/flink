@@ -15,55 +15,82 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-div
-  table.table.checkpoint-overview
-    thead
-      tr
-        td #[strong Checkpoint Counts]
-        td Triggered: {{ checkpointStats['counts']['total'] }}
-          span In Progress: {{ checkpointStats['counts']['in_progress'] }}
-          span Completed: {{ checkpointStats['counts']['completed'] }}
-          span Failed: {{ checkpointStats['counts']['failed'] }}
-          span Restored: {{ checkpointStats['counts']['restored'] }}
-      tr
-        td #[strong Latest Completed Checkpoint]
-        td(ng-if="checkpointStats['latest']['completed']") ID: {{ checkpointStats['latest']['completed']['id'] }}
-          span Completion Time: {{ checkpointStats['latest']['completed']['latest_ack_timestamp'] | amDateFormat:'H:mm:ss' }}
-          span End to End Duration: {{ checkpointStats['latest']['completed']['end_to_end_duration'] | humanizeDuration }}
-          span State Size: {{ checkpointStats['latest']['completed']['state_size'] | humanizeBytes }}
-          span
-            i(aria-hidden="true").fa.fa-caret-square-o-right
-            = ' '
-            a(ui-sref="^.details({checkpointId: checkpointStats['latest']['completed']['id']})") More details
-        td(ng-if="!checkpointStats['latest']['completed']") None
-      tr
-        td #[strong Latest Failed Checkpoint]
-        td(ng-if="checkpointStats['latest']['failed']")
-          | ID: {{ checkpointStats['latest']['failed']['id'] }}
-          span Failure Time: {{ checkpointStats['latest']['failed']['failure_timestamp'] | amDateFormat:'H:mm:ss' }}
-          span(ng-if="checkpointStats['latest']['failed']['failure_message']") Cause: {{ checkpointStats['latest']['failed']['failure_message'] }}
-          span(ng-if="!checkpointStats['latest']['failed']['failure_message']") Cause: n/a
-          span
-            i(aria-hidden="true").fa.fa-caret-square-o-right
-            = ' '
-            a(ui-sref="^.details({checkpointId: checkpointStats['latest']['failed']['id']})") More details
-        td(ng-if="!checkpointStats['latest']['failed']") None
-      tr
-        td #[strong Latest Savepoint]
-        td(ng-if="checkpointStats['latest']['savepoint']") ID: {{ checkpointStats['latest']['savepoint']['id'] }}
-          span Completion Time: {{ checkpointStats['latest']['savepoint']['latest_ack_timestamp'] | amDateFormat:'H:mm:ss' }}
-          span State Size: {{ checkpointStats['latest']['savepoint']['state_size'] | humanizeBytes }}
-          span Path: {{ checkpointStats['latest']['savepoint']['external_path'] }}
-          span
-            i(aria-hidden="true").fa.fa-caret-square-o-right
-            = ' '
-            a(ui-sref="^.details({checkpointId: checkpointStats['latest']['savepoint']['id']})") More details
-        td(ng-if="!checkpointStats['latest']['savepoint']") None
-      tr
-        td #[strong Latest Restore]
-        td(ng-if="checkpointStats['latest']['restored']") ID: {{ checkpointStats['latest']['restored']['id'] }}
-          span Restore Time: {{ checkpointStats['latest']['restored']['restore_timestamp'] | amDateFormat:'H:mm:ss' }}
-          span(ng-if="checkpointStats['latest']['restored']['is_savepoint']") Type: Savepoint
-          span(ng-if="!checkpointStats['latest']['restored']['is_savepoint']") Type: Checkpoint
-          span(ng-if="checkpointStats['latest']['restored']['external_path']") Path: {{ checkpointStats['latest']['restored']['external_path'] }}
-        td(ng-if="!checkpointStats['latest']['restored']") None
+.row
+  .col-md-6
+    .panel.panel-default.panel-lg
+      .panel-heading
+        .huge Checkpoints
+        canvas.chart.chart-doughnut(id="checkpointsOverview" chart-data="checkpointCounts" chart-labels="checkpointLabels" chart-colors="checkpointColors" chart-options="chartOptions")
+
+  .col-md-6
+    .panel.panel-default.panel-lg
+      .panel-heading
+        .huge Last Completed Checkpoint
+      .list-group
+        .list-group-item
+          .row
+            .col-xs-6
+              | Start Time
+            .col-xs-6
+              .text-right
+                span(ng-if="lastCompletedCheckpoint") {{ lastCompletedCheckpoint.startTime | amDateFormat:'YYYY-MM-DD, H:mm:ss' }}
+                span(ng-if="!lastCompletedCheckpoint") N/A
+        .list-group-item
+          .row
+            .col-xs-6
+              | End Time
+            .col-xs-6
+              .text-right
+                span(ng-if="lastCompletedCheckpoint") {{ lastCompletedCheckpoint.endTime | amDateFormat:'YYYY-MM-DD, H:mm:ss' }}
+                span(ng-if="!lastCompletedCheckpoint") N/A
+        .list-group-item
+          .row
+            .col-xs-6
+              | Duration
+            .col-xs-6
+              .text-right
+                span(ng-if="lastCompletedCheckpoint") {{ lastCompletedCheckpoint.duration | humanizeDuration:true }}
+                span(ng-if="!lastCompletedCheckpoint") N/A
+        .list-group-item
+          .row
+            .col-xs-6
+              | Size
+            .col-xs-6
+              .text-right
+                span(ng-if="lastCompletedCheckpoint") {{ lastCompletedCheckpoint.size | humanizeBytes }}
+                span(ng-if="!lastCompletedCheckpoint") N/A
+
+.panel.panel-default.panel-dashboard
+  .panel-heading
+    | Checkpoint Details
+  .panel-body
+    table.table.table-hover.table-clickable(md-table)
+      thead(md-head md-order="order")
+        tr(md-row)
+          th(md-column md-order-by="id") ID
+          th(md-column md-order-by="startTime") Start Time
+          th(md-column md-order-by="endTime") End Time
+          th(md-column md-order-by="numTasks") Total Tasks
+          th(md-column md-order-by="numAcknowledgedTasks") Ack Tasks
+          th(md-column md-order-by="duration") Duration
+          th(md-column md-order-by="size") Size
+          th(md-column md-order-by="status") Status
+
+      tbody(md-body)
+        tr(md-row ng-repeat="checkpoint in checkpoints | orderBy: order | limitTo: limit: ((page - 1) * limit)" ui-sref="single-job.checkpoints.checkpoint-detail({ jobid: id, checkpointid: checkpoint.id})")
+          td(md-cell)
+            .md-caption {{checkpoint.id}}
+          td(md-cell) {{checkpoint.startTime | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}
+          td(md-cell)
+            span(ng-if="checkpoint.endTime >= 0") {{checkpoint.endTime | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}
+            span(ng-if="checkpoint.endTime < 0") N/A
+          td(md-cell) {{checkpoint.numTasks}}
+          td(md-cell) {{checkpoint.numAcknowledgedTasks}}
+          td(md-cell title="{{checkpoint.duration | humanizeDuration:false}}") {{checkpoint.duration | humanizeDuration:true}}
+          td(md-cell) {{checkpoint.size}}
+          td(md-cell)
+            bs-label(status="{{checkpoint.status}}") {{checkpoint.status}}
+
+    md-table-pagination.bg-light(md-limit="limit" md-limit-options="[5, 10, 20]" md-page="page" md-total="{{checkpoints.length}}" md-page-select)
+
+

@@ -33,10 +33,10 @@ import org.apache.flink.runtime.accumulators.AccumulatorSnapshot;
 import org.apache.flink.runtime.blob.BlobServer;
 import org.apache.flink.runtime.checkpoint.CheckpointCoordinator;
 import org.apache.flink.runtime.checkpoint.CheckpointDeclineReason;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.CheckpointTriggerException;
 import org.apache.flink.runtime.checkpoint.Checkpoints;
 import org.apache.flink.runtime.checkpoint.CompletedCheckpoint;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.client.JobExecutionException;
 import org.apache.flink.runtime.clusterframework.types.AllocationID;
@@ -659,7 +659,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 			final JobID jobID,
 			final ExecutionAttemptID executionAttemptID,
 			final long checkpointId,
-			final CheckpointMetrics checkpointMetrics,
+			final TaskCheckpointTrace checkpointTrace,
 			final TaskStateSnapshot checkpointState) {
 
 		final CheckpointCoordinator checkpointCoordinator = executionGraph.getCheckpointCoordinator();
@@ -667,7 +667,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 			jobID,
 			executionAttemptID,
 			checkpointId,
-			checkpointMetrics,
+			checkpointTrace,
 			checkpointState);
 
 		if (checkpointCoordinator != null) {

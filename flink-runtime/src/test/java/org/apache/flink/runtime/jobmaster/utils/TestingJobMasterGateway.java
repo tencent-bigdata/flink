@@ -24,7 +24,7 @@ import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.api.java.tuple.Tuple5;
 import org.apache.flink.api.java.tuple.Tuple6;
 import org.apache.flink.queryablestate.KvStateID;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.clusterframework.types.AllocationID;
 import org.apache.flink.runtime.clusterframework.types.ResourceID;
@@ -141,7 +141,7 @@ public class TestingJobMasterGateway implements JobMasterGateway {
 	private final BiConsumer<AllocationID, Throwable> notifyAllocationFailureConsumer;
 
 	@Nonnull
-	private final Consumer<Tuple5<JobID, ExecutionAttemptID, Long, CheckpointMetrics, TaskStateSnapshot>> acknowledgeCheckpointConsumer;
+	private final Consumer<Tuple5<JobID, ExecutionAttemptID, Long, TaskCheckpointTrace, TaskStateSnapshot>> acknowledgeCheckpointConsumer;
 
 	@Nonnull
 	private final Consumer<DeclineCheckpoint> declineCheckpointConsumer;
@@ -182,7 +182,7 @@ public class TestingJobMasterGateway implements JobMasterGateway {
 			@Nonnull BiFunction<String, Boolean, CompletableFuture<String>> triggerSavepointFunction,
 			@Nonnull Function<JobVertexID, CompletableFuture<OperatorBackPressureStatsResponse>> requestOperatorBackPressureStatsFunction,
 			@Nonnull BiConsumer<AllocationID, Throwable> notifyAllocationFailureConsumer,
-			@Nonnull Consumer<Tuple5<JobID, ExecutionAttemptID, Long, CheckpointMetrics, TaskStateSnapshot>> acknowledgeCheckpointConsumer,
+			@Nonnull Consumer<Tuple5<JobID, ExecutionAttemptID, Long, TaskCheckpointTrace, TaskStateSnapshot>> acknowledgeCheckpointConsumer,
 			@Nonnull Consumer<DeclineCheckpoint> declineCheckpointConsumer,
 			@Nonnull Supplier<JobMasterId> fencingTokenSupplier,
 			@Nonnull BiFunction<JobID, String, CompletableFuture<KvStateLocation>> requestKvStateLocationFunction,
@@ -330,8 +330,8 @@ public class TestingJobMasterGateway implements JobMasterGateway {
 	}
 
 	@Override
-	public void acknowledgeCheckpoint(JobID jobID, ExecutionAttemptID executionAttemptID, long checkpointId, CheckpointMetrics checkpointMetrics, TaskStateSnapshot subtaskState) {
-		acknowledgeCheckpointConsumer.accept(Tuple5.of(jobID, executionAttemptID, checkpointId, checkpointMetrics, subtaskState));
+	public void acknowledgeCheckpoint(JobID jobID, ExecutionAttemptID executionAttemptID, long checkpointId, TaskCheckpointTrace taskCheckpointTrace, TaskStateSnapshot subtaskState) {
+		acknowledgeCheckpointConsumer.accept(Tuple5.of(jobID, executionAttemptID, checkpointId, taskCheckpointTrace, subtaskState));
 	}
 
 	@Override

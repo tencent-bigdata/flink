@@ -67,7 +67,7 @@ nav.navbar.navbar-default.navbar-fixed-top.navbar-main
       .panel.panel-default.panel-dashboard
         .panel-heading
           .huge Jobs
-          div.main-canvas(overview jobcounts="jobcounts")
+          canvas.chart.chart-doughnut(id="doughnut" chart-data="jobCounts" chart-labels="jobLabels" chart-colors="jobColors" chart-options="chartOptions")
 
   .panel.panel-default
     .panel-heading

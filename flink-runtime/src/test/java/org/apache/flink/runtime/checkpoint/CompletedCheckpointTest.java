@@ -19,9 +19,7 @@
 package org.apache.flink.runtime.checkpoint;
 
 import org.apache.flink.api.common.JobID;
-import org.apache.flink.core.testutils.CommonTestUtils;
 import org.apache.flink.runtime.jobgraph.JobStatus;
-import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.runtime.state.SharedStateRegistry;
 import org.apache.flink.runtime.state.testutils.EmptyStreamStateHandle;
@@ -37,7 +35,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -280,61 +277,5 @@ public class CompletedCheckpointTest {
 			assertTrue(discardLocation.isDisposed());
 			assertTrue(discardHandle.isDisposed());
 		}
-	}
-
-	/**
-	 * Tests that the stats callbacks happen if the callback is registered.
-	 */
-	@Test
-	public void testCompletedCheckpointStatsCallbacks() throws Exception {
-		CompletedCheckpoint completed = new CompletedCheckpoint(
-			new JobID(),
-			0,
-			0,
-			1,
-			Collections.emptyMap(),
-			Collections.emptyList(),
-			CheckpointProperties.forCheckpoint(CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION),
-			new TestCompletedCheckpointStorageLocation());
-
-		CompletedCheckpointStats.DiscardCallback callback = mock(CompletedCheckpointStats.DiscardCallback.class);
-		completed.setDiscardCallback(callback);
-
-		completed.discardOnShutdown(JobStatus.FINISHED);
-		verify(callback, times(1)).notifyDiscardedCheckpoint();
-	}
-
-	@Test
-	public void testIsJavaSerializable() throws Exception {
-		TaskStateStats task1 = new TaskStateStats(new JobVertexID(), 3);
-		TaskStateStats task2 = new TaskStateStats(new JobVertexID(), 4);
-
-		HashMap<JobVertexID, TaskStateStats> taskStats = new HashMap<>();
-		taskStats.put(task1.getJobVertexId(), task1);
-		taskStats.put(task2.getJobVertexId(), task2);
-
-		CompletedCheckpointStats completed = new CompletedCheckpointStats(
-			123123123L,
-			10123L,
-			CheckpointProperties.forCheckpoint(CheckpointRetentionPolicy.NEVER_RETAIN_AFTER_TERMINATION),
-			1337,
-			taskStats,
-			1337,
-			123129837912L,
-			123819239812L,
-			new SubtaskStateStats(123, 213123, 123123, 0, 0, 0, 0),
-			null);
-
-		CompletedCheckpointStats copy = CommonTestUtils.createCopySerializable(completed);
-
-		assertEquals(completed.getCheckpointId(), copy.getCheckpointId());
-		assertEquals(completed.getTriggerTimestamp(), copy.getTriggerTimestamp());
-		assertEquals(completed.getProperties(), copy.getProperties());
-		assertEquals(completed.getNumberOfSubtasks(), copy.getNumberOfSubtasks());
-		assertEquals(completed.getNumberOfAcknowledgedSubtasks(), copy.getNumberOfAcknowledgedSubtasks());
-		assertEquals(completed.getEndToEndDuration(), copy.getEndToEndDuration());
-		assertEquals(completed.getStateSize(), copy.getStateSize());
-		assertEquals(completed.getLatestAcknowledgedSubtaskStats().getSubtaskIndex(), copy.getLatestAcknowledgedSubtaskStats().getSubtaskIndex());
-		assertEquals(completed.getStatus(), copy.getStatus());
 	}
 }

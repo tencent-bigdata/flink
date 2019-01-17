@@ -20,7 +20,7 @@ package org.apache.flink.runtime.taskmanager;
 
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.core.testutils.OneShotLatch;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 
@@ -48,14 +48,14 @@ public class TestCheckpointResponder implements CheckpointResponder {
 		JobID jobID,
 		ExecutionAttemptID executionAttemptID,
 		long checkpointId,
-		CheckpointMetrics checkpointMetrics,
+		TaskCheckpointTrace taskCheckpointTrace,
 		TaskStateSnapshot subtaskState) {
 
 		AcknowledgeReport acknowledgeReport = new AcknowledgeReport(
 			jobID,
 			executionAttemptID,
 			checkpointId,
-			checkpointMetrics,
+			taskCheckpointTrace,
 			subtaskState);
 
 		acknowledgeReports.add(acknowledgeReport);
@@ -112,23 +112,23 @@ public class TestCheckpointResponder implements CheckpointResponder {
 
 	public static class AcknowledgeReport extends AbstractReport {
 
-		private final CheckpointMetrics checkpointMetrics;
+		private final TaskCheckpointTrace taskCheckpointTrace;
 		private final TaskStateSnapshot subtaskState;
 
 		public AcknowledgeReport(
 			JobID jobID,
 			ExecutionAttemptID executionAttemptID,
 			long checkpointId,
-			CheckpointMetrics checkpointMetrics,
+			TaskCheckpointTrace taskCheckpointTrace,
 			TaskStateSnapshot subtaskState) {
 
 			super(jobID, executionAttemptID, checkpointId);
-			this.checkpointMetrics = checkpointMetrics;
+			this.taskCheckpointTrace = taskCheckpointTrace;
 			this.subtaskState = subtaskState;
 		}
 
-		public CheckpointMetrics getCheckpointMetrics() {
-			return checkpointMetrics;
+		public TaskCheckpointTrace getTaskCheckpointTrace() {
+			return taskCheckpointTrace;
 		}
 
 		public TaskStateSnapshot getSubtaskState() {

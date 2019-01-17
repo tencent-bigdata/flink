@@ -22,9 +22,9 @@ import org.apache.flink.api.common.JobID;
 import org.apache.flink.core.fs.FSDataInputStream;
 import org.apache.flink.core.testutils.CommonTestUtils;
 import org.apache.flink.runtime.checkpoint.CheckpointCoordinatorTest;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
 import org.apache.flink.runtime.checkpoint.OperatorSubtaskState;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
@@ -86,7 +86,7 @@ public class CheckpointMessagesTest {
 					new JobID(),
 					new ExecutionAttemptID(),
 					87658976143L,
-					new CheckpointMetrics(),
+					new TaskCheckpointTrace(),
 					checkpointStateHandles);
 
 			testSerializabilityEqualsHashCode(noState);

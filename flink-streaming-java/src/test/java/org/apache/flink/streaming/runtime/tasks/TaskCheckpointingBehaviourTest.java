@@ -28,8 +28,9 @@ import org.apache.flink.runtime.blob.PermanentBlobCache;
 import org.apache.flink.runtime.blob.TransientBlobCache;
 import org.apache.flink.runtime.broadcast.BroadcastVariableManager;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTracker;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.clusterframework.types.AllocationID;
 import org.apache.flink.runtime.concurrent.Executors;
@@ -271,7 +272,7 @@ public class TaskCheckpointingBehaviourTest extends TestLogger {
 			JobID jobID,
 			ExecutionAttemptID executionAttemptID,
 			long checkpointId,
-			CheckpointMetrics checkpointMetrics,
+			TaskCheckpointTrace taskCheckpointTrace,
 			TaskStateSnapshot subtaskState) {
 
 			throw new RuntimeException("Unexpected call.");
@@ -468,7 +469,7 @@ public class TaskCheckpointingBehaviourTest extends TestLogger {
 					11L,
 					System.currentTimeMillis()),
 				CheckpointOptions.forCheckpointWithDefaultLocation(),
-				new CheckpointMetrics());
+				new TaskCheckpointTracker());
 
 			while (isRunning()) {
 				Thread.sleep(1L);

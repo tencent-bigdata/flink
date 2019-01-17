@@ -19,7 +19,7 @@ package org.apache.flink.streaming.runtime.io;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTracker;
 import org.apache.flink.runtime.checkpoint.decline.AlignmentLimitExceededException;
 import org.apache.flink.runtime.checkpoint.decline.CheckpointDeclineException;
 import org.apache.flink.runtime.checkpoint.decline.CheckpointDeclineOnCancellationBarrierException;
@@ -103,11 +103,11 @@ public class BarrierBuffer implements CheckpointBarrierHandler {
 	/** The number of bytes in the queued spilled sequences. */
 	private long numQueuedBytes;
 
-	/** The timestamp as in {@link System#nanoTime()} at which the last alignment started. */
+	/** The timestamp as in {@link System#currentTimeMillis()} at which the last alignment started. */
 	private long startOfAlignmentTimestamp;
 
-	/** The time (in nanoseconds) that the latest alignment took. */
-	private long latestAlignmentDurationNanos;
+	/** The timestamp as in {@link System#currentTimeMillis()} at which the last alignment endedn. */
+	private long endOfAlignmentTimestamp;
 
 	/** Flag to indicate whether we have drawn all available input. */
 	private boolean endOfStream;
@@ -231,6 +231,9 @@ public class BarrierBuffer implements CheckpointBarrierHandler {
 			if (barrierId > currentCheckpointId) {
 				// new checkpoint
 				currentCheckpointId = barrierId;
+				startOfAlignmentTimestamp = System.currentTimeMillis();
+				endOfAlignmentTimestamp = startOfAlignmentTimestamp;
+
 				notifyCheckpoint(receivedBarrier);
 			}
 			return;
@@ -335,8 +338,8 @@ public class BarrierBuffer implements CheckpointBarrierHandler {
 
 				// the next checkpoint starts as canceled
 				currentCheckpointId = barrierId;
-				startOfAlignmentTimestamp = 0L;
-				latestAlignmentDurationNanos = 0L;
+				startOfAlignmentTimestamp = System.currentTimeMillis();
+				endOfAlignmentTimestamp = startOfAlignmentTimestamp;
 
 				notifyAbort(currentCheckpointId, new CheckpointDeclineSubsumedException(barrierId));
 
@@ -352,9 +355,8 @@ public class BarrierBuffer implements CheckpointBarrierHandler {
 			// by setting the currentCheckpointId to this checkpoint while keeping the numBarriers
 			// at zero means that no checkpoint barrier can start a new alignment
 			currentCheckpointId = barrierId;
-
-			startOfAlignmentTimestamp = 0L;
-			latestAlignmentDurationNanos = 0L;
+			startOfAlignmentTimestamp = System.currentTimeMillis();
+			endOfAlignmentTimestamp = startOfAlignmentTimestamp;
 
 			if (LOG.isDebugEnabled()) {
 				LOG.debug("{}: Checkpoint {} canceled, skipping alignment.",
@@ -387,16 +389,16 @@ public class BarrierBuffer implements CheckpointBarrierHandler {
 			CheckpointMetaData checkpointMetaData =
 					new CheckpointMetaData(checkpointBarrier.getId(), checkpointBarrier.getTimestamp());
 
-			long bytesBuffered = currentBuffered != null ? currentBuffered.size() : 0L;
+			TaskCheckpointTracker checkpointTracker = new TaskCheckpointTracker()
+				.setAlignStartInstant(startOfAlignmentTimestamp)
+				.setAlignEndInstant(endOfAlignmentTimestamp);
 
-			CheckpointMetrics checkpointMetrics = new CheckpointMetrics()
-					.setBytesBufferedInAlignment(bytesBuffered)
-					.setAlignmentDurationNanos(latestAlignmentDurationNanos);
+			LOG.info("Notify checkpoint {} with alignStart {}, alignEnd {}.", checkpointBarrier.getId(), startOfAlignmentTimestamp, endOfAlignmentTimestamp);
 
 			toNotifyOnCheckpoint.triggerCheckpointOnBarrier(
 				checkpointMetaData,
 				checkpointBarrier.getCheckpointOptions(),
-				checkpointMetrics);
+				checkpointTracker);
 		}
 	}
 
@@ -453,9 +455,10 @@ public class BarrierBuffer implements CheckpointBarrierHandler {
 
 	private void beginNewAlignment(long checkpointId, int channelIndex) throws IOException {
 		currentCheckpointId = checkpointId;
-		onBarrier(channelIndex);
+		startOfAlignmentTimestamp = System.currentTimeMillis();
+		endOfAlignmentTimestamp = 0L;
 
-		startOfAlignmentTimestamp = System.nanoTime();
+		onBarrier(channelIndex);
 
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("{}: Starting stream alignment for checkpoint {}.",
@@ -542,8 +545,7 @@ public class BarrierBuffer implements CheckpointBarrierHandler {
 		numBarriersReceived = 0;
 
 		if (startOfAlignmentTimestamp > 0) {
-			latestAlignmentDurationNanos = System.nanoTime() - startOfAlignmentTimestamp;
-			startOfAlignmentTimestamp = 0;
+			endOfAlignmentTimestamp = System.currentTimeMillis();
 		}
 	}
 
@@ -561,12 +563,13 @@ public class BarrierBuffer implements CheckpointBarrierHandler {
 	}
 
 	@Override
-	public long getAlignmentDurationNanos() {
-		long start = this.startOfAlignmentTimestamp;
-		if (start <= 0) {
-			return latestAlignmentDurationNanos;
+	public long getAlignmentDuration() {
+		if (endOfAlignmentTimestamp > 0) {
+			return endOfAlignmentTimestamp - startOfAlignmentTimestamp;
+		} else if (startOfAlignmentTimestamp > 0) {
+			return System.currentTimeMillis() - startOfAlignmentTimestamp;
 		} else {
-			return System.nanoTime() - start;
+			return 0;
 		}
 	}
 

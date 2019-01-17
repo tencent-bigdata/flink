@@ -20,8 +20,8 @@ package org.apache.flink.streaming.runtime.io;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTracker;
 import org.apache.flink.runtime.checkpoint.decline.CheckpointDeclineOnCancellationBarrierException;
 import org.apache.flink.runtime.io.network.api.CancelCheckpointMarker;
 import org.apache.flink.runtime.io.network.api.CheckpointBarrier;
@@ -135,7 +135,7 @@ public class BarrierTracker implements CheckpointBarrierHandler {
 	}
 
 	@Override
-	public long getAlignmentDurationNanos() {
+	public long getAlignmentDuration() {
 		// this one does not do alignment at all
 		return 0L;
 	}
@@ -263,11 +263,13 @@ public class BarrierTracker implements CheckpointBarrierHandler {
 	private void notifyCheckpoint(long checkpointId, long timestamp, CheckpointOptions checkpointOptions) throws Exception {
 		if (toNotifyOnCheckpoint != null) {
 			CheckpointMetaData checkpointMetaData = new CheckpointMetaData(checkpointId, timestamp);
-			CheckpointMetrics checkpointMetrics = new CheckpointMetrics()
-				.setBytesBufferedInAlignment(0L)
-				.setAlignmentDurationNanos(0L);
 
-			toNotifyOnCheckpoint.triggerCheckpointOnBarrier(checkpointMetaData, checkpointOptions, checkpointMetrics);
+			long now = System.currentTimeMillis();
+			TaskCheckpointTracker checkpointTracker = new TaskCheckpointTracker()
+				.setAlignStartInstant(now)
+				.setAlignEndInstant(now);
+
+			toNotifyOnCheckpoint.triggerCheckpointOnBarrier(checkpointMetaData, checkpointOptions, checkpointTracker);
 		}
 	}
 

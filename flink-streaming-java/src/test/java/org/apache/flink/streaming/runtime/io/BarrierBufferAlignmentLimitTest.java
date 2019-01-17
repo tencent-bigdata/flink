@@ -21,8 +21,8 @@ package org.apache.flink.streaming.runtime.io;
 import org.apache.flink.core.memory.MemorySegment;
 import org.apache.flink.core.memory.MemorySegmentFactory;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTracker;
 import org.apache.flink.runtime.checkpoint.decline.AlignmentLimitExceededException;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.disk.iomanager.IOManagerAsync;
@@ -128,7 +128,7 @@ public class BarrierBufferAlignmentLimitTest {
 		check(sequence[3], buffer.getNextNonBlocked());
 
 		// start of checkpoint
-		long startTs = System.nanoTime();
+		long startTs = System.currentTimeMillis();
 		check(sequence[6], buffer.getNextNonBlocked());
 		check(sequence[8], buffer.getNextNonBlocked());
 		check(sequence[10], buffer.getNextNonBlocked());
@@ -158,7 +158,7 @@ public class BarrierBufferAlignmentLimitTest {
 		verify(toNotify, times(0)).triggerCheckpointOnBarrier(
 			any(CheckpointMetaData.class),
 			any(CheckpointOptions.class),
-			any(CheckpointMetrics.class));
+			any(TaskCheckpointTracker.class));
 
 		assertNull(buffer.getNextNonBlocked());
 		assertNull(buffer.getNextNonBlocked());
@@ -221,7 +221,7 @@ public class BarrierBufferAlignmentLimitTest {
 		check(sequence[1], buffer.getNextNonBlocked());
 
 		// start of checkpoint
-		startTs = System.nanoTime();
+		startTs = System.currentTimeMillis();
 		check(sequence[3], buffer.getNextNonBlocked());
 		check(sequence[7], buffer.getNextNonBlocked());
 
@@ -235,7 +235,7 @@ public class BarrierBufferAlignmentLimitTest {
 
 		// replay buffered data - in the middle, the alignment for checkpoint 4 starts
 		check(sequence[6], buffer.getNextNonBlocked());
-		startTs = System.nanoTime();
+		startTs = System.currentTimeMillis();
 		check(sequence[12], buffer.getNextNonBlocked());
 
 		// only checkpoint 4 is pending now - the last checkpoint 3 barrier will not trigger success
@@ -245,7 +245,7 @@ public class BarrierBufferAlignmentLimitTest {
 		check(sequence[9], buffer.getNextNonBlocked());
 		validateAlignmentTime(startTs, buffer);
 		verify(toNotify, times(1)).triggerCheckpointOnBarrier(
-			argThat(new CheckpointMatcher(4L)), any(CheckpointOptions.class), any(CheckpointMetrics.class));
+			argThat(new CheckpointMatcher(4L)), any(CheckpointOptions.class), any(TaskCheckpointTracker.class));
 
 		check(sequence[10], buffer.getNextNonBlocked());
 		check(sequence[15], buffer.getNextNonBlocked());
@@ -258,7 +258,7 @@ public class BarrierBufferAlignmentLimitTest {
 
 		// only checkpoint 4 was successfully completed, not checkpoint 3
 		verify(toNotify, times(0)).triggerCheckpointOnBarrier(
-			argThat(new CheckpointMatcher(3L)), any(CheckpointOptions.class), any(CheckpointMetrics.class));
+			argThat(new CheckpointMatcher(3L)), any(CheckpointOptions.class), any(TaskCheckpointTracker.class));
 
 		assertNull(buffer.getNextNonBlocked());
 		assertNull(buffer.getNextNonBlocked());
@@ -309,8 +309,8 @@ public class BarrierBufferAlignmentLimitTest {
 	}
 
 	private static void validateAlignmentTime(long startTimestamp, BarrierBuffer buffer) {
-		final long elapsed = System.nanoTime() - startTimestamp;
-		assertTrue("wrong alignment time", buffer.getAlignmentDurationNanos() <= elapsed);
+		final long elapsed = System.currentTimeMillis() - startTimestamp;
+		assertTrue("wrong alignment time", buffer.getAlignmentDuration() <= elapsed);
 	}
 
 	private static void checkNoTempFilesRemain() {

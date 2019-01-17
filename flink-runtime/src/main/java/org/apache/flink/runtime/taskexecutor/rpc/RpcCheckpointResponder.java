@@ -19,7 +19,7 @@
 package org.apache.flink.runtime.taskexecutor.rpc;
 
 import org.apache.flink.api.common.JobID;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.jobmaster.JobMasterGateway;
@@ -48,7 +48,7 @@ public class RpcCheckpointResponder implements CheckpointResponder {
 		JobID jobId,
 		ExecutionAttemptID executionAttemptId,
 		long checkpointId,
-		CheckpointMetrics checkpointMetrics,
+		TaskCheckpointTrace taskCheckpointTrace,
 		TaskStateSnapshot subtaskState
 	) {
 		JobManagerConnection jobManagerConnection = jobManagerTable.get(jobId);
@@ -61,7 +61,7 @@ public class RpcCheckpointResponder implements CheckpointResponder {
 			jobId,
 			executionAttemptId,
 			checkpointId,
-			checkpointMetrics,
+			taskCheckpointTrace,
 			subtaskState
 		);
 	}

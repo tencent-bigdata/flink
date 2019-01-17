@@ -24,7 +24,15 @@ angular.module('flinkApp')
 
   $scope.runningJobs = []
   $scope.completedJobs = []
-  $scope.jobcounts = []
+  $scope.jobLabels = ["RUNNING", "FINISHED", "CANCELED", "FAILED"]
+  $scope.jobColors = ["#428cba", "#5cb85c", "#5bc0de", "#d9534f"]
+  $scope.jobCounts = []
+  $scope.chartOptions = {
+    legend: {
+      display: true,
+      position: "right"
+    }
+  }
 
   $scope.taskManagers = []
   $scope.numTaskManagers = -1
@@ -42,11 +50,11 @@ angular.module('flinkApp')
       $scope.runningJobs = []
       $scope.completedJobs = []
 
-      $scope.jobcounts = [
-        {name: "FINISHED", count: data.numFinishedJobs},
-        {name: "CANCELED", count: data.numCanceledJobs},
-        {name: "FAILED", count: data.numFailedJobs},
-        {name: "RUNNING", count: data.numRunningJobs}
+      $scope.jobCounts = [
+        data.numRunningJobs,
+        data.numFinishedJobs,
+        data.numCanceledJobs,
+        data.numFailedJobs
       ]
 
       # collect the jobs

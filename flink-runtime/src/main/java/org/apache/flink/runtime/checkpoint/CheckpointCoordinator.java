@@ -21,6 +21,8 @@ package org.apache.flink.runtime.checkpoint;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.time.Time;
+import org.apache.flink.metrics.Gauge;
+import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.runtime.checkpoint.decline.CheckpointDeclineException;
 import org.apache.flink.runtime.checkpoint.hooks.MasterHooks;
 import org.apache.flink.runtime.concurrent.FutureUtils;
@@ -176,9 +178,8 @@ public class CheckpointCoordinator {
 	/** Flag marking the coordinator as shut down (not accepting any messages any more) */
 	private volatile boolean shutdown;
 
-	/** Optional tracker for checkpoint statistics. */
-	@Nullable
-	private CheckpointStatsTracker statsTracker;
+	/** The tracker for checkpoint history. */
+	private CheckpointHistoryTracker checkpointHistoryTracker;
 
 	/** A factory for SharedStateRegistry objects */
 	private final SharedStateRegistryFactory sharedStateRegistryFactory;
@@ -189,16 +190,18 @@ public class CheckpointCoordinator {
 	// --------------------------------------------------------------------------------------------
 
 	public CheckpointCoordinator(
-			JobID job,
-			CheckpointCoordinatorConfiguration configuration,
-			ExecutionVertex[] tasksToTrigger,
-			ExecutionVertex[] tasksToWaitFor,
-			ExecutionVertex[] tasksToCommitTo,
-			CheckpointIDCounter checkpointIDCounter,
-			CompletedCheckpointStore completedCheckpointStore,
-			StateBackend checkpointStateBackend,
-			Executor executor,
-			SharedStateRegistryFactory sharedStateRegistryFactory) {
+		JobID job,
+		CheckpointCoordinatorConfiguration configuration,
+		ExecutionVertex[] tasksToTrigger,
+		ExecutionVertex[] tasksToWaitFor,
+		ExecutionVertex[] tasksToCommitTo,
+		CheckpointIDCounter checkpointIDCounter,
+		CompletedCheckpointStore completedCheckpointStore,
+		StateBackend checkpointStateBackend,
+		Executor executor,
+		SharedStateRegistryFactory sharedStateRegistryFactory,
+		MetricGroup metricGroup
+	) {
 
 		// sanity checks
 		checkNotNull(configuration);
@@ -223,6 +226,7 @@ public class CheckpointCoordinator {
 		this.executor = checkNotNull(executor);
 		this.sharedStateRegistryFactory = checkNotNull(sharedStateRegistryFactory);
 		this.sharedStateRegistry = sharedStateRegistryFactory.create(executor);
+		this.checkpointHistoryTracker = new CheckpointHistoryTracker(NUM_GHOST_CHECKPOINT_IDS);
 
 		this.recentPendingCheckpoints = new ArrayDeque<>(NUM_GHOST_CHECKPOINT_IDS);
 		this.masterHooks = new HashMap<>();
@@ -246,6 +250,8 @@ public class CheckpointCoordinator {
 		} catch (Throwable t) {
 			throw new RuntimeException("Failed to start checkpoint ID counter: " + t.getMessage(), t);
 		}
+
+		registerMetrics(metricGroup);
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -287,15 +293,6 @@ public class CheckpointCoordinator {
 		}
 	}
 
-	/**
-	 * Sets the checkpoint stats tracker.
-	 *
-	 * @param statsTracker The checkpoint stats tracker.
-	 */
-	public void setCheckpointStatsTracker(@Nullable CheckpointStatsTracker statsTracker) {
-		this.statsTracker = statsTracker;
-	}
-
 	// --------------------------------------------------------------------------------------------
 	//  Clean shutdown
 	// --------------------------------------------------------------------------------------------
@@ -325,6 +322,9 @@ public class CheckpointCoordinator {
 				// clear and discard all pending checkpoints
 				for (PendingCheckpoint pending : pendingCheckpoints.values()) {
 					pending.abortError(new Exception("Checkpoint Coordinator is shutting down"));
+
+					CheckpointTrace checkpointTrace = pending.getCheckpointTrace();
+					checkpointHistoryTracker.addCheckpointTrace(checkpointTrace);
 				}
 				pendingCheckpoints.clear();
 
@@ -521,15 +521,6 @@ public class CheckpointCoordinator {
 				checkpointStorageLocation,
 				executor);
 
-			if (statsTracker != null) {
-				PendingCheckpointStats callback = statsTracker.reportPendingCheckpoint(
-					checkpointID,
-					timestamp,
-					props);
-
-				checkpoint.setStatsCallback(callback);
-			}
-
 			// schedule the timer that will clean up the expired checkpoints
 			final Runnable canceller = () -> {
 				synchronized (lock) {
@@ -539,6 +530,10 @@ public class CheckpointCoordinator {
 						LOG.info("Checkpoint {} of job {} expired before completing.", checkpointID, job);
 
 						checkpoint.abortExpired();
+
+						CheckpointTrace checkpointTrace = checkpoint.getCheckpointTrace();
+						checkpointHistoryTracker.addCheckpointTrace(checkpointTrace);
+
 						pendingCheckpoints.remove(checkpointID);
 						rememberRecentCheckpointId(checkpointID);
 
@@ -635,6 +630,9 @@ public class CheckpointCoordinator {
 
 				if (!checkpoint.isDiscarded()) {
 					checkpoint.abortError(new Exception("Failed to trigger checkpoint", t));
+
+					CheckpointTrace checkpointTrace = checkpoint.getCheckpointTrace();
+					checkpointHistoryTracker.addCheckpointTrace(checkpointTrace);
 				}
 
 				try {
@@ -739,7 +737,7 @@ public class CheckpointCoordinator {
 
 			if (checkpoint != null && !checkpoint.isDiscarded()) {
 
-				switch (checkpoint.acknowledgeTask(message.getTaskExecutionId(), message.getSubtaskState(), message.getCheckpointMetrics())) {
+				switch (checkpoint.acknowledgeTask(message.getTaskExecutionId(), message.getSubtaskState(), message.getTaskCheckpointTrace())) {
 					case SUCCESS:
 						LOG.debug("Received acknowledge message for checkpoint {} from task {} of job {}.",
 							checkpointId, message.getTaskExecutionId(), message.getJob());
@@ -811,6 +809,11 @@ public class CheckpointCoordinator {
 	private void completePendingCheckpoint(PendingCheckpoint pendingCheckpoint) throws CheckpointException {
 		final long checkpointId = pendingCheckpoint.getCheckpointId();
 		final CompletedCheckpoint completedCheckpoint;
+
+		pendingCheckpoint.complete();
+
+		CheckpointTrace checkpointTrace = pendingCheckpoint.getCheckpointTrace();
+		checkpointHistoryTracker.addCheckpointTrace(checkpointTrace);
 
 		// As a first step to complete the checkpoint, we register its state with the registry
 		Map<OperatorID, OperatorState> operatorStates = pendingCheckpoint.getOperatorStates();
@@ -929,6 +932,10 @@ public class CheckpointCoordinator {
 			if (p.getCheckpointId() < checkpointId && p.canBeSubsumed()) {
 				rememberRecentCheckpointId(p.getCheckpointId());
 				p.abortSubsumed();
+
+				CheckpointTrace checkpointTrace = p.getCheckpointTrace();
+				checkpointHistoryTracker.addCheckpointTrace(checkpointTrace);
+
 				entries.remove();
 			}
 		}
@@ -1117,19 +1124,6 @@ public class CheckpointCoordinator {
 					allowNonRestoredState,
 					LOG);
 
-			// update metrics
-
-			if (statsTracker != null) {
-				long restoreTimestamp = System.currentTimeMillis();
-				RestoredCheckpointStats restored = new RestoredCheckpointStats(
-					latest.getCheckpointID(),
-					latest.getProperties(),
-					restoreTimestamp,
-					latest.getExternalPointer());
-
-				statsTracker.reportRestoredCheckpoint(restored);
-			}
-
 			return true;
 		}
 	}
@@ -1225,6 +1219,33 @@ public class CheckpointCoordinator {
 		return baseInterval != Long.MAX_VALUE;
 	}
 
+	public CheckpointCoordinatorConfiguration getConfiguration() {
+		return configuration;
+	}
+
+	public CheckpointTracesSnapshot getCheckpointTraces() {
+		synchronized (lock) {
+
+			Map<Long, CheckpointTrace> checkpointTraces = new HashMap<>();
+
+			for (PendingCheckpoint pendingCheckpoint : pendingCheckpoints.values()) {
+				CheckpointTrace checkpointTrace = pendingCheckpoint.getCheckpointTrace();
+				checkpointTraces.put(checkpointTrace.getCheckpointId(), checkpointTrace);
+			}
+
+			checkpointTraces.putAll(checkpointHistoryTracker.getCheckpointTraces());
+
+			return new CheckpointTracesSnapshot(
+				pendingCheckpoints.size(),
+				checkpointHistoryTracker.getNumCompletedCheckpoints(),
+				checkpointHistoryTracker.getNumFailedCheckpoints(),
+				checkpointHistoryTracker.getLastCompletedCheckpointTrace(),
+				checkpointHistoryTracker.getLastFailedCheckpointTrace(),
+				checkpointTraces
+			);
+		}
+	}
+
 	// --------------------------------------------------------------------------------------------
 	//  Periodic scheduling of checkpoints
 	// --------------------------------------------------------------------------------------------
@@ -1258,6 +1279,9 @@ public class CheckpointCoordinator {
 
 			for (PendingCheckpoint p : pendingCheckpoints.values()) {
 				p.abortError(new Exception("Checkpoint Coordinator is suspending."));
+
+				CheckpointTrace checkpointTrace = p.getCheckpointTrace();
+				checkpointHistoryTracker.addCheckpointTrace(checkpointTrace);
 			}
 
 			pendingCheckpoints.clear();
@@ -1318,6 +1342,9 @@ public class CheckpointCoordinator {
 			pendingCheckpoint.abortError(cause);
 		}
 
+		CheckpointTrace checkpointTrace = pendingCheckpoint.getCheckpointTrace();
+		checkpointHistoryTracker.addCheckpointTrace(checkpointTrace);
+
 		rememberRecentCheckpointId(checkpointId);
 
 		// we don't have to schedule another "dissolving" checkpoint any more because the
@@ -1365,6 +1392,99 @@ public class CheckpointCoordinator {
 					}
 				}
 			});
+		}
+	}
+
+
+	// --------------------------------------------------------------------------------------------
+	//  Metrics
+	// --------------------------------------------------------------------------------------------
+
+	@VisibleForTesting
+	static final String NUMBER_OF_CHECKPOINTS_METRIC = "totalNumberOfCheckpoints";
+
+	@VisibleForTesting
+	static final String NUMBER_OF_PENDING_CHECKPOINTS_METRIC = "numberOfPendingCheckpoints";
+
+	@VisibleForTesting
+	static final String NUMBER_OF_COMPLETED_CHECKPOINTS_METRIC = "numberOfCompletedCheckpoints";
+
+	@VisibleForTesting
+	static final String NUMBER_OF_FAILED_CHECKPOINTS_METRIC = "numberOfFailedCheckpoints";
+
+	@VisibleForTesting
+	static final String LATEST_COMPLETED_CHECKPOINT_SIZE_METRIC = "lastCheckpointSize";
+
+	@VisibleForTesting
+	static final String LATEST_COMPLETED_CHECKPOINT_DURATION_METRIC = "lastCheckpointDuration";
+
+	/**
+	 * Register the exposed metrics.
+	 *
+	 * @param metricGroup Metric group to use for the metrics.
+	 */
+	private void registerMetrics(MetricGroup metricGroup) {
+		metricGroup.gauge(NUMBER_OF_CHECKPOINTS_METRIC, new CheckpointsCounter());
+		metricGroup.gauge(NUMBER_OF_PENDING_CHECKPOINTS_METRIC, new PendingCheckpointsCounter());
+		metricGroup.gauge(NUMBER_OF_COMPLETED_CHECKPOINTS_METRIC, new CompletedCheckpointsCounter());
+		metricGroup.gauge(NUMBER_OF_FAILED_CHECKPOINTS_METRIC, new FailedCheckpointsCounter());
+		metricGroup.gauge(LATEST_COMPLETED_CHECKPOINT_SIZE_METRIC, new LatestCompletedCheckpointSizeGauge());
+		metricGroup.gauge(LATEST_COMPLETED_CHECKPOINT_DURATION_METRIC, new LatestCompletedCheckpointDurationGauge());
+	}
+
+	private class CheckpointsCounter implements Gauge<Integer> {
+		@Override
+		public Integer getValue() {
+			int numPendingCheckpoints = pendingCheckpoints.size();
+			int numCompletedCheckpoints = checkpointHistoryTracker.getNumCompletedCheckpoints();
+			int numFailedCheckpoints = checkpointHistoryTracker.getNumFailedCheckpoints();
+
+			return numPendingCheckpoints + numCompletedCheckpoints + numFailedCheckpoints;
+		}
+	}
+
+	private class PendingCheckpointsCounter implements Gauge<Integer> {
+		@Override
+		public Integer getValue() {
+			return pendingCheckpoints.size();
+		}
+	}
+
+	private class CompletedCheckpointsCounter implements Gauge<Integer> {
+		@Override
+		public Integer getValue() {
+			return checkpointHistoryTracker.getNumCompletedCheckpoints();
+		}
+	}
+
+	private class FailedCheckpointsCounter implements Gauge<Integer> {
+		@Override
+		public Integer getValue() {
+			return checkpointHistoryTracker.getNumFailedCheckpoints();
+		}
+	}
+
+	private class LatestCompletedCheckpointSizeGauge implements Gauge<Long> {
+		@Override
+		public Long getValue() {
+			CheckpointTrace lastCompletedCheckpointTrace = checkpointHistoryTracker.getLastCompletedCheckpointTrace();
+			if (lastCompletedCheckpointTrace != null) {
+				return lastCompletedCheckpointTrace.getSize();
+			} else {
+				return -1L;
+			}
+		}
+	}
+
+	private class LatestCompletedCheckpointDurationGauge implements Gauge<Long> {
+		@Override
+		public Long getValue() {
+			CheckpointTrace lastCompletedCheckpointTrace = checkpointHistoryTracker.getLastCompletedCheckpointTrace();
+			if (lastCompletedCheckpointTrace != null) {
+				return lastCompletedCheckpointTrace.getDuration();
+			} else {
+				return -1L;
+			}
 		}
 	}
 }

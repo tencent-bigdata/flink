@@ -20,7 +20,6 @@ package org.apache.flink.streaming.runtime.io;
 
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.io.disk.iomanager.IOManagerAsync;
-import org.apache.flink.runtime.io.network.partition.consumer.BufferOrEvent;
 import org.apache.flink.runtime.io.network.partition.consumer.InputGate;
 
 import org.junit.After;
@@ -30,7 +29,6 @@ import org.junit.BeforeClass;
 import java.io.File;
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 /**
@@ -65,17 +63,5 @@ public class SpillingBarrierBufferTest extends BarrierBufferTestBase {
 	@Override
 	public BarrierBuffer createBarrierHandler(InputGate gate) throws IOException{
 		return new BarrierBuffer(gate, new BufferSpiller(ioManager, PAGE_SIZE));
-	}
-
-	@Override
-	public void validateAlignmentBuffered(long actualBytesBuffered, BufferOrEvent... sequence) {
-		long expectedBuffered = 0;
-		for (BufferOrEvent boe : sequence) {
-			if (boe.isBuffer()) {
-				expectedBuffered += BufferSpiller.HEADER_SIZE + boe.getBuffer().getSize();
-			}
-		}
-
-		assertEquals("Wrong alignment buffered bytes", actualBytesBuffered, expectedBuffered);
 	}
 }

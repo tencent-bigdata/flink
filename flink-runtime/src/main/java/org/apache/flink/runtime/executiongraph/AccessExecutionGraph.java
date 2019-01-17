@@ -21,7 +21,7 @@ package org.apache.flink.runtime.executiongraph;
 import org.apache.flink.api.common.ArchivedExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.accumulators.StringifiedAccumulatorResult;
-import org.apache.flink.runtime.checkpoint.CheckpointStatsSnapshot;
+import org.apache.flink.runtime.checkpoint.CheckpointTracesSnapshot;
 import org.apache.flink.runtime.jobgraph.JobStatus;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.tasks.CheckpointCoordinatorConfiguration;
@@ -129,13 +129,13 @@ public interface AccessExecutionGraph {
 	CheckpointCoordinatorConfiguration getCheckpointCoordinatorConfiguration();
 
 	/**
-	 * Returns a snapshot of the checkpoint statistics or <code>null</code> if
+	 * Returns a snapshot of the checkpoint traces or <code>null</code> if
 	 * checkpointing is disabled.
 	 *
-	 * @return Snapshot of the checkpoint statistics for this execution graph
+	 * @return Snapshot of the checkpoint traces for this execution graph
 	 */
 	@Nullable
-	CheckpointStatsSnapshot getCheckpointStatsSnapshot();
+	CheckpointTracesSnapshot getCheckpointTracesSnapshot();
 
 	/**
 	 * Returns the {@link ArchivedExecutionConfig} for this execution graph.

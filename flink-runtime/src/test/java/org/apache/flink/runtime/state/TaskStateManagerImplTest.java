@@ -20,12 +20,12 @@ package org.apache.flink.runtime.state;
 
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.JobManagerTaskRestore;
 import org.apache.flink.runtime.checkpoint.OperatorSubtaskState;
 import org.apache.flink.runtime.checkpoint.PrioritizedOperatorSubtaskState;
 import org.apache.flink.runtime.checkpoint.StateHandleDummyUtil;
 import org.apache.flink.runtime.checkpoint.StateObjectCollection;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.clusterframework.types.AllocationID;
 import org.apache.flink.runtime.concurrent.Executors;
@@ -68,7 +68,7 @@ public class TaskStateManagerImplTest extends TestLogger {
 		//---------------------------------------- test reporting -----------------------------------------
 
 		CheckpointMetaData checkpointMetaData = new CheckpointMetaData(74L, 11L);
-		CheckpointMetrics checkpointMetrics = new CheckpointMetrics();
+		TaskCheckpointTrace checkpointTrace = new TaskCheckpointTrace();
 		TaskStateSnapshot jmTaskStateSnapshot = new TaskStateSnapshot();
 
 		OperatorID operatorID_1 = new OperatorID(1L, 1L);
@@ -100,7 +100,7 @@ public class TaskStateManagerImplTest extends TestLogger {
 
 		taskStateManager.reportTaskStateSnapshots(
 			checkpointMetaData,
-			checkpointMetrics,
+			checkpointTrace,
 			jmTaskStateSnapshot,
 			tmTaskStateSnapshot);
 
@@ -109,7 +109,7 @@ public class TaskStateManagerImplTest extends TestLogger {
 
 		// checks that the checkpoint responder and the local state store received state as expected.
 		Assert.assertEquals(checkpointMetaData.getCheckpointId(), acknowledgeReport.getCheckpointId());
-		Assert.assertEquals(checkpointMetrics, acknowledgeReport.getCheckpointMetrics());
+		Assert.assertEquals(checkpointTrace, acknowledgeReport.getTaskCheckpointTrace());
 		Assert.assertEquals(executionAttemptID, acknowledgeReport.getExecutionAttemptID());
 		Assert.assertEquals(jobID, acknowledgeReport.getJobID());
 		Assert.assertEquals(jmTaskStateSnapshot, acknowledgeReport.getSubtaskState());

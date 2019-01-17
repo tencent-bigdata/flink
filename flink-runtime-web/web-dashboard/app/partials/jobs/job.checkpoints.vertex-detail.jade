@@ -1,0 +1,58 @@
+//
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+
+.panel.panel-default.panel-dashboard
+  .panel-heading
+    | Checkpoint {{checkpointId}} - {{vertexName}}
+
+  .panel-body
+    table.table.table-hover.table-clickable(md-table)
+      thead(md-head md-order="order")
+        tr(md-row)
+          th(md-column md-order-by="index") ID
+          th(md-column md-order-by="startTime") Start Time
+          th(md-column md-order-by="endTime") End Time
+          th(md-column md-order-by="metrics.alignDuration") Align Time
+          th(md-column md-order-by="metrics.syncDuration") Sync Time
+          th(md-column md-order-by="metrics.asyncDuration") Async Time
+          th(md-column md-order-by="metrics.duration") Duration
+          th(md-column md-order-by="metrics.size") Size
+
+      tbody(md-body)
+        tr(md-row ng-repeat="task in tasks | orderBy: order | limitTo: limit: ((page - 1) * limit)")
+          td(md-cell) {{task.index}}
+            td(md-cell) {{task.startTime | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}
+            td(md-cell) {{task.endTime | amDateFormat:'YYYY-MM-DD, H:mm:ss'}}
+            td(md-cell)
+                span(ng-if="task.metrics.alignDuration < 0") N/A
+                span(ng-if="task.metrics.alignDuration >= 0") {{task.metrics.alignDuration | humanizeDuration:true}}
+            td(md-cell)
+                span(ng-if="task.metrics.syncDuration < 0") N/A
+                span(ng-if="task.metrics.syncDuration >= 0") {{task.metrics.syncDuration | humanizeDuration:true}}
+            td(md-cell)
+                span(ng-if="task.metrics.asyncDuration < 0") N/A
+                span(ng-if="task.metrics.asyncDuration >= 0") {{task.metrics.asyncDuration | humanizeDuration:true}}
+            td(md-cell)
+                span(ng-if="task.metrics.duration < 0") N/A
+                span(ng-if="task.metrics.duration >= 0") {{task.metrics.duration | humanizeDuration:true}}
+            td(md-cell)
+                span(ng-if="task.metrics.size < 0") N/A
+                span(ng-if="task.metrics.size >= 0") {{task.metrics.size | humanizeBytes}}
+
+    md-table-pagination.bg-light(md-limit="limit" md-limit-options="[5, 10, 20]" md-page="page" md-total="{{tasks.length}}" md-page-select)
+

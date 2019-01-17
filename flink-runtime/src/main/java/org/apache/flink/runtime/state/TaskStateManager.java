@@ -19,8 +19,8 @@
 package org.apache.flink.runtime.state;
 
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.PrioritizedOperatorSubtaskState;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.jobgraph.OperatorID;
 
@@ -44,13 +44,13 @@ public interface TaskStateManager extends CheckpointListener {
 	 * Report the state snapshots for the operator instances running in the owning task.
 	 *
 	 * @param checkpointMetaData meta data from the checkpoint request.
-	 * @param checkpointMetrics  task level metrics for the checkpoint.
+	 * @param checkpointTrace    the trace for the checkpoint operation.
 	 * @param acknowledgedState  the reported states to acknowledge to the job manager.
 	 * @param localState         the reported states for local recovery.
 	 */
 	void reportTaskStateSnapshots(
 		@Nonnull CheckpointMetaData checkpointMetaData,
-		@Nonnull CheckpointMetrics checkpointMetrics,
+		@Nonnull TaskCheckpointTrace checkpointTrace,
 		@Nullable TaskStateSnapshot acknowledgedState,
 		@Nullable TaskStateSnapshot localState);
 

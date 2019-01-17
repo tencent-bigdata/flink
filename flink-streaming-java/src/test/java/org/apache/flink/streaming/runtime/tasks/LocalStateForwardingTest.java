@@ -22,9 +22,10 @@ import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.OperatorSubtaskState;
 import org.apache.flink.runtime.checkpoint.StateObjectCollection;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTracker;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.clusterframework.types.AllocationID;
 import org.apache.flink.runtime.concurrent.Executors;
@@ -92,7 +93,7 @@ public class LocalStateForwardingTest extends TestLogger {
 
 		StreamTask testStreamTask = new StreamTaskTest.NoOpStreamTask(streamMockEnvironment);
 		CheckpointMetaData checkpointMetaData = new CheckpointMetaData(0L, 0L);
-		CheckpointMetrics checkpointMetrics = new CheckpointMetrics();
+		TaskCheckpointTracker checkpointTracker = new TaskCheckpointTracker();
 
 		Map<OperatorID, OperatorSnapshotFutures> snapshots = new HashMap<>(1);
 		OperatorSnapshotFutures osFuture = new OperatorSnapshotFutures();
@@ -110,8 +111,8 @@ public class LocalStateForwardingTest extends TestLogger {
 				testStreamTask,
 				snapshots,
 				checkpointMetaData,
-				checkpointMetrics,
-				0L);
+				checkpointTracker
+			);
 
 		checkpointRunnable.run();
 
@@ -141,7 +142,7 @@ public class LocalStateForwardingTest extends TestLogger {
 		final AllocationID allocationID = new AllocationID();
 		final ExecutionAttemptID executionAttemptID = new ExecutionAttemptID();
 		final CheckpointMetaData checkpointMetaData = new CheckpointMetaData(42L, 4711L);
-		final CheckpointMetrics checkpointMetrics = new CheckpointMetrics();
+		final TaskCheckpointTrace checkpointTrace = new TaskCheckpointTrace();
 		final int subtaskIdx = 42;
 		JobVertexID jobVertexID = new JobVertexID();
 
@@ -158,13 +159,13 @@ public class LocalStateForwardingTest extends TestLogger {
 				JobID lJobID,
 				ExecutionAttemptID lExecutionAttemptID,
 				long lCheckpointId,
-				CheckpointMetrics lCheckpointMetrics,
+				TaskCheckpointTrace lCheckpointTrace,
 				TaskStateSnapshot lSubtaskState) {
 
 				Assert.assertEquals(jobID, lJobID);
 				Assert.assertEquals(executionAttemptID, lExecutionAttemptID);
 				Assert.assertEquals(checkpointMetaData.getCheckpointId(), lCheckpointId);
-				Assert.assertEquals(checkpointMetrics, lCheckpointMetrics);
+				Assert.assertEquals(checkpointTrace, lCheckpointTrace);
 				jmReported.set(true);
 			}
 		};
@@ -201,7 +202,7 @@ public class LocalStateForwardingTest extends TestLogger {
 
 		taskStateManager.reportTaskStateSnapshots(
 			checkpointMetaData,
-			checkpointMetrics,
+			checkpointTrace,
 			jmSnapshot,
 			tmSnapshot);
 

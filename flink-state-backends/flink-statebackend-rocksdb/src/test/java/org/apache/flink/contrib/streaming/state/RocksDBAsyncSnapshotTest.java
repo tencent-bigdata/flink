@@ -27,9 +27,9 @@ import org.apache.flink.api.common.typeutils.base.VoidSerializer;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.core.testutils.OneShotLatch;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
 import org.apache.flink.runtime.checkpoint.OperatorSubtaskState;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.execution.CancelTaskException;
 import org.apache.flink.runtime.execution.Environment;
@@ -159,7 +159,7 @@ public class RocksDBAsyncSnapshotTest extends TestLogger {
 				JobID jobID,
 				ExecutionAttemptID executionAttemptID,
 				long checkpointId,
-				CheckpointMetrics checkpointMetrics,
+				TaskCheckpointTrace taskCheckpointTrace,
 				TaskStateSnapshot subtaskState) {
 				// block on the latch, to verify that triggerCheckpoint returns below,
 				// even though the async checkpoint would not finish

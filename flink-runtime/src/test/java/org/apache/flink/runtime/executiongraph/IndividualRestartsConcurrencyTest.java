@@ -24,7 +24,6 @@ import org.apache.flink.core.testutils.ManuallyTriggeredDirectExecutor;
 import org.apache.flink.runtime.checkpoint.CheckpointCoordinator;
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
 import org.apache.flink.runtime.checkpoint.CheckpointRetentionPolicy;
-import org.apache.flink.runtime.checkpoint.CheckpointStatsTracker;
 import org.apache.flink.runtime.checkpoint.PendingCheckpoint;
 import org.apache.flink.runtime.checkpoint.StandaloneCheckpointIDCounter;
 import org.apache.flink.runtime.checkpoint.StandaloneCompletedCheckpointStore;
@@ -336,11 +335,7 @@ public class IndividualRestartsConcurrencyTest extends TestLogger {
 			standaloneCheckpointIDCounter,
 			new StandaloneCompletedCheckpointStore(1),
 			new MemoryStateBackend(),
-			new CheckpointStatsTracker(
-				1,
-				allVertices,
-				checkpointCoordinatorConfiguration,
-				UnregisteredMetricGroups.createUnregisteredTaskMetricGroup()));
+			UnregisteredMetricGroups.createUnregisteredTaskMetricGroup());
 
 		final CheckpointCoordinator checkpointCoordinator = graph.getCheckpointCoordinator();
 

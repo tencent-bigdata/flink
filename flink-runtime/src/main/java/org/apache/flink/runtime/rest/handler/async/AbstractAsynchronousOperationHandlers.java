@@ -62,7 +62,7 @@ import java.util.concurrent.CompletableFuture;
  * <pre>
  * {
  *     "status": {
- *         "id": "IN_PROGRESS"
+ *         "id": "PENDING"
  *     }
  * }
  * </pre>

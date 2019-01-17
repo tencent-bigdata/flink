@@ -104,10 +104,6 @@ public class CompletedCheckpoint implements Serializable {
 	/** External pointer to the completed checkpoint (for example file path). */
 	private final String externalPointer;
 
-	/** Optional stats tracker callback for discard. */
-	@Nullable
-	private transient volatile CompletedCheckpointStats.DiscardCallback discardCallback;
-
 	// ------------------------------------------------------------------------
 
 	public CompletedCheckpoint(
@@ -272,12 +268,6 @@ public class CompletedCheckpoint implements Serializable {
 			}
 		} finally {
 			operatorStates.clear();
-
-			// to be null-pointer safe, copy reference to stack
-			CompletedCheckpointStats.DiscardCallback discardCallback = this.discardCallback;
-			if (discardCallback != null) {
-				discardCallback.notifyDiscardedCheckpoint();
-			}
 		}
 	}
 
@@ -307,15 +297,6 @@ public class CompletedCheckpoint implements Serializable {
 		}
 
 		return firstInterestingFields.equals(secondInterestingFields);
-	}
-
-	/**
-	 * Sets the callback for tracking when this checkpoint is discarded.
-	 *
-	 * @param discardCallback Callback to call when the checkpoint is discarded.
-	 */
-	void setDiscardCallback(@Nullable CompletedCheckpointStats.DiscardCallback discardCallback) {
-		this.discardCallback = discardCallback;
 	}
 
 	@Override

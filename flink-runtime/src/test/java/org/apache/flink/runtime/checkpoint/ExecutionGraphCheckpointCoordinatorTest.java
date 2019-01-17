@@ -19,6 +19,7 @@
 package org.apache.flink.runtime.checkpoint;
 
 import org.apache.flink.api.common.time.Time;
+import org.apache.flink.metrics.groups.UnregisteredMetricsGroup;
 import org.apache.flink.runtime.blob.VoidBlobWriter;
 import org.apache.flink.runtime.executiongraph.DummyJobInformation;
 import org.apache.flink.runtime.executiongraph.ExecutionGraph;
@@ -110,7 +111,7 @@ public class ExecutionGraphCheckpointCoordinatorTest {
 			counter,
 			store,
 			new MemoryStateBackend(),
-			CheckpointStatsTrackerTest.createTestTracker());
+			new UnregisteredMetricsGroup());
 
 		JobVertex jobVertex = new JobVertex("MockVertex");
 		jobVertex.setInvokableClass(AbstractInvokable.class);

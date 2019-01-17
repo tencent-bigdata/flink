@@ -21,9 +21,9 @@ package org.apache.flink.runtime.state;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.core.testutils.OneShotLatch;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.OperatorSubtaskState;
 import org.apache.flink.runtime.checkpoint.PrioritizedOperatorSubtaskState;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.jobgraph.OperatorID;
@@ -90,7 +90,7 @@ public class TestTaskStateManager implements TaskStateManager {
 	@Override
 	public void reportTaskStateSnapshots(
 		@Nonnull CheckpointMetaData checkpointMetaData,
-		@Nonnull CheckpointMetrics checkpointMetrics,
+		@Nonnull TaskCheckpointTrace taskCheckpointTrace,
 		@Nullable TaskStateSnapshot acknowledgedState,
 		@Nullable TaskStateSnapshot localState) {
 
@@ -108,7 +108,7 @@ public class TestTaskStateManager implements TaskStateManager {
 				jobId,
 				executionAttemptID,
 				checkpointMetaData.getCheckpointId(),
-				checkpointMetrics,
+				taskCheckpointTrace,
 				acknowledgedState);
 		}
 

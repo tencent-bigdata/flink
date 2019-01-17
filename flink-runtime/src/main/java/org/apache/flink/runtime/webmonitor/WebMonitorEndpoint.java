@@ -47,10 +47,9 @@ import org.apache.flink.runtime.rest.handler.job.JobsOverviewHandler;
 import org.apache.flink.runtime.rest.handler.job.TaskDetailHandler;
 import org.apache.flink.runtime.rest.handler.job.VertexDetailHandler;
 import org.apache.flink.runtime.rest.handler.job.checkpoints.CheckpointConfigHandler;
-import org.apache.flink.runtime.rest.handler.job.checkpoints.CheckpointStatisticDetailsHandler;
-import org.apache.flink.runtime.rest.handler.job.checkpoints.CheckpointStatsCache;
-import org.apache.flink.runtime.rest.handler.job.checkpoints.CheckpointingStatisticsHandler;
-import org.apache.flink.runtime.rest.handler.job.checkpoints.TaskCheckpointStatisticDetailsHandler;
+import org.apache.flink.runtime.rest.handler.job.checkpoints.CheckpointDetailHandler;
+import org.apache.flink.runtime.rest.handler.job.checkpoints.JobCheckpointsHandler;
+import org.apache.flink.runtime.rest.handler.job.checkpoints.VertexCheckpointDetailHandler;
 import org.apache.flink.runtime.rest.handler.job.metrics.AggregatingJobsMetricsHandler;
 import org.apache.flink.runtime.rest.handler.job.metrics.AggregatingSubtasksMetricsHandler;
 import org.apache.flink.runtime.rest.handler.job.metrics.AggregatingTaskManagersMetricsHandler;
@@ -81,16 +80,16 @@ import org.apache.flink.runtime.rest.messages.JobTerminationHeaders;
 import org.apache.flink.runtime.rest.messages.TerminationModeQueryParameter;
 import org.apache.flink.runtime.rest.messages.YarnCancelJobTerminationHeaders;
 import org.apache.flink.runtime.rest.messages.YarnStopJobTerminationHeaders;
-import org.apache.flink.runtime.rest.messages.checkpoints.CheckpointConfigHeaders;
-import org.apache.flink.runtime.rest.messages.checkpoints.CheckpointStatisticDetailsHeaders;
-import org.apache.flink.runtime.rest.messages.checkpoints.CheckpointingStatisticsHeaders;
-import org.apache.flink.runtime.rest.messages.checkpoints.TaskCheckpointStatisticsHeaders;
 import org.apache.flink.runtime.rest.messages.cluster.ClusterOverviewHeaders;
 import org.apache.flink.runtime.rest.messages.cluster.ShutdownHeaders;
 import org.apache.flink.runtime.rest.messages.job.JobDetailHeaders;
 import org.apache.flink.runtime.rest.messages.job.JobsOverviewHeaders;
 import org.apache.flink.runtime.rest.messages.job.TaskDetailHeaders;
 import org.apache.flink.runtime.rest.messages.job.VertexDetailHeaders;
+import org.apache.flink.runtime.rest.messages.job.checkpoints.CheckpointConfigHeaders;
+import org.apache.flink.runtime.rest.messages.job.checkpoints.CheckpointDetailHeaders;
+import org.apache.flink.runtime.rest.messages.job.checkpoints.JobCheckpointsHeaders;
+import org.apache.flink.runtime.rest.messages.job.checkpoints.VertexCheckpointDetailHeaders;
 import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagerDetailsHeaders;
 import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagerLogFileHeaders;
 import org.apache.flink.runtime.rest.messages.taskmanager.TaskManagerStdoutFileHeaders;
@@ -137,7 +136,6 @@ public class WebMonitorEndpoint<T extends RestfulGateway> extends RestServerEndp
 	protected final ExecutorService executor;
 
 	private final ExecutionGraphCache executionGraphCache;
-	private final CheckpointStatsCache checkpointStatsCache;
 
 	private final MetricFetcher<? extends T> metricFetcher;
 
@@ -171,9 +169,6 @@ public class WebMonitorEndpoint<T extends RestfulGateway> extends RestServerEndp
 		this.executionGraphCache = new ExecutionGraphCache(
 			restConfiguration.getTimeout(),
 			Time.milliseconds(restConfiguration.getRefreshInterval()));
-
-		this.checkpointStatsCache = new CheckpointStatsCache(
-			restConfiguration.getMaxCheckpointStatisticCacheEntries());
 
 		this.metricFetcher = new MetricFetcher<>(
 			leaderRetriever,
@@ -260,22 +255,29 @@ public class WebMonitorEndpoint<T extends RestfulGateway> extends RestServerEndp
 			executionGraphCache,
 			executor);
 
-		CheckpointingStatisticsHandler checkpointStatisticsHandler = new CheckpointingStatisticsHandler(
+		JobCheckpointsHandler checkpointStatisticsHandler = new JobCheckpointsHandler(
 			leaderRetriever,
 			timeout,
 			responseHeaders,
-			CheckpointingStatisticsHeaders.getInstance(),
+			JobCheckpointsHeaders.getInstance(),
 			executionGraphCache,
 			executor);
 
-		CheckpointStatisticDetailsHandler checkpointStatisticDetailsHandler = new CheckpointStatisticDetailsHandler(
+		CheckpointDetailHandler checkpointDetailHandler = new CheckpointDetailHandler(
 			leaderRetriever,
 			timeout,
 			responseHeaders,
-			CheckpointStatisticDetailsHeaders.getInstance(),
+			CheckpointDetailHeaders.getInstance(),
 			executionGraphCache,
-			executor,
-			checkpointStatsCache);
+			executor);
+
+		VertexCheckpointDetailHandler vertexCheckpointDetailHandler = new VertexCheckpointDetailHandler(
+			leaderRetriever,
+			timeout,
+			responseHeaders,
+			VertexCheckpointDetailHeaders.getInstance(),
+			executionGraphCache,
+			executor);
 
 		JobPlanHandler jobPlanHandler = new JobPlanHandler(
 			leaderRetriever,
@@ -284,15 +286,6 @@ public class WebMonitorEndpoint<T extends RestfulGateway> extends RestServerEndp
 			JobPlanHeaders.getInstance(),
 			executionGraphCache,
 			executor);
-
-		TaskCheckpointStatisticDetailsHandler taskCheckpointStatisticDetailsHandler = new TaskCheckpointStatisticDetailsHandler(
-			leaderRetriever,
-			timeout,
-			responseHeaders,
-			TaskCheckpointStatisticsHeaders.getInstance(),
-			executionGraphCache,
-			executor,
-			checkpointStatsCache);
 
 		JobExceptionsHandler jobExceptionsHandler = new JobExceptionsHandler(
 			leaderRetriever,
@@ -453,9 +446,10 @@ public class WebMonitorEndpoint<T extends RestfulGateway> extends RestServerEndp
 		handlers.add(Tuple2.of(jobConfigHandler.getMessageHeaders(), jobConfigHandler));
 		handlers.add(Tuple2.of(checkpointConfigHandler.getMessageHeaders(), checkpointConfigHandler));
 		handlers.add(Tuple2.of(checkpointStatisticsHandler.getMessageHeaders(), checkpointStatisticsHandler));
-		handlers.add(Tuple2.of(checkpointStatisticDetailsHandler.getMessageHeaders(), checkpointStatisticDetailsHandler));
+		handlers.add(Tuple2.of(checkpointDetailHandler.getMessageHeaders(), checkpointDetailHandler));
 		handlers.add(Tuple2.of(jobPlanHandler.getMessageHeaders(), jobPlanHandler));
-		handlers.add(Tuple2.of(taskCheckpointStatisticDetailsHandler.getMessageHeaders(), taskCheckpointStatisticDetailsHandler));
+		handlers.add(Tuple2.of(vertexCheckpointDetailHandler.getMessageHeaders(),
+			vertexCheckpointDetailHandler));
 		handlers.add(Tuple2.of(jobExceptionsHandler.getMessageHeaders(), jobExceptionsHandler));
 		handlers.add(Tuple2.of(jobAccumulatorsHandler.getMessageHeaders(), jobAccumulatorsHandler));
 		handlers.add(Tuple2.of(taskManagersOverviewHandler.getMessageHeaders(), taskManagersOverviewHandler));

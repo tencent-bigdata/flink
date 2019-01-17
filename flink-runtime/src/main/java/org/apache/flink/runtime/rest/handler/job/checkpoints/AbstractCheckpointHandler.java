@@ -19,8 +19,8 @@
 package org.apache.flink.runtime.rest.handler.job.checkpoints;
 
 import org.apache.flink.api.common.time.Time;
-import org.apache.flink.runtime.checkpoint.AbstractCheckpointStats;
-import org.apache.flink.runtime.checkpoint.CheckpointStatsSnapshot;
+import org.apache.flink.runtime.checkpoint.CheckpointTrace;
+import org.apache.flink.runtime.checkpoint.CheckpointTracesSnapshot;
 import org.apache.flink.runtime.executiongraph.AccessExecutionGraph;
 import org.apache.flink.runtime.rest.handler.HandlerRequest;
 import org.apache.flink.runtime.rest.handler.RestHandlerException;
@@ -29,11 +29,10 @@ import org.apache.flink.runtime.rest.handler.legacy.ExecutionGraphCache;
 import org.apache.flink.runtime.rest.messages.EmptyRequestBody;
 import org.apache.flink.runtime.rest.messages.MessageHeaders;
 import org.apache.flink.runtime.rest.messages.ResponseBody;
-import org.apache.flink.runtime.rest.messages.checkpoints.CheckpointIdPathParameter;
-import org.apache.flink.runtime.rest.messages.checkpoints.CheckpointMessageParameters;
+import org.apache.flink.runtime.rest.messages.job.checkpoints.CheckpointIDPathParameter;
+import org.apache.flink.runtime.rest.messages.job.checkpoints.CheckpointMessageParameters;
 import org.apache.flink.runtime.webmonitor.RestfulGateway;
 import org.apache.flink.runtime.webmonitor.retriever.GatewayRetriever;
-import org.apache.flink.util.Preconditions;
 
 import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpResponseStatus;
 
@@ -47,38 +46,27 @@ import java.util.concurrent.Executor;
  */
 public abstract class AbstractCheckpointHandler<R extends ResponseBody, M extends CheckpointMessageParameters> extends AbstractExecutionGraphHandler<R, M> {
 
-	private final CheckpointStatsCache checkpointStatsCache;
-
 	protected AbstractCheckpointHandler(
-			GatewayRetriever<? extends RestfulGateway> leaderRetriever,
-			Time timeout,
-			Map<String, String> responseHeaders,
-			MessageHeaders<EmptyRequestBody, R, M> messageHeaders,
-			ExecutionGraphCache executionGraphCache,
-			Executor executor,
-			CheckpointStatsCache checkpointStatsCache) {
+		GatewayRetriever<? extends RestfulGateway> leaderRetriever,
+		Time timeout,
+		Map<String, String> responseHeaders,
+		MessageHeaders<EmptyRequestBody, R, M> messageHeaders,
+		ExecutionGraphCache executionGraphCache,
+		Executor executor
+	) {
 		super(leaderRetriever, timeout, responseHeaders, messageHeaders, executionGraphCache, executor);
-
-		this.checkpointStatsCache = Preconditions.checkNotNull(checkpointStatsCache);
 	}
 
 	@Override
 	protected R handleRequest(HandlerRequest<EmptyRequestBody, M> request, AccessExecutionGraph executionGraph) throws RestHandlerException {
-		final long checkpointId = request.getPathParameter(CheckpointIdPathParameter.class);
+		final long checkpointId = request.getPathParameter(CheckpointIDPathParameter.class);
 
-		final CheckpointStatsSnapshot checkpointStatsSnapshot = executionGraph.getCheckpointStatsSnapshot();
+		final CheckpointTracesSnapshot checkpointTracesSnapshot = executionGraph.getCheckpointTracesSnapshot();
 
-		if (checkpointStatsSnapshot != null) {
-			AbstractCheckpointStats checkpointStats = checkpointStatsSnapshot.getHistory().getCheckpointById(checkpointId);
-
-			if (checkpointStats != null) {
-				checkpointStatsCache.tryAdd(checkpointStats);
-			} else {
-				checkpointStats = checkpointStatsCache.tryGet(checkpointId);
-			}
-
-			if (checkpointStats != null) {
-				return handleCheckpointRequest(request, checkpointStats);
+		if (checkpointTracesSnapshot != null) {
+			CheckpointTrace checkpointTrace = checkpointTracesSnapshot.getCheckpointTrace(checkpointId);
+			if (checkpointTrace != null) {
+				return handleCheckpointRequest(request, checkpointTrace);
 			} else {
 				throw new RestHandlerException("Could not find checkpointing statistics for checkpoint " + checkpointId + '.', HttpResponseStatus.NOT_FOUND);
 			}
@@ -88,12 +76,12 @@ public abstract class AbstractCheckpointHandler<R extends ResponseBody, M extend
 	}
 
 	/**
-	 * Called for each request with the corresponding {@link AbstractCheckpointStats} instance.
+	 * Called for each request with the corresponding {@link CheckpointTrace} instance.
 	 *
 	 * @param request for further information
-	 * @param checkpointStats for which the handler is called
+	 * @param checkpointTrace for which the handler is called
 	 * @return Response
 	 * @throws RestHandlerException if the handler could not handle the request
 	 */
-	protected abstract R handleCheckpointRequest(HandlerRequest<EmptyRequestBody, M> request, AbstractCheckpointStats checkpointStats) throws RestHandlerException;
+	protected abstract R handleCheckpointRequest(HandlerRequest<EmptyRequestBody, M> request, CheckpointTrace checkpointTrace) throws RestHandlerException;
 }

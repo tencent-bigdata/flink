@@ -30,7 +30,6 @@ import org.apache.flink.runtime.JobException;
 import org.apache.flink.runtime.blob.BlobWriter;
 import org.apache.flink.runtime.checkpoint.CheckpointIDCounter;
 import org.apache.flink.runtime.checkpoint.CheckpointRecoveryFactory;
-import org.apache.flink.runtime.checkpoint.CheckpointStatsTracker;
 import org.apache.flink.runtime.checkpoint.CompletedCheckpointStore;
 import org.apache.flink.runtime.checkpoint.MasterTriggerRestoreHook;
 import org.apache.flink.runtime.checkpoint.hooks.MasterHooks;
@@ -274,15 +273,6 @@ public class ExecutionGraphBuilder {
 			// Maximum number of remembered checkpoints
 			int historySize = jobManagerConfig.getInteger(WebOptions.CHECKPOINTS_HISTORY_SIZE);
 
-			CheckpointStatsTracker checkpointStatsTracker = new CheckpointStatsTracker(
-					historySize,
-					ackVertices,
-					snapshotSettings.getCheckpointCoordinatorConfiguration(),
-					metrics);
-
-			// The default directory for externalized checkpoints
-			String externalizedCheckpointsDir = jobManagerConfig.getString(CheckpointingOptions.CHECKPOINTS_DIRECTORY);
-
 			// load the state backend from the application settings
 			final StateBackend applicationConfiguredBackend;
 			final SerializedValue<StateBackend> serializedAppConfigured = snapshotSettings.getDefaultStateBackend();
@@ -352,7 +342,7 @@ public class ExecutionGraphBuilder {
 				checkpointIdCounter,
 				completedCheckpoints,
 				rootBackend,
-				checkpointStatsTracker);
+				metrics);
 		}
 
 		// create all the metrics for the Execution Graph

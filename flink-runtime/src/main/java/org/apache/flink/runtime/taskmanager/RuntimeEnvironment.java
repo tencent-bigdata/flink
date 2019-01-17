@@ -25,7 +25,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.accumulators.AccumulatorRegistry;
 import org.apache.flink.runtime.broadcast.BroadcastVariableManager;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
+import org.apache.flink.runtime.checkpoint.TaskCheckpointTrace;
 import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
 import org.apache.flink.runtime.execution.Environment;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
@@ -256,18 +256,18 @@ public class RuntimeEnvironment implements Environment {
 	}
 
 	@Override
-	public void acknowledgeCheckpoint(long checkpointId, CheckpointMetrics checkpointMetrics) {
-		acknowledgeCheckpoint(checkpointId, checkpointMetrics, null);
+	public void acknowledgeCheckpoint(long checkpointId, TaskCheckpointTrace checkpointTrace) {
+		acknowledgeCheckpoint(checkpointId, checkpointTrace, null);
 	}
 
 	@Override
 	public void acknowledgeCheckpoint(
 			long checkpointId,
-			CheckpointMetrics checkpointMetrics,
+			TaskCheckpointTrace checkpointTrace,
 			TaskStateSnapshot checkpointStateHandles) {
 
 		checkpointResponder.acknowledgeCheckpoint(
-				jobId, executionId, checkpointId, checkpointMetrics,
+				jobId, executionId, checkpointId, checkpointTrace,
 				checkpointStateHandles);
 	}
 

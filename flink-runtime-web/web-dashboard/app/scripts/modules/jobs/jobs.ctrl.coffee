@@ -137,70 +137,121 @@ angular.module('flinkApp')
 
 # --------------------------------------
 
-.controller 'JobCheckpointsController', ($scope, $state, $stateParams, JobsService) ->
-  $scope.checkpointDetails = {}
-  $scope.checkpointDetails.id = -1
+.controller 'JobCheckpointsController', ($scope, $state, $stateParams) ->
+  $scope.checkpointId = null
 
+  $scope.$watch($scope.checkpointId, () ->
+    console.log("checkpointId changed", $scope.checkpointId)
+
+  )
+
+  return
+
+# --------------------------------------
+
+.controller 'JobCheckpointsOverviewController', ($scope, $state, $stateParams, $interval, flinkConfig, JobsService) ->
+  $scope.lastCompletedCheckpoint = null
+  $scope.checkpoints = []
+  $scope.checkpointCounts = []
+  $scope.checkpointLabels = ["PENDING", "COMPLETED", "FAILED"]
+  $scope.checkpointColors = ["#428cba", "#5cb85c", "#d9534f"]
+  $scope.chartOptions = {
+    legend: {
+      display: true,
+      position: "right"
+    }
+  }
+  $scope.order = "-id"
+  $scope.page = 1
+  $scope.limit = 5
+
+  JobsService.getCheckpointConfig($scope.id).then (data) ->
+    $scope.checkpointConfig = data
+
+  loadCheckpoints = ->
+    JobsService.loadCheckpoints($scope.id).then (data) ->
+      $scope.checkpointCounts = [
+        data.numPendingCheckpoints,
+        data.numCompletedCheckpoints,
+        data.numFailedCheckpoints
+      ]
+
+      $scope.lastCompletedCheckpoint = data.lastCompletedCheckpoint
+      $scope.checkpoints = data.checkpoints
+
+  loadCheckpoints()
+
+  refresh = $interval ->
+    loadCheckpoints()
+  , flinkConfig["refresh-interval"]
+
+  $scope.$on '$destroy', ->
+    $interval.cancel(refresh)
+
+# --------------------------------------
+
+.controller 'JobCheckpointsConfigController', ($scope, $state, $stateParams, JobsService) ->
   # Request the config once (it's static)
   JobsService.getCheckpointConfig($scope.id).then (data) ->
     $scope.checkpointConfig = data
 
-  # General stats like counts, history, etc.
-  JobsService.getCheckpointStats($scope.id).then (data) ->
-    $scope.checkpointStats = data
-
 # --------------------------------------
 
-.controller 'JobCheckpointsOverviewController', ($scope, $state, $stateParams) ->
+.controller 'JobCheckpointsCheckpointDetailController', ($scope, $state, $stateParams, $interval, flinkConfig, JobsService) ->
+  $scope.checkpointId = $stateParams.checkpointid
+  $scope.vertexInfos = new Map()
+  $scope.vertices = []
+  $scope.durationAggs = ["max", "min", "avg"]
+  $scope.sizeAggs = ["max", "min", "avg", "sum"]
+
+  loadCheckpoint = ->
+    JobsService.loadCheckpoint($scope.id, $scope.checkpointId).then (data) ->
+      $scope.vertices = data.vertices
+
+      ($scope.vertices).forEach (vertex) ->
+        vertex.name = $scope.vertexInfos.get(vertex.vertexId)
+
+  JobsService.loadJob($scope.id).then (data) ->
+    (data.vertices).forEach (vertex) ->
+      $scope.vertexInfos.set(vertex.id, vertex.name)
+
+    loadCheckpoint()
+
+    refresh = $interval ->
+      loadCheckpoint()
+
+    , flinkConfig["refresh-interval"]
+
+    $scope.$on '$destroy', ->
+      $interval.cancel(refresh)
+
   return
 
 # --------------------------------------
 
-.controller 'JobCheckpointsHistoryController', ($scope, $state, $stateParams) ->
-  return
+.controller 'JobCheckpointsVertexDetailController', ($scope, $state, $stateParams, $interval, flinkConfig, JobsService) ->
+  $scope.checkpointId = $stateParams.checkpointid
+  $scope.vertexId = $stateParams.vertexid
+  $scope.tasks = []
+  $scope.limit = 5
+  $scope.page = 1
 
-# --------------------------------------
+  JobsService.loadVertex($scope.id, $scope.vertexId).then (data) ->
+    $scope.vertexName = data.name
 
-.controller 'JobCheckpointsSummaryController', ($scope, $state, $stateParams) ->
-  return
+  loadCheckpointVertex = ->
+    JobsService.loadCheckpointVertex($scope.id, $scope.checkpointId, $scope.vertexId).then (data) ->
+      $scope.tasks = data.tasks
 
-# --------------------------------------
+  loadCheckpointVertex()
 
-.controller 'JobCheckpointsConfigController', ($scope, $state, $stateParams) ->
-  return
+  refresh = $interval ->
+    loadCheckpointVertex()
 
-# --------------------------------------
-
-.controller 'JobCheckpointDetailsController', ($scope, $state, $stateParams, JobsService) ->
-  $scope.subtaskDetails = {}
-  $scope.checkpointDetails.id = $stateParams.checkpointId
-
-  # Detailed stats for a single checkpoint
-  getCheckpointDetails = (checkpointId) ->
-    JobsService.getCheckpointDetails(checkpointId).then (data) ->
-      if (data != null)
-        $scope.checkpoint = data
-      else
-        $scope.unknown_checkpoint = true
-
-  getCheckpointSubtaskDetails = (checkpointId, vertexId) ->
-    JobsService.getCheckpointSubtaskDetails(checkpointId, vertexId).then (data) ->
-      if (data != null)
-        $scope.subtaskDetails[vertexId] = data
-
-  getCheckpointDetails($stateParams.checkpointId)
-
-  if ($scope.nodeid)
-    getCheckpointSubtaskDetails($stateParams.checkpointId, $scope.nodeid)
-
-  $scope.$on 'reload', (event) ->
-    getCheckpointDetails($stateParams.checkpointId)
-
-    if ($scope.nodeid)
-      getCheckpointSubtaskDetails($stateParams.checkpointId, $scope.nodeid)
+  , flinkConfig["refresh-interval"]
 
   $scope.$on '$destroy', ->
-    $scope.checkpointDetails.id = -1
+    $interval.cancel(refresh)
 
 # --------------------------------------
 
