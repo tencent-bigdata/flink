@@ -58,7 +58,6 @@ import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.jobmaster.JMTMRegistrationSuccess;
 import org.apache.flink.runtime.jobmaster.JobMasterGateway;
-import org.apache.flink.runtime.jobmaster.JobMasterId;
 import org.apache.flink.runtime.jobmaster.utils.TestingJobMasterGateway;
 import org.apache.flink.runtime.jobmaster.utils.TestingJobMasterGatewayBuilder;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalListener;
@@ -662,7 +661,6 @@ public class TaskExecutorTest extends TestLogger {
 	@Test(timeout = 10000L)
 	public void testTaskSubmission() throws Exception {
 		final AllocationID allocationId = new AllocationID();
-		final JobMasterId jobMasterId = JobMasterId.generate();
 		final JobVertexID jobVertexId = new JobVertexID();
 
 		JobInformation jobInformation = new JobInformation(
@@ -701,8 +699,14 @@ public class TaskExecutorTest extends TestLogger {
 		final LibraryCacheManager libraryCacheManager = mock(LibraryCacheManager.class);
 		when(libraryCacheManager.getClassLoader(any(JobID.class))).thenReturn(ClassLoader.getSystemClassLoader());
 
-		final JobMasterGateway jobMasterGateway = mock(JobMasterGateway.class);
-		when(jobMasterGateway.getFencingToken()).thenReturn(jobMasterId);
+		final OneShotLatch taskInTerminalState = new OneShotLatch();
+		final TestingJobMasterGateway jobMasterGateway = new TestingJobMasterGatewayBuilder()
+			.setUpdateTaskExecutionStateFunction(taskExecutionState -> {
+				if (taskExecutionState.getExecutionState().isTerminal()) {
+					taskInTerminalState.trigger();
+				}
+				return CompletableFuture.completedFuture(Acknowledge.get());
+			}).build();
 
 		final JobManagerConnection jobManagerConnection = new JobManagerConnection(
 			jobId,
@@ -714,8 +718,10 @@ public class TaskExecutorTest extends TestLogger {
 		jobManagerTable.put(jobId, jobManagerConnection);
 
 		final TaskSlotTable taskSlotTable = mock(TaskSlotTable.class);
+		final ArgumentCaptor<Task> taskArgumentCaptor = ArgumentCaptor.forClass(Task.class);
 		when(taskSlotTable.tryMarkSlotActive(eq(jobId), eq(allocationId))).thenReturn(true);
-		when(taskSlotTable.addTask(any(Task.class))).thenReturn(true);
+		when(taskSlotTable.addTask(taskArgumentCaptor.capture())).thenReturn(true);
+		when(taskSlotTable.removeTask(any(ExecutionAttemptID.class))).thenAnswer(invocation -> taskArgumentCaptor.getValue());
 
 		TaskEventDispatcher taskEventDispatcher = new TaskEventDispatcher();
 		final NetworkEnvironment networkEnvironment = mock(NetworkEnvironment.class);
@@ -751,11 +757,13 @@ public class TaskExecutorTest extends TestLogger {
 
 			final TaskExecutorGateway tmGateway = taskManager.getSelfGateway(TaskExecutorGateway.class);
 
-			tmGateway.submitTask(tdd, jobMasterId, timeout);
+			tmGateway.submitTask(tdd, jobMasterGateway.getFencingToken(), timeout);
 
 			CompletableFuture<Boolean> completionFuture = TestInvokable.COMPLETABLE_FUTURE;
 
 			completionFuture.get();
+
+			taskInTerminalState.await();
 		} finally {
 			taskManager.shutDown();
 			taskManager.getTerminationFuture().get(timeout.toMilliseconds(), TimeUnit.MILLISECONDS);
