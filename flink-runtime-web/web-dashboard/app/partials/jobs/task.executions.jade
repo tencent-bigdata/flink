@@ -36,7 +36,8 @@ table.table.table-hover.table-clickable.table-activable.table-inner(md-table)
       td(md-cell)
         .md-body-2 {{execution.executor.id}}
         .md-caption {{execution.executor.host}}:{{execution.executor.port}}
-      td(md-cell) {{execution.failure}}
+      td(md-cell)
+        md-content(style="width:500px;") {{execution.failure}}
       td(md-cell)
         bs-label(status="{{execution.status}}") {{execution.status}}
 

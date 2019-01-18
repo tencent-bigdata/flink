@@ -18,10 +18,16 @@
 
 package org.apache.flink.runtime.rest.messages.job;
 
+import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.execution.ExecutionState;
+import org.apache.flink.runtime.executiongraph.AccessExecution;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
+import org.apache.flink.runtime.jobgraph.JobVertexID;
+import org.apache.flink.runtime.rest.handler.job.ExecutionMetricsUtils;
+import org.apache.flink.runtime.rest.handler.legacy.metrics.MetricFetcher;
 import org.apache.flink.runtime.rest.messages.json.ExecutionAttemptIDDeserializer;
 import org.apache.flink.runtime.rest.messages.json.ExecutionAttemptIDSerializer;
+import org.apache.flink.runtime.taskmanager.TaskManagerLocation;
 import org.apache.flink.util.Preconditions;
 
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonCreator;
@@ -98,6 +104,40 @@ public class ExecutionInfo {
 		this.failure = failure;
 		this.status = status;
 		this.metrics = metrics;
+	}
+
+	public static ExecutionInfo create(
+		JobID jobID,
+		JobVertexID jobVertexID,
+		AccessExecution execution,
+		MetricFetcher<?> metricFetcher
+	) {
+		ExecutionState status = execution.getState();
+		long startTime = execution.getStateTimestamp(ExecutionState.CREATED);
+		long endTime = status.isTerminal() ? execution.getStateTimestamp(status) : -1;
+		long duration = endTime >= 0 ? endTime - startTime : System.currentTimeMillis() - startTime;
+
+		TaskManagerLocation taskManagerLocation = execution.getAssignedResourceLocation();
+		ExecutorInfo executorInfo = taskManagerLocation == null ? null :
+			new ExecutorInfo(
+				taskManagerLocation.getResourceID(),
+				taskManagerLocation.getFQDNHostname(),
+				taskManagerLocation.dataPort()
+			);
+
+		ExecutionMetricsInfo metricsInfo = ExecutionMetricsUtils.getMetrics(jobID, jobVertexID, execution, metricFetcher);
+
+		return new ExecutionInfo(
+			execution.getAttemptId(),
+			execution.getAttemptNumber(),
+			startTime,
+			endTime,
+			duration,
+			executorInfo,
+			execution.getFailureCauseAsString(),
+			status,
+			metricsInfo
+		);
 	}
 
 	@Override

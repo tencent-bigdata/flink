@@ -197,7 +197,7 @@ angular.module('flinkApp', ['ui.router', 'angularMoment', 'dndLists', 'ngMateria
         controller: 'VertexBytesController'
 
   .state "single-task",
-    url: "/jobs/{jobid}/vertices/{vertexid}/task/{taskindex}"
+    url: "/jobs/{jobid}/vertices/{vertexid}/tasks/{taskindex}"
     redirectTo: "single-task.executions"
     views:
       main:

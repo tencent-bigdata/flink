@@ -20,7 +20,6 @@ package org.apache.flink.runtime.rest.handler.job;
 
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.time.Time;
-import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.executiongraph.AccessExecution;
 import org.apache.flink.runtime.executiongraph.AccessExecutionVertex;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
@@ -31,13 +30,10 @@ import org.apache.flink.runtime.rest.handler.legacy.metrics.MetricFetcher;
 import org.apache.flink.runtime.rest.messages.EmptyRequestBody;
 import org.apache.flink.runtime.rest.messages.MessageHeaders;
 import org.apache.flink.runtime.rest.messages.job.ExecutionInfo;
-import org.apache.flink.runtime.rest.messages.job.ExecutionMetricsInfo;
-import org.apache.flink.runtime.rest.messages.job.ExecutorInfo;
 import org.apache.flink.runtime.rest.messages.job.JobIDPathParameter;
 import org.apache.flink.runtime.rest.messages.job.TaskDetailInfo;
 import org.apache.flink.runtime.rest.messages.job.TaskMessageParameters;
 import org.apache.flink.runtime.rest.messages.job.VertexIDPathParameter;
-import org.apache.flink.runtime.taskmanager.TaskManagerLocation;
 import org.apache.flink.runtime.webmonitor.RestfulGateway;
 import org.apache.flink.runtime.webmonitor.retriever.GatewayRetriever;
 
@@ -83,49 +79,16 @@ public class TaskDetailHandler extends AbstractTaskHandler<TaskDetailInfo, TaskM
 
 		Collection<? extends AccessExecution> priorExecutions = executionVertex.getPriorExecutionAttempts();
 		for (AccessExecution priorExecution : priorExecutions) {
-			ExecutionInfo priorExecutionInfo = createExecutionInfo(jobID, jobVertexID, priorExecution, metricFetcher);
+			ExecutionInfo priorExecutionInfo = ExecutionInfo.create(jobID, jobVertexID, priorExecution, metricFetcher);
 			executionInfos.add(priorExecutionInfo);
 		}
 
 		AccessExecution currentExecution = executionVertex.getCurrentExecutionAttempt();
-		ExecutionInfo currentExecutionInfo = createExecutionInfo(jobID, jobVertexID, currentExecution, metricFetcher);
+		ExecutionInfo currentExecutionInfo =
+			currentExecution == null ? null : ExecutionInfo.create(jobID, jobVertexID, currentExecution, metricFetcher);
 		executionInfos.add(currentExecutionInfo);
 
 		return new TaskDetailInfo(index, numAttempts, executionInfos);
-	}
-
-	private static ExecutionInfo createExecutionInfo(
-		JobID jobID,
-		JobVertexID jobVertexID,
-		AccessExecution execution,
-		MetricFetcher<?> metricFetcher
-	) {
-		ExecutionState status = execution.getState();
-		long startTime = execution.getStateTimestamp(ExecutionState.CREATED);
-		long endTime = status.isTerminal() ? execution.getStateTimestamp(status) : -1;
-		long duration = endTime >= 0 ? endTime - startTime : System.currentTimeMillis() - startTime;
-
-		TaskManagerLocation taskManagerLocation = execution.getAssignedResourceLocation();
-		ExecutorInfo executorInfo = taskManagerLocation == null ? null :
-			new ExecutorInfo(
-				taskManagerLocation.getResourceID(),
-				taskManagerLocation.getFQDNHostname(),
-				taskManagerLocation.dataPort()
-			);
-
-		ExecutionMetricsInfo metricsInfo = ExecutionMetricsUtils.getMetrics(jobID, jobVertexID, execution, metricFetcher);
-
-		return new ExecutionInfo(
-			execution.getAttemptId(),
-			execution.getAttemptNumber(),
-			startTime,
-			endTime,
-			duration,
-			executorInfo,
-			execution.getFailureCauseAsString(),
-			status,
-			metricsInfo
-		);
 	}
 }
 

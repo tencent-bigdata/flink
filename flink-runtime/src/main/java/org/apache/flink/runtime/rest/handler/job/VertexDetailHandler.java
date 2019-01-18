@@ -20,7 +20,6 @@ package org.apache.flink.runtime.rest.handler.job;
 
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.time.Time;
-import org.apache.flink.runtime.execution.ExecutionState;
 import org.apache.flink.runtime.executiongraph.AccessExecution;
 import org.apache.flink.runtime.executiongraph.AccessExecutionGraph;
 import org.apache.flink.runtime.executiongraph.AccessExecutionJobVertex;
@@ -34,14 +33,11 @@ import org.apache.flink.runtime.rest.messages.EmptyRequestBody;
 import org.apache.flink.runtime.rest.messages.MessageHeaders;
 import org.apache.flink.runtime.rest.messages.ResponseBody;
 import org.apache.flink.runtime.rest.messages.job.ExecutionInfo;
-import org.apache.flink.runtime.rest.messages.job.ExecutionMetricsInfo;
-import org.apache.flink.runtime.rest.messages.job.ExecutorInfo;
 import org.apache.flink.runtime.rest.messages.job.JobIDPathParameter;
 import org.apache.flink.runtime.rest.messages.job.TaskSummaryInfo;
 import org.apache.flink.runtime.rest.messages.job.VertexDetailInfo;
 import org.apache.flink.runtime.rest.messages.job.VertexIDPathParameter;
 import org.apache.flink.runtime.rest.messages.job.VertexMessageParameters;
-import org.apache.flink.runtime.taskmanager.TaskManagerLocation;
 import org.apache.flink.runtime.webmonitor.RestfulGateway;
 import org.apache.flink.runtime.webmonitor.history.ArchivedJson;
 import org.apache.flink.runtime.webmonitor.history.JsonArchivist;
@@ -146,28 +142,9 @@ public class VertexDetailHandler extends AbstractExecutionGraphHandler<VertexDet
 		int numAttempts = -1;
 
 		AccessExecution currentExecution = executionVertex.getCurrentExecutionAttempt();
-		ExecutionState status = currentExecution.getState();
-		long startTime = currentExecution.getStateTimestamp(ExecutionState.CREATED);
-		long endTime = status.isTerminal() ? currentExecution.getStateTimestamp(status) : -1;
-		long duration = (endTime >= 0) ? (endTime - startTime) : System.currentTimeMillis() - startTime;
 
-		TaskManagerLocation taskManagerLocation = currentExecution.getAssignedResourceLocation();
-		ExecutorInfo executorInfo = taskManagerLocation == null ? null :
-			new ExecutorInfo(taskManagerLocation.getResourceID(), taskManagerLocation.getFQDNHostname(), taskManagerLocation.dataPort());
-		ExecutionMetricsInfo metricsInfo = ExecutionMetricsUtils.getMetrics(jobID, jobVertexID, currentExecution, metricFetcher);
-
-		ExecutionInfo currentExecutionInfo =
-			new ExecutionInfo(
-				currentExecution.getAttemptId(),
-				currentExecution.getAttemptNumber(),
-				startTime,
-				endTime,
-				duration,
-				executorInfo,
-				currentExecution.getFailureCauseAsString(),
-				status,
-				metricsInfo
-			);
+		ExecutionInfo currentExecutionInfo = currentExecution == null ? null :
+			ExecutionInfo.create(jobID, jobVertexID, currentExecution, metricFetcher);
 
 		return new TaskSummaryInfo(
 			index,

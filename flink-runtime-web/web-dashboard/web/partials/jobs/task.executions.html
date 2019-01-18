@@ -39,7 +39,9 @@ limitations under the License.
         <div class="md-body-2">{{execution.executor.id}}</div>
         <div class="md-caption">{{execution.executor.host}}:{{execution.executor.port}}</div>
       </td>
-      <td md-cell="md-cell">{{execution.failure}}</td>
+      <td md-cell="md-cell">
+        <md-content style="width:500px;">{{execution.failure}}</md-content>
+      </td>
       <td md-cell="md-cell">
         <bs-label status="{{execution.status}}">{{execution.status}}</bs-label>
       </td>

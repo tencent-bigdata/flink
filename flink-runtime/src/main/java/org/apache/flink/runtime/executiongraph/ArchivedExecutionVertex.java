@@ -98,8 +98,10 @@ public class ArchivedExecutionVertex implements AccessExecutionVertex, Serializa
 	@Override
 	public Collection<ArchivedExecution> getPriorExecutionAttempts() {
 		Collection<ArchivedExecution> result = new ArrayList<>();
-		for (ArchivedExecution execution : priorExecutions) {
-			result.add(execution);
+		for (ArchivedExecution priorExecution : priorExecutions) {
+			if (priorExecution != null) {
+				result.add(priorExecution);
+			}
 		}
 
 		return result;

@@ -362,6 +362,7 @@ angular.module('flinkApp')
 .controller 'TaskExecutionsController', ($scope, JobsService) ->
   $scope.myPage = 1
   $scope.myLimit = 10
+  $scope.myOrder="-attemptNumber"
   return
 
 # --------------------------------------
