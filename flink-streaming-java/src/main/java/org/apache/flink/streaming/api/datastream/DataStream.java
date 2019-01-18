@@ -279,6 +279,71 @@ public class DataStream<T> {
 
 	/**
 	 * It creates a new {@link KeyedStream} that uses the provided key for partitioning
+	 * its operator states in local task.
+	 *
+	 * @param key
+	 *            The KeySelector to be used for extracting the key for partitioning
+	 * @return The {@link DataStream} with partitioned state (i.e. KeyedStream)
+	 */
+	public <K> KeyedStream<T, K> localKeyBy(KeySelector<T, K> key) {
+		Preconditions.checkNotNull(key);
+		return new KeyedStream<>(this, this.getTransformation(), clean(key));
+	}
+
+	/**
+	 * It creates a new {@link KeyedStream} that uses the provided key with explicit type information
+	 * for partitioning its operator states in local task.
+	 *
+	 * @param key The KeySelector to be used for extracting the key for partitioning.
+	 * @param keyType The type information describing the key type.
+	 * @return The {@link DataStream} with partitioned state (i.e. KeyedStream)
+	 */
+	public <K> KeyedStream<T, K> localKeyBy(KeySelector<T, K> key, TypeInformation<K> keyType) {
+		Preconditions.checkNotNull(key);
+		Preconditions.checkNotNull(keyType);
+		return new KeyedStream<>(this, this.getTransformation(), clean(key), keyType);
+	}
+
+	/**
+	 * Partitions the operator state of a {@link DataStream} by the given key positions in
+	 * local task.
+	 *
+	 * @param fields
+	 *            The position of the fields on which the {@link DataStream}
+	 *            will be grouped.
+	 * @return The {@link DataStream} with partitioned state (i.e. KeyedStream)
+	 */
+	public KeyedStream<T, Tuple> localKeyBy(int... fields) {
+		if (getType() instanceof BasicArrayTypeInfo || getType() instanceof PrimitiveArrayTypeInfo) {
+			return localKeyBy(KeySelectorUtil.getSelectorForArray(fields, getType()));
+		} else {
+			return localKeyBy(new Keys.ExpressionKeys<>(fields, getType()));
+		}
+	}
+
+	/**
+	 * Partitions the operator state of a {@link DataStream} using field expressions in local task.
+	 * A field expression is either the name of a public field or a getter method with parentheses
+	 * of the {@link DataStream}'s underlying type. A dot can be used to drill
+	 * down into objects, as in {@code "field1.getInnerField2()" }.
+	 *
+	 * @param fields
+	 *            One or more field expressions on which the state of the {@link DataStream} operators will be
+	 *            partitioned.
+	 * @return The {@link DataStream} with partitioned state (i.e. KeyedStream)
+	 **/
+	public KeyedStream<T, Tuple> localKeyBy(String... fields) {
+		return localKeyBy(new Keys.ExpressionKeys<>(fields, getType()));
+	}
+
+	private KeyedStream<T, Tuple> localKeyBy(Keys<T> keys) {
+		return new KeyedStream<>(this,
+			this.getTransformation(),
+			clean(KeySelectorUtil.getSelectorForKeys(keys, getType(), getExecutionConfig())));
+	}
+
+	/**
+	 * It creates a new {@link KeyedStream} that uses the provided key for partitioning
 	 * its operator states.
 	 *
 	 * @param key

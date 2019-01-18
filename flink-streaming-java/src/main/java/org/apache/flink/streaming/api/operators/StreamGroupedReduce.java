@@ -44,6 +44,8 @@ public class StreamGroupedReduce<IN> extends AbstractUdfStreamOperator<IN, Reduc
 	public StreamGroupedReduce(ReduceFunction<IN> reducer, TypeSerializer<IN> serializer) {
 		super(reducer);
 		this.serializer = serializer;
+
+		chainingStrategy = ChainingStrategy.ALWAYS;
 	}
 
 	@Override

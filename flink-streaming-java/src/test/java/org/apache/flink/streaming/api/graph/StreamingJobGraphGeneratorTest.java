@@ -34,6 +34,7 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.functions.source.ParallelSourceFunction;
+import org.apache.flink.streaming.api.operators.StreamGroupedReduce;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.TestLogger;
 
@@ -157,6 +158,56 @@ public class StreamingJobGraphGeneratorTest extends TestLogger {
 
 		assertFalse(printConfig.isChainStart());
 		assertTrue(printConfig.isChainEnd());
+	}
+
+	@Test
+	public void testLocalKeyByChained() throws Exception {
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+		DataStream<Tuple2<Long, Integer>> source = env.addSource(new ParallelSourceFunction<Tuple2<Long, Integer>>() {
+			@Override
+			public void run(SourceContext<Tuple2<Long, Integer>> ctx) throws Exception {
+			}
+
+			@Override
+			public void cancel() {
+			}
+		});
+
+		source.localKeyBy(0).sum(1).print();
+
+		// CHAIN(source -> sum -> sink)
+		JobGraph jobGraph = StreamingJobGraphGenerator.createJobGraph(env.getStreamGraph());
+
+		List<JobVertex> verticesSorted = jobGraph.getVerticesSortedTopologicallyFromSources();
+
+		assertEquals(1, verticesSorted.size());
+
+		JobVertex vertex = verticesSorted.get(0);
+
+		StreamConfig sourceConfig = new StreamConfig(vertex.getConfiguration());
+		ClassLoader cl = Thread.currentThread().getContextClassLoader();
+
+		Map<Integer, StreamConfig> configMap = sourceConfig.getTransitiveChainedTaskConfigs(cl);
+		assertEquals(2, configMap.size());
+
+		StreamConfig sumConfig = getChainedTaskConfig(configMap, 1);
+		StreamConfig sinkConfig = getChainedTaskConfig(configMap, 2);
+
+		assertTrue(sumConfig.getStreamOperator(cl) instanceof StreamGroupedReduce);
+		assertTrue(sinkConfig.getOperatorName().contains("Print"));
+
+		assertTrue(sumConfig.getStateKeySerializer(cl) != null);
+		assertTrue(sumConfig.getStatePartitioner(0, cl) != null);
+	}
+
+	private StreamConfig getChainedTaskConfig(Map<Integer, StreamConfig> configMap, int chainIndex) {
+		for (StreamConfig streamConfig : configMap.values()) {
+			if (streamConfig.getChainIndex() == chainIndex) {
+				return streamConfig;
+			}
+		}
+		return null;
 	}
 
 	/**

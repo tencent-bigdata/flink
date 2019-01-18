@@ -55,6 +55,7 @@ import org.apache.flink.streaming.api.operators.StreamGroupedReduce;
 import org.apache.flink.streaming.api.operators.co.IntervalJoinOperator;
 import org.apache.flink.streaming.api.transformations.OneInputTransformation;
 import org.apache.flink.streaming.api.transformations.PartitionTransformation;
+import org.apache.flink.streaming.api.transformations.StreamTransformation;
 import org.apache.flink.streaming.api.windowing.assigners.GlobalWindows;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
@@ -104,6 +105,8 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 	/** The type of the key by which the stream is partitioned. */
 	private final TypeInformation<KEY> keyType;
 
+	private final boolean localKeyed;
+
 	/**
 	 * Creates a new {@link KeyedStream} using the given {@link KeySelector}
 	 * to partition operator state by key.
@@ -137,28 +140,35 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 	}
 
 	/**
-	 * Creates a new {@link KeyedStream} using the given {@link KeySelector} and {@link TypeInformation}
-	 * to partition operator state by key, where the partitioning is defined by a {@link PartitionTransformation}.
+	 * Creates a new {@link KeyedStream} using the given {@link KeySelector}
+	 * to partition operator state by key.
 	 *
 	 * @param stream
 	 *            Base stream of data
-	 * @param partitionTransformation
-	 *            Function that determines how the keys are distributed to downstream operator(s)
 	 * @param keySelector
-	 *            Function to extract keys from the base stream
-	 * @param keyType
-	 *            Defines the type of the extracted keys
+	 *            Function for determining state partitions
 	 */
 	@Internal
 	KeyedStream(
+			DataStream<T> stream,
+			StreamTransformation<T> streamTransformation,
+			KeySelector<T, KEY> keySelector) {
+		this(stream, streamTransformation, keySelector,
+			TypeExtractor.getKeySelectorTypes(keySelector, stream.getType()));
+	}
+
+	@Internal
+	KeyedStream(
 		DataStream<T> stream,
-		PartitionTransformation<T> partitionTransformation,
+		StreamTransformation<T> streamTransformation,
 		KeySelector<T, KEY> keySelector,
 		TypeInformation<KEY> keyType) {
 
-		super(stream.getExecutionEnvironment(), partitionTransformation);
+		super(stream.getExecutionEnvironment(), streamTransformation);
 		this.keySelector = clean(keySelector);
 		this.keyType = validateKeyType(keyType);
+
+		this.localKeyed = !(streamTransformation instanceof PartitionTransformation);
 	}
 
 	/**
