@@ -36,6 +36,7 @@ import org.apache.flink.api.java.typeutils.ObjectArrayTypeInfo;
 import org.apache.flink.api.java.typeutils.PojoTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfoBase;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
@@ -69,6 +70,7 @@ import org.apache.flink.streaming.api.windowing.windows.GlobalWindow;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.streaming.api.windowing.windows.Window;
 import org.apache.flink.streaming.runtime.partitioner.KeyGroupStreamPartitioner;
+import org.apache.flink.streaming.runtime.partitioner.LocalKeyedStreamPartitioner;
 import org.apache.flink.streaming.runtime.partitioner.StreamPartitioner;
 import org.apache.flink.util.Preconditions;
 
@@ -103,6 +105,8 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 
 	/** The type of the key by which the stream is partitioned. */
 	private final TypeInformation<KEY> keyType;
+
+	private final KeyScope keyScope;
 
 	/**
 	 * Creates a new {@link KeyedStream} using the given {@link KeySelector}
@@ -155,10 +159,20 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 		PartitionTransformation<T> partitionTransformation,
 		KeySelector<T, KEY> keySelector,
 		TypeInformation<KEY> keyType) {
+		this(stream, partitionTransformation, keySelector, keyType, KeyScope.GLOBAL);
+	}
+
+	private KeyedStream(
+		DataStream<T> stream,
+		PartitionTransformation<T> partitionTransformation,
+		KeySelector<T, KEY> keySelector,
+		TypeInformation<KEY> keyType,
+		KeyScope keyScope) {
 
 		super(stream.getExecutionEnvironment(), partitionTransformation);
 		this.keySelector = clean(keySelector);
 		this.keyType = validateKeyType(keyType);
+		this.keyScope = keyScope;
 	}
 
 	/**
@@ -1082,6 +1096,48 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 				queryableStateName,
 				stateDescriptor,
 				getKeyType().createSerializer(getExecutionConfig()));
+	}
+
+	/**
+	 * Creates a new local keyed stream using the given {@link KeySelector}
+	 * to partition operator state by key.
+	 *
+	 * @param dataStream
+	 *            Base stream of data
+	 * @param keySelector
+	 *            Function for determining state partitions
+	 */
+	@Internal
+	static <T, KEY> KeyedStream<T, KEY> localKeyedStream(DataStream<T> dataStream,
+			KeySelector<T, KEY> keySelector) {
+		return localKeyedStream(dataStream,
+			keySelector,
+			TypeExtractor.getKeySelectorTypes(keySelector, dataStream.getType()));
+	}
+
+	/**
+	 * Creates a new local keyed stream using the given {@link KeySelector}
+	 * to partition operator state by key.
+	 *
+	 * @param dataStream
+	 *            Base stream of data
+	 * @param keySelector
+	 *            Function for determining state partitions
+	 */
+	@Internal
+	static <T, KEY> KeyedStream<T, KEY> localKeyedStream(DataStream<T> dataStream,
+			KeySelector<T, KEY> keySelector,
+			TypeInformation<KEY> keyType) {
+		PartitionTransformation<T> partitionTransformation = new PartitionTransformation<>(
+			dataStream.getTransformation(),
+			new LocalKeyedStreamPartitioner<>(keySelector,
+				StreamGraphGenerator.DEFAULT_LOWER_BOUND_MAX_PARALLELISM));
+
+		return new KeyedStream<>(dataStream,
+			partitionTransformation,
+			keySelector,
+			keyType,
+			KeyScope.LOCAL);
 	}
 
 }

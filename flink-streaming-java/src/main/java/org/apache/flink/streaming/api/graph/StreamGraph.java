@@ -41,6 +41,7 @@ import org.apache.flink.streaming.api.operators.StreamOperator;
 import org.apache.flink.streaming.api.operators.StreamSource;
 import org.apache.flink.streaming.api.operators.TwoInputStreamOperator;
 import org.apache.flink.streaming.runtime.partitioner.ForwardPartitioner;
+import org.apache.flink.streaming.runtime.partitioner.LocalKeyedStreamPartitioner;
 import org.apache.flink.streaming.runtime.partitioner.RebalancePartitioner;
 import org.apache.flink.streaming.runtime.partitioner.StreamPartitioner;
 import org.apache.flink.streaming.runtime.tasks.OneInputStreamTask;
@@ -428,9 +429,11 @@ public class StreamGraph extends StreamingPlan {
 				partitioner = new RebalancePartitioner<Object>();
 			}
 
-			if (partitioner instanceof ForwardPartitioner) {
+			if (partitioner instanceof ForwardPartitioner || partitioner instanceof LocalKeyedStreamPartitioner) {
+				String partitionerMsg = partitioner instanceof ForwardPartitioner ?
+					"Forward partitioning" : "Local keyed partitioning";
 				if (upstreamNode.getParallelism() != downstreamNode.getParallelism()) {
-					throw new UnsupportedOperationException("Forward partitioning does not allow " +
+					throw new UnsupportedOperationException(partitionerMsg + " does not allow " +
 							"change of parallelism. Upstream operation: " + upstreamNode + " parallelism: " + upstreamNode.getParallelism() +
 							", downstream operation: " + downstreamNode + " parallelism: " + downstreamNode.getParallelism() +
 							" You must use another partitioning strategy, such as broadcast, rebalance, shuffle or global.");

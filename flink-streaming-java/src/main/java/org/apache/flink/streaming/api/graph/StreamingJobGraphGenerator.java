@@ -52,6 +52,7 @@ import org.apache.flink.streaming.api.operators.AbstractUdfStreamOperator;
 import org.apache.flink.streaming.api.operators.ChainingStrategy;
 import org.apache.flink.streaming.api.operators.StreamOperator;
 import org.apache.flink.streaming.runtime.partitioner.ForwardPartitioner;
+import org.apache.flink.streaming.runtime.partitioner.LocalKeyedStreamPartitioner;
 import org.apache.flink.streaming.runtime.partitioner.RescalePartitioner;
 import org.apache.flink.streaming.runtime.partitioner.StreamPartitioner;
 import org.apache.flink.streaming.runtime.tasks.StreamIterationHead;
@@ -496,7 +497,9 @@ public class StreamingJobGraphGenerator {
 
 		StreamPartitioner<?> partitioner = edge.getPartitioner();
 		JobEdge jobEdge;
-		if (partitioner instanceof ForwardPartitioner || partitioner instanceof RescalePartitioner) {
+		if (partitioner instanceof ForwardPartitioner
+				|| partitioner instanceof RescalePartitioner
+				|| partitioner instanceof LocalKeyedStreamPartitioner) {
 			jobEdge = downStreamVertex.connectNewDataSetAsInput(
 				headVertex,
 				DistributionPattern.POINTWISE,
@@ -530,7 +533,8 @@ public class StreamingJobGraphGenerator {
 				&& outOperator.getChainingStrategy() == ChainingStrategy.ALWAYS
 				&& (headOperator.getChainingStrategy() == ChainingStrategy.HEAD ||
 					headOperator.getChainingStrategy() == ChainingStrategy.ALWAYS)
-				&& (edge.getPartitioner() instanceof ForwardPartitioner)
+				&& (edge.getPartitioner() instanceof ForwardPartitioner ||
+					edge.getPartitioner() instanceof LocalKeyedStreamPartitioner)
 				&& upStreamVertex.getParallelism() == downStreamVertex.getParallelism()
 				&& streamGraph.isChainingEnabled();
 	}

@@ -61,6 +61,8 @@ public class StreamGroupedFold<IN, OUT, KEY>
 	public StreamGroupedFold(FoldFunction<IN, OUT> folder, OUT initialValue) {
 		super(folder);
 		this.initialValue = initialValue;
+
+		chainingStrategy = ChainingStrategy.ALWAYS;
 	}
 
 	@Override

@@ -427,6 +427,48 @@ class DataStream[T](stream: JavaStream[T]) {
   }
 
   /**
+   * Groups the elements of a DataStream by the given key positions (for tuple/array types)
+   * in local task to be used with grouped operators like grouped reduce or grouped aggregations.
+   */
+  def localKeyBy(fields: Int*): KeyedStream[T, JavaTuple] = asScalaStream(
+    stream.localKeyBy(fields: _*))
+
+  /**
+   * Groups the elements of a DataStream by the given field expressions in local task to
+   * be used with grouped operators like grouped reduce or grouped aggregations.
+   */
+  def localKeyBy(firstField: String, otherFields: String*): KeyedStream[T, JavaTuple] =
+    asScalaStream(stream.localKeyBy(firstField +: otherFields.toArray: _*))
+
+  /**
+   * Groups the elements of a DataStream by the given K key in local task to
+   * be used with grouped operators like grouped reduce or grouped aggregations.
+   */
+  def localKeyBy[K: TypeInformation](fun: T => K): KeyedStream[T, K] = {
+
+    val cleanFun = clean(fun)
+    val keyType: TypeInformation[K] = implicitly[TypeInformation[K]]
+
+    val keyExtractor = new KeySelector[T, K] with ResultTypeQueryable[K] {
+      def getKey(in: T) = cleanFun(in)
+      override def getProducedType: TypeInformation[K] = keyType
+    }
+    asScalaStream(stream.localKeyBy(keyExtractor, keyType))
+  }
+
+  /**
+   * Groups the elements of a DataStream by the given K key in local task to
+   * be used with grouped operators like grouped reduce or grouped aggregations.
+   */
+  def localKeyBy[K: TypeInformation](fun: KeySelector[T, K]): KeyedStream[T, K] = {
+
+    val cleanFun = clean(fun)
+    val keyType: TypeInformation[K] = implicitly[TypeInformation[K]]
+
+    asScalaStream(stream.localKeyBy(cleanFun, keyType))
+  }
+
+  /**
    * Partitions a tuple DataStream on the specified key fields using a custom partitioner.
    * This method takes the key position to partition on, and a partitioner that accepts the key
    * type.
