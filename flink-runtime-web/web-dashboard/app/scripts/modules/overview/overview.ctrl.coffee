@@ -59,12 +59,12 @@ angular.module('flinkApp')
 
       # collect the jobs
       (data.jobs).forEach (job, i) ->
-        switch job.status.toLowerCase()
-          when 'finished'
+        switch job.status
+          when 'FINISHED'
             $scope.completedJobs.push job
-          when 'cancelled'
+          when 'CANCELED'
             $scope.completedJobs.push job
-          when 'failed'
+          when 'FAILED'
             $scope.completedJobs.push job
           else
             $scope.runningJobs.push job
