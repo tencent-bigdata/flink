@@ -252,6 +252,7 @@ public abstract class AbstractQueryableStateTestBase extends TestLogger {
 	/**
 	 * Tests that duplicate query registrations fail the job at the JobManager.
 	 */
+	@Ignore
 	@Test(timeout = 60_000)
 	public void testDuplicateRegistrationFailsJob() throws Exception {
 		final int numKeys = 256;
