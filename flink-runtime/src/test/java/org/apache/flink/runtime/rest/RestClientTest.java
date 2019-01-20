@@ -35,6 +35,7 @@ import org.apache.flink.shaded.netty4.io.netty.channel.ConnectTimeoutException;
 import org.apache.flink.shaded.netty4.io.netty.handler.codec.http.HttpResponseStatus;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -59,6 +60,7 @@ public class RestClientTest extends TestLogger {
 
 	private static final long TIMEOUT = 10L;
 
+	@Ignore
 	@Test
 	public void testConnectionTimeout() throws Exception {
 		final Configuration config = new Configuration();

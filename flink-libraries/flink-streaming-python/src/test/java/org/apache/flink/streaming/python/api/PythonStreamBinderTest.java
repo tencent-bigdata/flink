@@ -27,6 +27,7 @@ import org.apache.flink.runtime.client.JobExecutionException;
 import org.apache.flink.test.util.AbstractTestBase;
 import org.apache.flink.util.Preconditions;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.python.core.PyException;
 
@@ -36,6 +37,7 @@ import java.util.List;
 /**
  * Tests for the {@link PythonStreamBinder}.
  */
+@Ignore
 public class PythonStreamBinderTest extends AbstractTestBase {
 
 	private static Path getBaseTestPythonDir() {
