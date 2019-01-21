@@ -201,6 +201,37 @@ public class StreamingJobGraphGeneratorTest extends TestLogger {
 		assertTrue(sumConfig.getStatePartitioner(0, cl) != null);
 	}
 
+	@Test
+	public void testKeyByNotChained() throws Exception {
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+		DataStream<Tuple2<Long, Integer>> source = env.addSource(new ParallelSourceFunction<Tuple2<Long, Integer>>() {
+			@Override
+			public void run(SourceContext<Tuple2<Long, Integer>> ctx) throws Exception {
+			}
+
+			@Override
+			public void cancel() {
+			}
+		});
+
+		source.keyBy(0).sum(1).print();
+
+		// source -> CHAIN(sum -> sink)
+		JobGraph jobGraph = StreamingJobGraphGenerator.createJobGraph(env.getStreamGraph());
+
+		List<JobVertex> verticesSorted = jobGraph.getVerticesSortedTopologicallyFromSources();
+
+		assertEquals(2, verticesSorted.size());
+
+		JobVertex vertex = verticesSorted.get(1);
+
+		StreamConfig sumConfig = new StreamConfig(vertex.getConfiguration());
+		ClassLoader cl = Thread.currentThread().getContextClassLoader();
+
+		assertTrue(sumConfig.getStreamOperator(cl) instanceof StreamGroupedReduce);
+	}
+
 	private StreamConfig getChainedTaskConfig(Map<Integer, StreamConfig> configMap, int chainIndex) {
 		for (StreamConfig streamConfig : configMap.values()) {
 			if (streamConfig.getChainIndex() == chainIndex) {

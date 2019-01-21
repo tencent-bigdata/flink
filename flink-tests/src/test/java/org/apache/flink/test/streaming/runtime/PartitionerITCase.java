@@ -21,6 +21,7 @@ import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.functions.RuntimeContext;
+import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple1;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
@@ -96,6 +97,8 @@ public class PartitionerITCase extends AbstractTestBase {
 				new TestListResultSink<Tuple2<Integer, String>>();
 		TestListResultSink<Tuple2<Integer, String>> globalPartitionResultSink =
 				new TestListResultSink<Tuple2<Integer, String>>();
+		TestListResultSink<Tuple2<Integer, String>> localKeyedPartitionResultSink =
+				new TestListResultSink<Tuple2<Integer, String>>();
 
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.setParallelism(PARALLELISM);
@@ -146,6 +149,27 @@ public class PartitionerITCase extends AbstractTestBase {
 		// partition global
 		src.global().map(new SubtaskIndexAssigner()).addSink(globalPartitionResultSink);
 
+		// local keyed partition
+		DataStream<Tuple2<Integer, String>> localKeyed = src
+			.partitionCustom((Partitioner<String>) (key, numPartitions) -> {
+				if (key.equals("c")) {
+					return 2;
+				} else {
+					return 0;
+				}
+			}, 0)
+			.map(new SubtaskIndexAssigner())
+			.localKeyBy((KeySelector<Tuple2<Integer, String>, Integer>) value -> value.f0)
+			.map(new MapFunction<Tuple2<Integer, String>, Tuple1<String>>() {
+				@Override
+				public Tuple1<String> map(Tuple2<Integer, String> value) throws Exception {
+					return new Tuple1<>(value.f1);
+				}
+			})
+			.map(new SubtaskIndexAssigner());
+
+		localKeyed.addSink(localKeyedPartitionResultSink);
+
 		try {
 			env.execute();
 		}
@@ -160,6 +184,7 @@ public class PartitionerITCase extends AbstractTestBase {
 		List<Tuple2<Integer, String>> forwardPartitionResult = forwardPartitionResultSink.getResult();
 		List<Tuple2<Integer, String>> rebalancePartitionResult = rebalancePartitionResultSink.getResult();
 		List<Tuple2<Integer, String>> globalPartitionResult = globalPartitionResultSink.getResult();
+		List<Tuple2<Integer, String>> localKeyedPartitionResult = localKeyedPartitionResultSink.getResult();
 
 		verifyHashPartitioning(hashPartitionResult);
 		verifyCustomPartitioning(customPartitionResult);
@@ -167,6 +192,7 @@ public class PartitionerITCase extends AbstractTestBase {
 		verifyRebalancePartitioning(forwardPartitionResult);
 		verifyRebalancePartitioning(rebalancePartitionResult);
 		verifyGlobalPartitioning(globalPartitionResult);
+		verifyCustomPartitioning(localKeyedPartitionResult);
 	}
 
 	private static void verifyHashPartitioning(List<Tuple2<Integer, String>> hashPartitionResult) {

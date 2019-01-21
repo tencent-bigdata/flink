@@ -243,6 +243,29 @@ class DataStreamTest extends AbstractTestBase {
     )
   }
 
+  @Test
+  def testLocalKeyBy(): Unit = {
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    env.setParallelism(1)
+
+    val src1: DataStream[(Long, Long)] = env.fromElements((0L, 0L))
+
+    val partition1: DataStream[_] = src1.localKeyBy(0)
+    val partition2: DataStream[_] = src1.localKeyBy(1, 0)
+    val partition3: DataStream[_] = src1.localKeyBy("_1")
+    val partition4: DataStream[_] = src1.localKeyBy((x : (Long, Long)) => x._1)
+
+    val pid1 = createDownStreamId(partition1)
+    val pid2 = createDownStreamId(partition2)
+    val pid3 = createDownStreamId(partition3)
+    val pid4 = createDownStreamId(partition4)
+
+    assertTrue(isLocalKeyed(env.getStreamGraph.getStreamEdges(src1.getId, pid1)))
+    assertTrue(isLocalKeyed(env.getStreamGraph.getStreamEdges(src1.getId, pid2)))
+    assertTrue(isLocalKeyed(env.getStreamGraph.getStreamEdges(src1.getId, pid3)))
+    assertTrue(isLocalKeyed(env.getStreamGraph.getStreamEdges(src1.getId, pid4)))
+  }
+
   /**
    * Tests whether parallelism gets set.
    */
@@ -707,6 +730,11 @@ class DataStreamTest extends AbstractTestBase {
   private def isPartitioned(edges: java.util.List[StreamEdge]): Boolean = {
     import scala.collection.JavaConverters._
     edges.asScala.forall( _.getPartitioner.isInstanceOf[KeyGroupStreamPartitioner[_, _]])
+  }
+
+  private def isLocalKeyed(edges: java.util.List[StreamEdge]): Boolean = {
+    import scala.collection.JavaConverters._
+    edges.asScala.forall( _.getPartitioner.isInstanceOf[LocalKeyedStreamPartitioner[_, _]])
   }
 
   private def isCustomPartitioned(edges: java.util.List[StreamEdge]): Boolean = {

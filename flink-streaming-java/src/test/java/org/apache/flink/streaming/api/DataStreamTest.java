@@ -75,6 +75,7 @@ import org.apache.flink.streaming.runtime.partitioner.CustomPartitionerWrapper;
 import org.apache.flink.streaming.runtime.partitioner.ForwardPartitioner;
 import org.apache.flink.streaming.runtime.partitioner.GlobalPartitioner;
 import org.apache.flink.streaming.runtime.partitioner.KeyGroupStreamPartitioner;
+import org.apache.flink.streaming.runtime.partitioner.LocalKeyedStreamPartitioner;
 import org.apache.flink.streaming.runtime.partitioner.RebalancePartitioner;
 import org.apache.flink.streaming.runtime.partitioner.ShufflePartitioner;
 import org.apache.flink.streaming.runtime.partitioner.StreamPartitioner;
@@ -463,6 +464,30 @@ public class DataStreamTest extends TestLogger {
 		assertTrue(isKeyed(connectedPartition3));
 		assertTrue(isKeyed(connectedPartition4));
 		assertTrue(isKeyed(connectedPartition5));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testLocalKeyBy() {
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		env.setParallelism(1);
+
+		DataStream<Tuple2<Long, Long>> src1 = env.fromElements(new Tuple2<>(0L, 0L));
+
+		DataStream<Tuple2<Long, Long>> partition1 = src1.localKeyBy(0);
+		DataStream<Tuple2<Long, Long>> partition2 = src1.localKeyBy(1, 0);
+		DataStream<Tuple2<Long, Long>> partition3 = src1.localKeyBy("f0");
+		DataStream<Tuple2<Long, Long>> partition4 = src1.localKeyBy(new FirstSelector());
+
+		int pid1 = createDownStreamId(partition1);
+		int pid2 = createDownStreamId(partition2);
+		int pid3 = createDownStreamId(partition3);
+		int pid4 = createDownStreamId(partition4);
+
+		assertTrue(isLocalKeyed(env.getStreamGraph().getStreamEdges(src1.getId(), pid1)));
+		assertTrue(isLocalKeyed(env.getStreamGraph().getStreamEdges(src1.getId(), pid2)));
+		assertTrue(isLocalKeyed(env.getStreamGraph().getStreamEdges(src1.getId(), pid3)));
+		assertTrue(isLocalKeyed(env.getStreamGraph().getStreamEdges(src1.getId(), pid4)));
 	}
 
 	/**
@@ -1370,6 +1395,16 @@ public class DataStreamTest extends TestLogger {
 		boolean result = true;
 		for (StreamEdge edge: edges) {
 			if (!(edge.getPartitioner() instanceof KeyGroupStreamPartitioner)) {
+				result = false;
+			}
+		}
+		return result;
+	}
+
+	private static boolean isLocalKeyed(List<StreamEdge> edges) {
+		boolean result = true;
+		for (StreamEdge edge: edges) {
+			if (!(edge.getPartitioner() instanceof LocalKeyedStreamPartitioner)) {
 				result = false;
 			}
 		}

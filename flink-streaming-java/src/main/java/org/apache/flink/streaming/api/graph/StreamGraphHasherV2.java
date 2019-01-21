@@ -24,6 +24,7 @@ import org.apache.flink.streaming.api.operators.ChainingStrategy;
 import org.apache.flink.streaming.api.operators.StreamOperator;
 import org.apache.flink.streaming.api.transformations.StreamTransformation;
 import org.apache.flink.streaming.runtime.partitioner.ForwardPartitioner;
+import org.apache.flink.streaming.runtime.partitioner.LocalKeyedStreamPartitioner;
 
 import org.apache.flink.shaded.guava18.com.google.common.hash.HashFunction;
 import org.apache.flink.shaded.guava18.com.google.common.hash.Hasher;
@@ -293,7 +294,8 @@ public class StreamGraphHasherV2 implements StreamGraphHasher {
 				&& outOperator.getChainingStrategy() == ChainingStrategy.ALWAYS
 				&& (headOperator.getChainingStrategy() == ChainingStrategy.HEAD ||
 				headOperator.getChainingStrategy() == ChainingStrategy.ALWAYS)
-				&& (edge.getPartitioner() instanceof ForwardPartitioner)
+				&& (edge.getPartitioner() instanceof ForwardPartitioner ||
+					edge.getPartitioner() instanceof LocalKeyedStreamPartitioner)
 				&& upStreamVertex.getParallelism() == downStreamVertex.getParallelism()
 				&& isChainingEnabled;
 	}

@@ -287,7 +287,7 @@ public class DataStream<T> {
 	 */
 	public <K> KeyedStream<T, K> localKeyBy(KeySelector<T, K> key) {
 		Preconditions.checkNotNull(key);
-		return new KeyedStream<>(this, this.getTransformation(), clean(key));
+		return KeyedStream.localKeyedStream(this, clean(key));
 	}
 
 	/**
@@ -301,7 +301,7 @@ public class DataStream<T> {
 	public <K> KeyedStream<T, K> localKeyBy(KeySelector<T, K> key, TypeInformation<K> keyType) {
 		Preconditions.checkNotNull(key);
 		Preconditions.checkNotNull(keyType);
-		return new KeyedStream<>(this, this.getTransformation(), clean(key), keyType);
+		return KeyedStream.localKeyedStream(this, clean(key), keyType);
 	}
 
 	/**
@@ -337,8 +337,7 @@ public class DataStream<T> {
 	}
 
 	private KeyedStream<T, Tuple> localKeyBy(Keys<T> keys) {
-		return new KeyedStream<>(this,
-			this.getTransformation(),
+		return KeyedStream.localKeyedStream(this,
 			clean(KeySelectorUtil.getSelectorForKeys(keys, getType(), getExecutionConfig())));
 	}
 
