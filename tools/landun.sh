@@ -160,10 +160,6 @@ flink-connectors/flink-connector-elasticsearch5,\
 flink-connectors/flink-connector-elasticsearch6,\
 flink-connectors/flink-connector-elasticsearch-base,\
 flink-connectors/flink-connector-filesystem,\
-flink-connectors/flink-connector-kafka-0.8,\
-flink-connectors/flink-connector-kafka-0.9,\
-flink-connectors/flink-connector-kafka-0.10,\
-flink-connectors/flink-connector-kafka-0.11,\
 flink-connectors/flink-connector-kafka-base,\
 flink-connectors/flink-connector-kafka,\
 flink-connectors/flink-connector-nifi,\

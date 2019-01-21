@@ -62,8 +62,6 @@ under the License.
 		<module>flink-heavy-deployment-stress-test</module>
 		<module>flink-streaming-kafka-test-base</module>
 		<module>flink-streaming-kafka-test</module>
-		<module>flink-streaming-kafka011-test</module>
-		<module>flink-streaming-kafka010-test</module>
 	</modules>
 
 	<build>

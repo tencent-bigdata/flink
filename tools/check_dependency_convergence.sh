@@ -43,18 +43,6 @@ modules=$(find . -maxdepth 3 -name 'pom.xml' -printf '%h\n' | sort -u | grep "fl
 
 for module in ${modules}
 do
-    # There are no Scala 2.12 dependencies for older Kafka versions
-    if [[ $PROFILE == *"scala-2.12"* ]]; then
-        if [[ $module == *"kafka-0.8"* ]]; then
-            echo "excluding ${module} because we build for Scala 2.12"
-            continue 2
-        fi
-        if [[ $module == *"kafka-0.9"* ]]; then
-            echo "excluding ${module} because we build for Scala 2.12"
-            continue 2
-        fi
-    fi
-
     # we are only interested in child modules
     for other_module in ${modules}
     do 
