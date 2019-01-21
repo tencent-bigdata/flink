@@ -36,6 +36,7 @@ import org.apache.flink.api.java.typeutils.ObjectArrayTypeInfo;
 import org.apache.flink.api.java.typeutils.PojoTypeInfo;
 import org.apache.flink.api.java.typeutils.TupleTypeInfoBase;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
@@ -1139,23 +1140,4 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 			KeyScope.LOCAL);
 	}
 
-	/**
-	 * A key scope determines, the data stream is local or global keyed.
-	 */
-	@Internal
-	public enum KeyScope {
-
-		GLOBAL(false),
-		LOCAL(true);
-
-		private final boolean local;
-
-		KeyScope(boolean local) {
-			this.local = local;
-		}
-
-		public boolean isLocal() {
-			return local;
-		}
-	}
 }
