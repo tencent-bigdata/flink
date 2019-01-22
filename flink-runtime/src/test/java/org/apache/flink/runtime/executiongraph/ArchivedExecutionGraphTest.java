@@ -181,12 +181,18 @@ public class ArchivedExecutionGraphTest extends TestLogger {
 		assertEquals(runtimeGraph.isStoppable(), archivedGraph.isStoppable());
 
 		// -------------------------------------------------------------------------------------------------------------
-		// CheckpointStats
+		// Checkpoint Traces
 		// -------------------------------------------------------------------------------------------------------------
-		CheckpointTracesSnapshot runtimeSnapshot = runtimeGraph.getCheckpointTracesSnapshot();
-		CheckpointTracesSnapshot archivedSnapshot = archivedGraph.getCheckpointTracesSnapshot();
+		CheckpointTracesSnapshot runtimeCheckpointsSnapshot = runtimeGraph.getCheckpointTracesSnapshot();
+		CheckpointTracesSnapshot archivedCheckpointsSnapshot = archivedGraph.getCheckpointTracesSnapshot();
+		assertEquals(runtimeCheckpointsSnapshot, archivedCheckpointsSnapshot);
 
-		assertEquals(runtimeSnapshot, archivedSnapshot);
+		// -------------------------------------------------------------------------------------------------------------
+		// Exception Traces
+		// -------------------------------------------------------------------------------------------------------------
+		ExceptionTracesSnapshot runtimeExceptionsSnapshot = runtimeGraph.getExceptionTracesSnapshot();
+		ExceptionTracesSnapshot archivedExceptionsSnapshot = archivedGraph.getExceptionTracesSnapshot();
+		assertEquals(runtimeExceptionsSnapshot, archivedExceptionsSnapshot);
 
 		// -------------------------------------------------------------------------------------------------------------
 		// ArchivedExecutionConfig

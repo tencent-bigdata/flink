@@ -18,9 +18,11 @@
 
 package org.apache.flink.runtime.executiongraph.failover;
 
+import org.apache.flink.runtime.executiongraph.ExceptionTrace;
 import org.apache.flink.runtime.executiongraph.Execution;
 import org.apache.flink.runtime.executiongraph.ExecutionGraph;
 import org.apache.flink.runtime.executiongraph.ExecutionJobVertex;
+import org.apache.flink.runtime.jobgraph.JobStatus;
 
 import java.util.List;
 
@@ -49,6 +51,25 @@ public class RestartAllStrategy extends FailoverStrategy {
 
 	@Override
 	public void onTaskFailure(Execution taskExecution, Throwable cause) {
+
+		JobStatus jobStatus = executionGraph.getState();
+		if (jobStatus != JobStatus.FAILING &&
+			jobStatus != JobStatus.SUSPENDING &&
+			jobStatus != JobStatus.SUSPENDED &&
+			!jobStatus.isGloballyTerminalState()
+		) {
+			ExceptionTrace exceptionTrace = new ExceptionTrace(
+				System.currentTimeMillis(),
+				cause,
+				taskExecution.getAttemptId(),
+				taskExecution.getVertex().getTaskNameWithSubtaskIndex(),
+				taskExecution.getAttemptNumber(),
+				taskExecution.getAssignedResourceLocation()
+			);
+
+			executionGraph.getExceptionHistoryTracker().addFailureTrace(exceptionTrace);
+		}
+
 		// this strategy makes every task failure a global failure
 		executionGraph.failGlobal(cause);
 	}
