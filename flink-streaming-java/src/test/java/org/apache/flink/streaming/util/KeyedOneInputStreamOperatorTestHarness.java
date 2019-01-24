@@ -22,6 +22,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.ClosureCleaner;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.runtime.operators.testutils.MockEnvironment;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.KeyedStateBackend;
 import org.apache.flink.runtime.state.heap.HeapKeyedStateBackend;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
@@ -41,11 +42,24 @@ public class KeyedOneInputStreamOperatorTestHarness<K, IN, OUT>
 			int maxParallelism,
 			int numSubtasks,
 			int subtaskIndex) throws Exception {
+		this(operator, keySelector, keyType, maxParallelism, numSubtasks, subtaskIndex,
+			KeyScope.GLOBAL);
+	}
+
+	public KeyedOneInputStreamOperatorTestHarness(
+			OneInputStreamOperator<IN, OUT> operator,
+			final KeySelector<IN, K> keySelector,
+			TypeInformation<K> keyType,
+			int maxParallelism,
+			int numSubtasks,
+			int subtaskIndex,
+			KeyScope keyScope) throws Exception {
 		super(operator, maxParallelism, numSubtasks, subtaskIndex);
 
 		ClosureCleaner.clean(keySelector, false);
 		config.setStatePartitioner(0, keySelector);
 		config.setStateKeySerializer(keyType.createSerializer(executionConfig));
+		config.setStateKeyScope(keyScope);
 	}
 
 	public KeyedOneInputStreamOperatorTestHarness(
@@ -56,16 +70,34 @@ public class KeyedOneInputStreamOperatorTestHarness<K, IN, OUT>
 	}
 
 	public KeyedOneInputStreamOperatorTestHarness(
+			OneInputStreamOperator<IN, OUT> operator,
+			final KeySelector<IN, K> keySelector,
+			TypeInformation<K> keyType,
+			KeyScope keyScope) throws Exception {
+		this(operator, keySelector, keyType, 1, 1, 0, keyScope);
+	}
+
+	public KeyedOneInputStreamOperatorTestHarness(
 			final OneInputStreamOperator<IN, OUT> operator,
 			final  KeySelector<IN, K> keySelector,
 			final TypeInformation<K> keyType,
 			final MockEnvironment environment) throws Exception {
+		this(operator, keySelector, keyType, environment, KeyScope.GLOBAL);
+	}
+
+	public KeyedOneInputStreamOperatorTestHarness(
+			final OneInputStreamOperator<IN, OUT> operator,
+			final  KeySelector<IN, K> keySelector,
+			final TypeInformation<K> keyType,
+			final MockEnvironment environment,
+			final KeyScope keyScope) throws Exception {
 
 		super(operator, environment);
 
 		ClosureCleaner.clean(keySelector, false);
 		config.setStatePartitioner(0, keySelector);
 		config.setStateKeySerializer(keyType.createSerializer(executionConfig));
+		config.setStateKeyScope(keyScope);
 	}
 
 	public int numKeyedStateEntries() {

@@ -27,6 +27,7 @@ import org.apache.flink.runtime.io.network.partition.ResultPartitionType;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobVertex;
 import org.apache.flink.runtime.jobgraph.tasks.JobCheckpointingSettings;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.datastream.IterativeStream;
@@ -199,6 +200,8 @@ public class StreamingJobGraphGeneratorTest extends TestLogger {
 
 		assertTrue(sumConfig.getStateKeySerializer(cl) != null);
 		assertTrue(sumConfig.getStatePartitioner(0, cl) != null);
+
+		assertEquals(KeyScope.LOCAL, sumConfig.getStateKeyScope());
 	}
 
 	@Test
@@ -230,6 +233,8 @@ public class StreamingJobGraphGeneratorTest extends TestLogger {
 		ClassLoader cl = Thread.currentThread().getContextClassLoader();
 
 		assertTrue(sumConfig.getStreamOperator(cl) instanceof StreamGroupedReduce);
+
+		assertEquals(KeyScope.GLOBAL, sumConfig.getStateKeyScope());
 	}
 
 	private StreamConfig getChainedTaskConfig(Map<Integer, StreamConfig> configMap, int chainIndex) {

@@ -52,7 +52,8 @@ public abstract class AbstractStateBackend implements StateBackend, java.io.Seri
 		KeyGroupRange keyGroupRange,
 		TaskKvStateRegistry kvStateRegistry,
 		TtlTimeProvider ttlTimeProvider,
-		MetricGroup metricGroup) throws IOException;
+		MetricGroup metricGroup,
+		KeyScope keyScope) throws IOException;
 
 	@Override
 	public abstract OperatorStateBackend createOperatorStateBackend(

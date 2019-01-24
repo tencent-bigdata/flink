@@ -513,7 +513,8 @@ public class StreamGraphGenerator {
 
 		if (sink.getStateKeySelector() != null) {
 			TypeSerializer<?> keySerializer = sink.getStateKeyType().createSerializer(env.getConfig());
-			streamGraph.setOneInputStateKey(sink.getId(), sink.getStateKeySelector(), keySerializer);
+			streamGraph.setOneInputStateKey(sink.getId(), sink.getStateKeySelector(),
+				keySerializer, sink.getStateKeyScope());
 		}
 
 		return Collections.emptyList();
@@ -546,7 +547,8 @@ public class StreamGraphGenerator {
 
 		if (transform.getStateKeySelector() != null) {
 			TypeSerializer<?> keySerializer = transform.getStateKeyType().createSerializer(env.getConfig());
-			streamGraph.setOneInputStateKey(transform.getId(), transform.getStateKeySelector(), keySerializer);
+			streamGraph.setOneInputStateKey(transform.getId(), transform.getStateKeySelector(),
+				keySerializer, transform.getStateKeyScope());
 		}
 
 		streamGraph.setParallelism(transform.getId(), transform.getParallelism());

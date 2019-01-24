@@ -32,6 +32,8 @@ import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.state.KeyGroupRangeOffsets;
 import org.apache.flink.runtime.state.KeyGroupsStateHandle;
 import org.apache.flink.runtime.state.KeyedStateHandle;
+import org.apache.flink.runtime.state.LocalKeyedIncrementalKeyedStateHandle;
+import org.apache.flink.runtime.state.LocalKeyedKeyGroupsStateHandle;
 import org.apache.flink.runtime.state.OperatorStateHandle;
 import org.apache.flink.runtime.state.OperatorStreamStateHandle;
 import org.apache.flink.runtime.state.StateHandleID;
@@ -83,6 +85,7 @@ public class CheckpointTestUtils {
 			boolean hasKeyedBackend = random.nextInt(4) != 0;
 			boolean hasKeyedStream = random.nextInt(4) != 0;
 			boolean isIncremental = random.nextInt(3) == 0;
+			boolean isLocalKeyed = random.nextInt(3) == 0;
 
 			for (int subtaskIdx = 0; subtaskIdx < numSubtasksPerTask; subtaskIdx++) {
 
@@ -112,9 +115,13 @@ public class CheckpointTestUtils {
 
 				if (hasKeyedBackend) {
 					if (isIncremental) {
-						keyedStateBackend = createDummyIncrementalKeyedStateHandle(random);
+						keyedStateBackend = isLocalKeyed ?
+							createDummyLocalKeyedIncrementalKeyedStateHandle(random) :
+							createDummyIncrementalKeyedStateHandle(random);
 					} else {
-						keyedStateBackend = createDummyKeyGroupStateHandle(random);
+						keyedStateBackend = isLocalKeyed ?
+							createDummyLocalKeyedKeyGroupStateHandle(random) :
+							createDummyKeyGroupStateHandle(random);
 					}
 				}
 
@@ -265,6 +272,16 @@ public class CheckpointTestUtils {
 			createDummyStreamStateHandle(rnd));
 	}
 
+	public static LocalKeyedIncrementalKeyedStateHandle createDummyLocalKeyedIncrementalKeyedStateHandle(Random rnd) {
+		return new LocalKeyedIncrementalKeyedStateHandle(
+			createRandomUUID(rnd),
+			new KeyGroupRange(1, 1),
+			42L,
+			createRandomStateHandleMap(rnd),
+			createRandomStateHandleMap(rnd),
+			createDummyStreamStateHandle(rnd));
+	}
+
 	public static Map<StateHandleID, StreamStateHandle> createRandomStateHandleMap(Random rnd) {
 		final int size = rnd.nextInt(4);
 		Map<StateHandleID, StreamStateHandle> result = new HashMap<>(size);
@@ -279,6 +296,12 @@ public class CheckpointTestUtils {
 
 	public static KeyGroupsStateHandle createDummyKeyGroupStateHandle(Random rnd) {
 		return new KeyGroupsStateHandle(
+			new KeyGroupRangeOffsets(1, 1, new long[]{rnd.nextInt(1024)}),
+			createDummyStreamStateHandle(rnd));
+	}
+
+	public static LocalKeyedKeyGroupsStateHandle createDummyLocalKeyedKeyGroupStateHandle(Random rnd) {
+		return new LocalKeyedKeyGroupsStateHandle(
 			new KeyGroupRangeOffsets(1, 1, new long[]{rnd.nextInt(1024)}),
 			createDummyStreamStateHandle(rnd));
 	}

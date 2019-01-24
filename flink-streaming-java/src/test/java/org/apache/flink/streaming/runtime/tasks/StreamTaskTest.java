@@ -1075,13 +1075,14 @@ public class StreamTaskTest extends TestLogger {
 		@Override
 		public StreamTaskStateInitializer createStreamTaskStateInitializer() {
 			final StreamTaskStateInitializer streamTaskStateManager = super.createStreamTaskStateInitializer();
-			return (operatorID, operatorClassName, keyContext, keySerializer, closeableRegistry, metricGroup) -> {
+			return (operatorID, operatorClassName, keyContext, keySerializer, keyScope, closeableRegistry, metricGroup) -> {
 
 				final StreamOperatorStateContext context = streamTaskStateManager.streamOperatorStateContext(
 					operatorID,
 					operatorClassName,
 					keyContext,
 					keySerializer,
+					keyScope,
 					closeableRegistry,
 					metricGroup);
 

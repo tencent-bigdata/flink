@@ -36,6 +36,7 @@ import org.apache.flink.runtime.state.CheckpointStreamWithResultProvider;
 import org.apache.flink.runtime.state.CheckpointedStateScope;
 import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.state.KeyGroupRangeOffsets;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.KeyedBackendSerializationProxy;
 import org.apache.flink.runtime.state.KeyedStateHandle;
 import org.apache.flink.runtime.state.LocalRecoveryConfig;
@@ -90,6 +91,7 @@ public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K>
 		@Nonnull RocksDB db,
 		@Nonnull ResourceGuard rocksDBResourceGuard,
 		@Nonnull TypeSerializer<K> keySerializer,
+		@Nonnull KeyScope keyScope,
 		@Nonnull LinkedHashMap<String, Tuple2<ColumnFamilyHandle, RegisteredStateMetaInfoBase>> kvStateInformation,
 		@Nonnull KeyGroupRange keyGroupRange,
 		@Nonnegative int keyGroupPrefixBytes,
@@ -101,6 +103,7 @@ public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K>
 			db,
 			rocksDBResourceGuard,
 			keySerializer,
+			keyScope,
 			kvStateInformation,
 			keyGroupRange,
 			keyGroupPrefixBytes,
@@ -225,7 +228,7 @@ public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K>
 			if (unregisterCloseableFromCancellation(checkpointStreamWithResultProvider)) {
 				return CheckpointStreamWithResultProvider.toKeyedStateHandleSnapshotResult(
 					checkpointStreamWithResultProvider.closeAndFinalizeCheckpointStreamResult(),
-					keyGroupRangeOffsets);
+					keyGroupRangeOffsets, keyScope);
 			} else {
 				throw new IOException("Stream is already unregistered/closed.");
 			}

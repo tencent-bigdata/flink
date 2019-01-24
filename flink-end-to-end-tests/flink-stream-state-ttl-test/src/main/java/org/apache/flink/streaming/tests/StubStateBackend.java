@@ -27,6 +27,7 @@ import org.apache.flink.runtime.state.AbstractKeyedStateBackend;
 import org.apache.flink.runtime.state.CheckpointStorage;
 import org.apache.flink.runtime.state.CompletedCheckpointStorageLocation;
 import org.apache.flink.runtime.state.KeyGroupRange;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.OperatorStateBackend;
 import org.apache.flink.runtime.state.StateBackend;
 import org.apache.flink.runtime.state.ttl.TtlTimeProvider;
@@ -72,7 +73,8 @@ final class StubStateBackend implements StateBackend {
 			KeyGroupRange keyGroupRange,
 			TaskKvStateRegistry kvStateRegistry,
 			TtlTimeProvider ttlTimeProvider,
-			MetricGroup metricGroup) throws Exception {
+			MetricGroup metricGroup,
+			KeyScope keyScope) throws Exception {
 
 		return backend.createKeyedStateBackend(
 				env,
@@ -83,7 +85,8 @@ final class StubStateBackend implements StateBackend {
 				keyGroupRange,
 				kvStateRegistry,
 				this.ttlTimeProvider,
-				metricGroup
+				metricGroup,
+				keyScope
 		);
 	}
 

@@ -467,6 +467,7 @@ public class StreamingJobGraphGenerator {
 		config.setStatePartitioner(0, vertex.getStatePartitioner1());
 		config.setStatePartitioner(1, vertex.getStatePartitioner2());
 		config.setStateKeySerializer(vertex.getStateKeySerializer());
+		config.setStateKeyScope(vertex.getStateKeyScope());
 
 		Class<? extends AbstractInvokable> vertexClass = vertex.getJobVertexClass();
 

@@ -42,6 +42,7 @@ import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.state.KeyGroupRangeOffsets;
 import org.apache.flink.runtime.state.KeyGroupStatePartitionStreamProvider;
 import org.apache.flink.runtime.state.KeyGroupsStateHandle;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.KeyedStateHandle;
 import org.apache.flink.runtime.state.OperatorStateHandle;
 import org.apache.flink.runtime.state.OperatorStreamStateHandle;
@@ -197,6 +198,7 @@ public class StateInitializationContextImplTest {
 			// notice that this essentially disables the previous test of the keyed stream because it was and is always
 			// consumed by the timer service.
 			IntSerializer.INSTANCE,
+			KeyScope.GLOBAL,
 			closableRegistry,
 			new UnregisteredMetricsGroup());
 

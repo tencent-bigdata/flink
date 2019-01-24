@@ -21,6 +21,7 @@ package org.apache.flink.streaming.api.transformations;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.functions.KeySelector;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.streaming.api.operators.ChainingStrategy;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 
@@ -47,6 +48,8 @@ public class OneInputTransformation<IN, OUT> extends StreamTransformation<OUT> {
 	private KeySelector<IN, ?> stateKeySelector;
 
 	private TypeInformation<?> stateKeyType;
+
+	private KeyScope stateKeyScope;
 
 	/**
 	 * Creates a new {@code OneInputTransformation} from the given input and operator.
@@ -114,6 +117,14 @@ public class OneInputTransformation<IN, OUT> extends StreamTransformation<OUT> {
 
 	public TypeInformation<?> getStateKeyType() {
 		return stateKeyType;
+	}
+
+	public KeyScope getStateKeyScope() {
+		return stateKeyScope;
+	}
+
+	public void setStateKeyScope(KeyScope stateKeyScope) {
+		this.stateKeyScope = stateKeyScope;
 	}
 
 	@Override

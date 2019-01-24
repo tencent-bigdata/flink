@@ -118,7 +118,7 @@ public class KeyGroupsStateHandle implements StreamStateHandle, KeyedStateHandle
 			return true;
 		}
 
-		if (!(o instanceof KeyGroupsStateHandle)) {
+		if (o == null || getClass() != o.getClass()) {
 			return false;
 		}
 

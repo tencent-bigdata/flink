@@ -33,6 +33,7 @@ import org.apache.flink.runtime.state.CheckpointStorageLocationReference;
 import org.apache.flink.runtime.state.CheckpointStreamFactory;
 import org.apache.flink.runtime.state.CompletedCheckpointStorageLocation;
 import org.apache.flink.runtime.state.KeyGroupRange;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.OperatorStateBackend;
 import org.apache.flink.runtime.state.ttl.TtlTimeProvider;
 
@@ -95,7 +96,8 @@ public class MockStateBackend extends AbstractStateBackend {
 		KeyGroupRange keyGroupRange,
 		TaskKvStateRegistry kvStateRegistry,
 		TtlTimeProvider ttlTimeProvider,
-		MetricGroup metricGroup) {
+		MetricGroup metricGroup,
+		KeyScope keyScope) {
 		return new MockKeyedStateBackend<>(
 			new KvStateRegistry().createTaskRegistry(jobID, new JobVertexID()),
 			keySerializer,
@@ -104,7 +106,8 @@ public class MockStateBackend extends AbstractStateBackend {
 			keyGroupRange,
 			env.getExecutionConfig(),
 			ttlTimeProvider,
-			metricGroup);
+			metricGroup,
+			keyScope);
 	}
 
 	@Override

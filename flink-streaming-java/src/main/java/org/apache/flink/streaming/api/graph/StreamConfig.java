@@ -23,6 +23,7 @@ import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.runtime.operators.util.CorruptConfigurationException;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.StateBackend;
 import org.apache.flink.runtime.util.ClassLoaderUtil;
 import org.apache.flink.streaming.api.CheckpointingMode;
@@ -87,6 +88,7 @@ public class StreamConfig implements Serializable {
 	private static final String STATE_PARTITIONER = "statePartitioner";
 
 	private static final String STATE_KEY_SERIALIZER = "statekeyser";
+	private static final String STATE_KEY_SCOPE = "stateKeyScope";
 
 	private static final String TIME_CHARACTERISTIC = "timechar";
 
@@ -507,6 +509,16 @@ public class StreamConfig implements Serializable {
 		}
 	}
 
+	public void setStateKeyScope(KeyScope keyScope) {
+		if (keyScope != null) {
+			config.setString(STATE_KEY_SCOPE, keyScope.name());
+		}
+	}
+
+	public KeyScope getStateKeyScope() {
+		String enumConstName = config.getString(STATE_KEY_SCOPE, null);
+		return enumConstName == null ? null : Enum.valueOf(KeyScope.class, enumConstName);
+	}
 
 
 	// ------------------------------------------------------------------------

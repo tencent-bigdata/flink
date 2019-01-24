@@ -38,6 +38,7 @@ import org.apache.flink.runtime.state.CheckpointStorage;
 import org.apache.flink.runtime.state.CompletedCheckpointStorageLocation;
 import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.state.KeyGroupStatePartitionStreamProvider;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.OperatorStateBackend;
 import org.apache.flink.runtime.state.OperatorStateHandle;
 import org.apache.flink.runtime.state.OperatorStreamStateHandle;
@@ -93,6 +94,7 @@ public class StreamTaskStateInitializerImplTest {
 			streamOperator.getClass().getSimpleName(),
 			streamOperator,
 			typeSerializer,
+			KeyScope.GLOBAL,
 			closeableRegistry,
 			new UnregisteredMetricsGroup());
 
@@ -144,7 +146,8 @@ public class StreamTaskStateInitializerImplTest {
 				int numberOfKeyGroups, KeyGroupRange keyGroupRange,
 				TaskKvStateRegistry kvStateRegistry,
 				TtlTimeProvider ttlTimeProvider,
-				MetricGroup metricGroup) throws Exception {
+				MetricGroup metricGroup,
+				KeyScope keyScope) throws Exception {
 				return mock(AbstractKeyedStateBackend.class);
 			}
 
@@ -196,6 +199,7 @@ public class StreamTaskStateInitializerImplTest {
 			streamOperator.getClass().getSimpleName(),
 			streamOperator,
 			typeSerializer,
+			KeyScope.GLOBAL,
 			closeableRegistry,
 			new UnregisteredMetricsGroup());
 

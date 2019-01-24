@@ -99,6 +99,29 @@ public final class KeyGroupRangeAssignment {
 	}
 
 	/**
+	 * Computes the range of key-groups that are assigned to a given local keyed operator
+	 * under the given parallelism and maximum parallelism.
+	 *
+	 * @param maxParallelism Maximal parallelism that the job was initially created with.
+	 * @param parallelism    The current parallelism under which the job runs. Must be <= maxParallelism.
+	 * @param operatorIndex  Id of a key-group. 0 <= keyGroupID < maxParallelism.
+	 * @return the computed key-group range for the local keyed operator.
+	 */
+	public static KeyGroupRange computeKeyGroupRangeForLocalKeyedOperator(
+		int maxParallelism,
+		int parallelism,
+		int operatorIndex) {
+
+		checkParallelismPreconditions(parallelism);
+		checkParallelismPreconditions(maxParallelism);
+
+		Preconditions.checkArgument(maxParallelism >= parallelism,
+			"Maximum parallelism must not be smaller than parallelism.");
+
+		return new KeyGroupRange(0, maxParallelism-1);
+	}
+
+	/**
 	 * Computes the index of the operator to which a key-group belongs under the given parallelism and maximum
 	 * parallelism.
 	 *

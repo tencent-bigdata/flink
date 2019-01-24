@@ -44,6 +44,7 @@ import org.apache.flink.runtime.state.DefaultKeyedStateStore;
 import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.state.KeyGroupStatePartitionStreamProvider;
 import org.apache.flink.runtime.state.KeyGroupsList;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.KeyedStateBackend;
 import org.apache.flink.runtime.state.KeyedStateCheckpointOutputStream;
 import org.apache.flink.runtime.state.OperatorStateBackend;
@@ -239,6 +240,8 @@ public abstract class AbstractStreamOperator<OUT>
 
 		final TypeSerializer<?> keySerializer = config.getStateKeySerializer(getUserCodeClassloader());
 
+		final KeyScope keyScope = config.getStateKeyScope();
+
 		final StreamTask<?, ?> containingTask =
 			Preconditions.checkNotNull(getContainingTask());
 		final CloseableRegistry streamTaskCloseableRegistry =
@@ -252,6 +255,7 @@ public abstract class AbstractStreamOperator<OUT>
 				getClass().getSimpleName(),
 				this,
 				keySerializer,
+				keyScope,
 				streamTaskCloseableRegistry,
 				metrics);
 

@@ -33,7 +33,11 @@ import org.apache.flink.runtime.query.TaskKvStateRegistry;
 import org.apache.flink.runtime.state.AbstractKeyedStateBackend;
 import org.apache.flink.runtime.state.IncrementalKeyedStateHandle;
 import org.apache.flink.runtime.state.KeyGroupRange;
+import org.apache.flink.runtime.state.KeyGroupRangeAssignment;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.KeyedStateHandle;
+import org.apache.flink.runtime.state.LocalKeyedIncrementalKeyedStateHandle;
+import org.apache.flink.runtime.state.LocalKeyedKeyGroupsStateHandle;
 import org.apache.flink.runtime.state.SharedStateRegistry;
 import org.apache.flink.runtime.state.SnapshotResult;
 import org.apache.flink.runtime.state.StateBackendTestBase;
@@ -121,6 +125,8 @@ public class RocksDBStateBackendTest extends StateBackendTestBase<RocksDBStateBa
 	// Store it because we need it for the cleanup test.
 	private String dbPath;
 
+	private static final int MAX_PARALLELISM = 10;
+
 	@Override
 	protected RocksDBStateBackend getStateBackend() throws IOException {
 		dbPath = tempFolder.newFolder().getAbsolutePath();
@@ -156,7 +162,8 @@ public class RocksDBStateBackendTest extends StateBackendTestBase<RocksDBStateBa
 		}
 	}
 
-	public void setupRocksKeyedStateBackend() throws Exception {
+	public void setupRocksKeyedStateBackend(KeyScope keyScope, int numSubTasks, int subTaskIndex)
+			throws Exception {
 
 		blocker = new OneShotLatch();
 		waiter = new OneShotLatch();
@@ -165,17 +172,26 @@ public class RocksDBStateBackendTest extends StateBackendTestBase<RocksDBStateBa
 		testStreamFactory.setWaiterLatch(waiter);
 		testStreamFactory.setAfterNumberInvocations(10);
 
+		KeyGroupRange keyGroupRange = keyScope.isLocal() ?
+			KeyGroupRangeAssignment.computeKeyGroupRangeForLocalKeyedOperator(
+				MAX_PARALLELISM, numSubTasks, subTaskIndex) :
+			KeyGroupRangeAssignment.computeKeyGroupRangeForOperatorIndex(
+				MAX_PARALLELISM, numSubTasks, subTaskIndex);
+
 		RocksDBStateBackend backend = getStateBackend();
-		Environment env = new DummyEnvironment("TestTask", 1, 0);
+		Environment env = new DummyEnvironment("TestTask", numSubTasks, subTaskIndex);
 
 		keyedStateBackend = (RocksDBKeyedStateBackend<Integer>) backend.createKeyedStateBackend(
 				env,
 				new JobID(),
 				"Test",
 				IntSerializer.INSTANCE,
-				2,
-				new KeyGroupRange(0, 1),
-				mock(TaskKvStateRegistry.class));
+				MAX_PARALLELISM,
+				keyGroupRange,
+				mock(TaskKvStateRegistry.class),
+				TtlTimeProvider.DEFAULT,
+				new UnregisteredMetricsGroup(),
+				keyScope);
 
 		keyedStateBackend.restore(null);
 
@@ -229,6 +245,10 @@ public class RocksDBStateBackendTest extends StateBackendTestBase<RocksDBStateBa
 			testState1.update(4200 + i);
 			testState2.update("S-" + (4200 + i));
 		}
+	}
+
+	public void setupRocksKeyedStateBackend() throws Exception {
+		setupRocksKeyedStateBackend(KeyScope.GLOBAL, 1, 0);
 	}
 
 	@Test
@@ -359,7 +379,44 @@ public class RocksDBStateBackendTest extends StateBackendTestBase<RocksDBStateBa
 			KeyedStateHandle keyedStateHandle = snapshotResult.getJobManagerOwnedSnapshot();
 			assertNotNull(keyedStateHandle);
 			assertTrue(keyedStateHandle.getStateSize() > 0);
-			assertEquals(2, keyedStateHandle.getKeyGroupRange().getNumberOfKeyGroups());
+			assertEquals(MAX_PARALLELISM, keyedStateHandle.getKeyGroupRange().getNumberOfKeyGroups());
+
+			for (BlockingCheckpointOutputStream stream : testStreamFactory.getAllCreatedStreams()) {
+				assertTrue(stream.isClosed());
+			}
+
+			asyncSnapshotThread.join();
+			verifyRocksObjectsReleased();
+		} finally {
+			this.keyedStateBackend.dispose();
+			this.keyedStateBackend = null;
+		}
+	}
+
+	@Test
+	public void testCompletingSnapshotForLocalKeyedState() throws Exception {
+		setupRocksKeyedStateBackend(KeyScope.LOCAL, 3, 1);
+		try {
+			RunnableFuture<SnapshotResult<KeyedStateHandle>> snapshot =
+				keyedStateBackend.snapshot(0L, 0L, testStreamFactory, CheckpointOptions.forCheckpointWithDefaultLocation());
+			Thread asyncSnapshotThread = new Thread(snapshot);
+			asyncSnapshotThread.start();
+			waiter.await(); // wait for snapshot to run
+			waiter.reset();
+			runStateUpdates();
+			blocker.trigger(); // allow checkpointing to start writing
+			waiter.await(); // wait for snapshot stream writing to run
+
+			SnapshotResult<KeyedStateHandle> snapshotResult = snapshot.get();
+			KeyedStateHandle keyedStateHandle = snapshotResult.getJobManagerOwnedSnapshot();
+			assertNotNull(keyedStateHandle);
+			assertTrue(keyedStateHandle.getStateSize() > 0);
+			if (enableIncrementalCheckpointing) {
+				assertTrue(keyedStateHandle instanceof LocalKeyedIncrementalKeyedStateHandle);
+			} else {
+				assertTrue(keyedStateHandle instanceof LocalKeyedKeyGroupsStateHandle);
+			}
+			assertEquals(new KeyGroupRange(0, MAX_PARALLELISM - 1), keyedStateHandle.getKeyGroupRange());
 
 			for (BlockingCheckpointOutputStream stream : testStreamFactory.getAllCreatedStreams()) {
 				assertTrue(stream.isClosed());

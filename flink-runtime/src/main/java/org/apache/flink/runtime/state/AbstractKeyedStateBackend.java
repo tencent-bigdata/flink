@@ -55,6 +55,8 @@ public abstract class AbstractKeyedStateBackend<K> implements
 	/** {@link TypeSerializer} for our key. */
 	protected final TypeSerializer<K> keySerializer;
 
+	protected KeyScope keyScope;
+
 	/** The currently active key. */
 	private K currentKey;
 
@@ -98,7 +100,8 @@ public abstract class AbstractKeyedStateBackend<K> implements
 		int numberOfKeyGroups,
 		KeyGroupRange keyGroupRange,
 		ExecutionConfig executionConfig,
-		TtlTimeProvider ttlTimeProvider) {
+		TtlTimeProvider ttlTimeProvider,
+		KeyScope keyScope) {
 
 		Preconditions.checkArgument(numberOfKeyGroups >= 1, "NumberOfKeyGroups must be a positive number");
 		Preconditions.checkArgument(numberOfKeyGroups >= keyGroupRange.getNumberOfKeyGroups(), "The total number of key groups must be at least the number in the key group range assigned to this backend");
@@ -113,6 +116,8 @@ public abstract class AbstractKeyedStateBackend<K> implements
 		this.executionConfig = executionConfig;
 		this.keyGroupCompressionDecorator = determineStreamCompression(executionConfig);
 		this.ttlTimeProvider = Preconditions.checkNotNull(ttlTimeProvider);
+
+		this.keyScope = keyScope;
 	}
 
 	private StreamCompressionDecorator determineStreamCompression(ExecutionConfig executionConfig) {

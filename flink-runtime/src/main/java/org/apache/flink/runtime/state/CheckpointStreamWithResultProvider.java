@@ -20,6 +20,7 @@ package org.apache.flink.runtime.state;
 
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.runtime.state.filesystem.FileBasedStateOutputStream;
+import org.apache.flink.runtime.util.KeyedStateHandleUtil;
 import org.apache.flink.util.ExceptionUtils;
 
 import org.slf4j.Logger;
@@ -196,18 +197,21 @@ public interface CheckpointStreamWithResultProvider extends Closeable {
 	@Nonnull
 	static SnapshotResult<KeyedStateHandle> toKeyedStateHandleSnapshotResult(
 		@Nonnull SnapshotResult<StreamStateHandle> snapshotResult,
-		@Nonnull KeyGroupRangeOffsets keyGroupRangeOffsets) {
+		@Nonnull KeyGroupRangeOffsets keyGroupRangeOffsets,
+		@Nonnull KeyScope keyScope) {
 
 		StreamStateHandle jobManagerOwnedSnapshot = snapshotResult.getJobManagerOwnedSnapshot();
 
 		if (jobManagerOwnedSnapshot != null) {
 
-			KeyedStateHandle jmKeyedState = new KeyGroupsStateHandle(keyGroupRangeOffsets, jobManagerOwnedSnapshot);
+			KeyedStateHandle jmKeyedState = KeyedStateHandleUtil.newKeyGroupsStateHandle(
+				keyGroupRangeOffsets, jobManagerOwnedSnapshot, keyScope);
 			StreamStateHandle taskLocalSnapshot = snapshotResult.getTaskLocalSnapshot();
 
 			if (taskLocalSnapshot != null) {
 
-				KeyedStateHandle localKeyedState = new KeyGroupsStateHandle(keyGroupRangeOffsets, taskLocalSnapshot);
+				KeyedStateHandle localKeyedState = KeyedStateHandleUtil.newKeyGroupsStateHandle(
+					keyGroupRangeOffsets, taskLocalSnapshot, keyScope);
 				return SnapshotResult.withLocalState(jmKeyedState, localKeyedState);
 			} else {
 

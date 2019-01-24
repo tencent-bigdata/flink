@@ -31,6 +31,8 @@ import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.state.KeyGroupRangeOffsets;
 import org.apache.flink.runtime.state.KeyGroupsStateHandle;
 import org.apache.flink.runtime.state.KeyedStateHandle;
+import org.apache.flink.runtime.state.LocalKeyedIncrementalKeyedStateHandle;
+import org.apache.flink.runtime.state.LocalKeyedKeyGroupsStateHandle;
 import org.apache.flink.runtime.state.OperatorStreamStateHandle;
 import org.apache.flink.runtime.state.StateHandleID;
 import org.apache.flink.runtime.state.StreamStateHandle;
@@ -82,6 +84,9 @@ public class SavepointV2Serializer implements SavepointSerializer<SavepointV2> {
 	private static final byte KEY_GROUPS_HANDLE = 3;
 	private static final byte PARTITIONABLE_OPERATOR_STATE_HANDLE = 4;
 	private static final byte INCREMENTAL_KEY_GROUPS_HANDLE = 5;
+
+	private static final byte LOCAL_KEYED_KEY_GROUPS_HANDLE = 31;
+	private static final byte LOCAL_KEYED_INCREMENTAL_KEY_GROUPS_HANDLE = 32;
 
 	/** The singleton instance of the serializer */
 	public static final SavepointV2Serializer INSTANCE = new SavepointV2Serializer();
@@ -331,9 +336,13 @@ public class SavepointV2Serializer implements SavepointSerializer<SavepointV2> {
 		if (stateHandle == null) {
 			dos.writeByte(NULL_HANDLE);
 		} else if (stateHandle instanceof KeyGroupsStateHandle) {
+
+			byte stateHandleType = stateHandle instanceof LocalKeyedKeyGroupsStateHandle ?
+				LOCAL_KEYED_KEY_GROUPS_HANDLE : KEY_GROUPS_HANDLE;
+
 			KeyGroupsStateHandle keyGroupsStateHandle = (KeyGroupsStateHandle) stateHandle;
 
-			dos.writeByte(KEY_GROUPS_HANDLE);
+			dos.writeByte(stateHandleType);
 			dos.writeInt(keyGroupsStateHandle.getKeyGroupRange().getStartKeyGroup());
 			dos.writeInt(keyGroupsStateHandle.getKeyGroupRange().getNumberOfKeyGroups());
 			for (int keyGroup : keyGroupsStateHandle.getKeyGroupRange()) {
@@ -341,10 +350,14 @@ public class SavepointV2Serializer implements SavepointSerializer<SavepointV2> {
 			}
 			serializeStreamStateHandle(keyGroupsStateHandle.getDelegateStateHandle(), dos);
 		} else if (stateHandle instanceof IncrementalKeyedStateHandle) {
+
+			byte stateHandleType = stateHandle instanceof LocalKeyedIncrementalKeyedStateHandle ?
+				LOCAL_KEYED_INCREMENTAL_KEY_GROUPS_HANDLE : INCREMENTAL_KEY_GROUPS_HANDLE;
+
 			IncrementalKeyedStateHandle incrementalKeyedStateHandle =
 				(IncrementalKeyedStateHandle) stateHandle;
 
-			dos.writeByte(INCREMENTAL_KEY_GROUPS_HANDLE);
+			dos.writeByte(stateHandleType);
 
 			dos.writeLong(incrementalKeyedStateHandle.getCheckpointId());
 			dos.writeUTF(String.valueOf(incrementalKeyedStateHandle.getBackendIdentifier()));
@@ -391,7 +404,7 @@ public class SavepointV2Serializer implements SavepointSerializer<SavepointV2> {
 		if (NULL_HANDLE == type) {
 
 			return null;
-		} else if (KEY_GROUPS_HANDLE == type) {
+		} else if (KEY_GROUPS_HANDLE == type || LOCAL_KEYED_KEY_GROUPS_HANDLE == type) {
 
 			int startKeyGroup = dis.readInt();
 			int numKeyGroups = dis.readInt();
@@ -404,8 +417,11 @@ public class SavepointV2Serializer implements SavepointSerializer<SavepointV2> {
 			KeyGroupRangeOffsets keyGroupRangeOffsets = new KeyGroupRangeOffsets(
 				keyGroupRange, offsets);
 			StreamStateHandle stateHandle = deserializeStreamStateHandle(dis);
-			return new KeyGroupsStateHandle(keyGroupRangeOffsets, stateHandle);
-		} else if (INCREMENTAL_KEY_GROUPS_HANDLE == type) {
+			return LOCAL_KEYED_KEY_GROUPS_HANDLE == type ?
+				new LocalKeyedKeyGroupsStateHandle(keyGroupRangeOffsets, stateHandle):
+				new KeyGroupsStateHandle(keyGroupRangeOffsets, stateHandle);
+		} else if (INCREMENTAL_KEY_GROUPS_HANDLE == type
+				|| LOCAL_KEYED_INCREMENTAL_KEY_GROUPS_HANDLE == type) {
 
 			long checkpointId = dis.readLong();
 			String backendId = dis.readUTF();
@@ -427,13 +443,22 @@ public class SavepointV2Serializer implements SavepointSerializer<SavepointV2> {
 				uuid = UUID.nameUUIDFromBytes(backendId.getBytes(StandardCharsets.UTF_8));
 			}
 
-			return new IncrementalKeyedStateHandle(
-				uuid,
-				keyGroupRange,
-				checkpointId,
-				sharedStates,
-				privateStates,
-				metaDataStateHandle);
+			return LOCAL_KEYED_INCREMENTAL_KEY_GROUPS_HANDLE == type ?
+				new LocalKeyedIncrementalKeyedStateHandle(
+					uuid,
+					keyGroupRange,
+					checkpointId,
+					sharedStates,
+					privateStates,
+					metaDataStateHandle):
+
+				new IncrementalKeyedStateHandle(
+					uuid,
+					keyGroupRange,
+					checkpointId,
+					sharedStates,
+					privateStates,
+					metaDataStateHandle);
 		} else {
 			throw new IllegalStateException("Reading invalid KeyedStateHandle, type: " + type);
 		}
