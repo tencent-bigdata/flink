@@ -260,6 +260,15 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 		return keyType;
 	}
 
+	/**
+	 * Gets the key scope of this keyed stream.
+	 * @return The key scope
+	 */
+	@Internal
+	public KeyScope getKeyScope() {
+		return keyScope;
+	}
+
 	@Override
 	protected DataStream<T> setConnectionType(StreamPartitioner<T> partitioner) {
 		throw new UnsupportedOperationException("Cannot override partitioning for KeyedStream.");
@@ -280,6 +289,7 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 		OneInputTransformation<T, R> transform = (OneInputTransformation<T, R>) returnStream.getTransformation();
 		transform.setStateKeySelector(keySelector);
 		transform.setStateKeyType(keyType);
+		transform.setStateKeyScope(keyScope);
 
 		return returnStream;
 	}
@@ -289,6 +299,7 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 		DataStreamSink<T> result = super.addSink(sinkFunction);
 		result.getTransformation().setStateKeySelector(keySelector);
 		result.getTransformation().setStateKeyType(keyType);
+		result.getTransformation().setStateKeyScope(keyScope);
 		return result;
 	}
 

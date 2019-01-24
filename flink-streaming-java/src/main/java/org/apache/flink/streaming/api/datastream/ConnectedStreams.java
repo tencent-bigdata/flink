@@ -24,6 +24,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.Utils;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.co.CoFlatMapFunction;
 import org.apache.flink.streaming.api.functions.co.CoMapFunction;
@@ -367,8 +368,14 @@ public class ConnectedStreams<IN1, IN2> {
 						"don't match: " + keyType1 + " and " + keyType2 + ".");
 			}
 
+			if (keyedInput1.getKeyScope().isLocal() || keyedInput2.getKeyScope().isLocal()) {
+				throw new UnsupportedOperationException(
+					"None of the input KeyedStreams should be local keyed.");
+			}
+
 			transform.setStateKeySelectors(keyedInput1.getKeySelector(), keyedInput2.getKeySelector());
 			transform.setStateKeyType(keyType1);
+			transform.setStateKeyScope(KeyScope.GLOBAL);
 		}
 
 		@SuppressWarnings({ "unchecked", "rawtypes" })

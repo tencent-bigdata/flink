@@ -28,6 +28,7 @@ import org.apache.flink.runtime.state.AbstractStateBackend;
 import org.apache.flink.runtime.state.CheckpointStorage;
 import org.apache.flink.runtime.state.CompletedCheckpointStorageLocation;
 import org.apache.flink.runtime.state.KeyGroupRange;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.OperatorStateBackend;
 import org.apache.flink.runtime.state.ttl.TtlTimeProvider;
 import org.apache.flink.util.Preconditions;
@@ -57,7 +58,8 @@ public class TestSpyWrapperStateBackend extends AbstractStateBackend {
 			KeyGroupRange keyGroupRange,
 			TaskKvStateRegistry kvStateRegistry,
 			TtlTimeProvider ttlTimeProvider,
-			MetricGroup metricGroup) throws IOException {
+			MetricGroup metricGroup,
+			KeyScope keyScope) throws IOException {
 			return spy(delegate.createKeyedStateBackend(
 				env,
 				jobID,
@@ -67,7 +69,8 @@ public class TestSpyWrapperStateBackend extends AbstractStateBackend {
 				keyGroupRange,
 				kvStateRegistry,
 				ttlTimeProvider,
-				metricGroup));
+				metricGroup,
+				keyScope));
 		}
 
 		@Override

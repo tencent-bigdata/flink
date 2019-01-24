@@ -49,6 +49,11 @@ class KeyedStream[T, K](javaStream: KeyedJavaStream[T, K]) extends DataStream[T]
   @Internal
   def getKeyType = javaStream.getKeyType()
 
+  /**
+    * Gets the key scope of this keyed stream.
+    */
+  @Internal
+  def getKeyScope = javaStream.getKeyScope()
 
   // ------------------------------------------------------------------------
   //  basic transformations

@@ -869,6 +869,89 @@ public class DataStreamTest extends TestLogger {
 				});
 	}
 
+	@Test
+	public void testFailedTranslationOnBroadcastConnected() {
+
+		final MapStateDescriptor<Long, String> descriptor = new MapStateDescriptor<>(
+				"broadcast", BasicTypeInfo.LONG_TYPE_INFO, BasicTypeInfo.STRING_TYPE_INFO
+		);
+
+		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		final DataStream<Long> srcOne = env.generateSequence(0L, 5L)
+				.assignTimestampsAndWatermarks(new CustomWmEmitter<Long>() {
+
+					@Override
+					public long extractTimestamp(Long element, long previousElementTimestamp) {
+						return element;
+					}
+				}).localKeyBy((KeySelector<Long, Long>) value -> value);
+
+		final DataStream<String> srcTwo = env.fromElements("Test:0", "Test:1", "Test:2", "Test:3", "Test:4", "Test:5")
+				.assignTimestampsAndWatermarks(new CustomWmEmitter<String>() {
+					@Override
+					public long extractTimestamp(String element, long previousElementTimestamp) {
+						return Long.parseLong(element.split(":")[1]);
+					}
+				});
+
+		BroadcastStream<String> broadcast = srcTwo.broadcast(descriptor);
+		BroadcastConnectedStream<Long, String> bcStream = srcOne.connect(broadcast);
+
+		expectedException.expect(UnsupportedOperationException.class);
+		expectedException.expectMessage("The input KeyedStream should not be local keyed.");
+		bcStream.process(
+			new KeyedBroadcastProcessFunction<String, Long, String, String>() {
+				@Override
+				public void processBroadcastElement(String value, Context ctx, Collector<String> out) throws Exception {
+					// do nothing
+				}
+
+				@Override
+				public void processElement(Long value, ReadOnlyContext ctx, Collector<String> out) throws Exception {
+					// do nothing
+				}
+			});
+	}
+
+	@Test
+	public void testFailedTranslationOnLocalKeyedConnected() {
+
+		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		final DataStream<Long> srcOne = env.generateSequence(0L, 5L)
+				.assignTimestampsAndWatermarks(new CustomWmEmitter<Long>() {
+
+					@Override
+					public long extractTimestamp(Long element, long previousElementTimestamp) {
+						return element;
+					}
+				}).localKeyBy((KeySelector<Long, Long>) value -> value);
+
+		final DataStream<Long> srcTwo = env.generateSequence(0L, 5L)
+				.assignTimestampsAndWatermarks(new CustomWmEmitter<Long>() {
+
+					@Override
+					public long extractTimestamp(Long element, long previousElementTimestamp) {
+						return element;
+					}
+				}).keyBy((KeySelector<Long, Long>) value -> value);
+
+		ConnectedStreams<Long, Long> connectedStreams = srcOne.connect(srcTwo);
+
+		expectedException.expect(UnsupportedOperationException.class);
+		expectedException.expectMessage("None of the input KeyedStreams should be local keyed.");
+		connectedStreams.map(new CoMapFunction<Long, Long, Object>() {
+			@Override
+			public Object map1(Long value) throws Exception {
+				return null;
+			}
+
+			@Override
+			public Object map2(Long value) throws Exception {
+				return null;
+			}
+		});
+	}
+
 	/**
 	 * Tests that with a non-keyed stream we have to provide a {@link BroadcastProcessFunction}.
 	 */

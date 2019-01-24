@@ -196,6 +196,41 @@ public interface StateBackend extends java.io.Serializable {
 	 *
 	 * @throws Exception This method may forward all exceptions that occur while instantiating the backend.
 	 */
+	default <K> AbstractKeyedStateBackend<K> createKeyedStateBackend(
+			Environment env,
+			JobID jobID,
+			String operatorIdentifier,
+			TypeSerializer<K> keySerializer,
+			int numberOfKeyGroups,
+			KeyGroupRange keyGroupRange,
+			TaskKvStateRegistry kvStateRegistry,
+			TtlTimeProvider ttlTimeProvider,
+			MetricGroup metricGroup) throws Exception {
+		return createKeyedStateBackend(
+			env,
+			jobID,
+			operatorIdentifier,
+			keySerializer,
+			numberOfKeyGroups,
+			keyGroupRange,
+			kvStateRegistry,
+			ttlTimeProvider,
+			metricGroup,
+			KeyScope.GLOBAL);
+	}
+	
+	/**
+	 * Creates a new {@link AbstractKeyedStateBackend} that is responsible for holding <b>keyed state</b>
+	 * and checkpointing it.
+	 *
+	 * <p><i>Keyed State</i> is state where each value is bound to a key.
+	 *
+	 * @param <K> The type of the keys by which the state is organized.
+	 *
+	 * @return The Keyed State Backend for the given job, operator, and key group range.
+	 *
+	 * @throws Exception This method may forward all exceptions that occur while instantiating the backend.
+	 */
 	<K> AbstractKeyedStateBackend<K> createKeyedStateBackend(
 		Environment env,
 		JobID jobID,
@@ -205,8 +240,9 @@ public interface StateBackend extends java.io.Serializable {
 		KeyGroupRange keyGroupRange,
 		TaskKvStateRegistry kvStateRegistry,
 		TtlTimeProvider ttlTimeProvider,
-		MetricGroup metricGroup) throws Exception;
-	
+		MetricGroup metricGroup,
+		KeyScope keyScope) throws Exception;
+
 	/**
 	 * Creates a new {@link OperatorStateBackend} that can be used for storing operator state.
 	 *

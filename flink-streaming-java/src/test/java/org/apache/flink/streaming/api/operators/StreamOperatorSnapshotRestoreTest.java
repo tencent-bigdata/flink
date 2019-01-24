@@ -38,6 +38,7 @@ import org.apache.flink.runtime.operators.testutils.MockEnvironmentBuilder;
 import org.apache.flink.runtime.operators.testutils.MockInputSplitProvider;
 import org.apache.flink.runtime.state.AbstractKeyedStateBackend;
 import org.apache.flink.runtime.state.KeyGroupStatePartitionStreamProvider;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.KeyedStateCheckpointOutputStream;
 import org.apache.flink.runtime.state.LocalRecoveryConfig;
 import org.apache.flink.runtime.state.LocalRecoveryDirectoryProvider;
@@ -60,15 +61,20 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collection;
 
 /**
  * Tests for {@link StreamOperator} snapshot restoration.
  */
+@RunWith(Parameterized.class)
 public class StreamOperatorSnapshotRestoreTest extends TestLogger {
 
 	private static final int ONLY_JM_RECOVERY = 0;
@@ -79,6 +85,14 @@ public class StreamOperatorSnapshotRestoreTest extends TestLogger {
 	private static final int MAX_PARALLELISM = 10;
 
 	protected static TemporaryFolder temporaryFolder;
+
+	@Parameterized.Parameters(name = "Key scope: {0}")
+	public static Collection<KeyScope> parameters() {
+		return Arrays.asList(KeyScope.GLOBAL, KeyScope.LOCAL);
+	}
+
+	@Parameterized.Parameter
+	public KeyScope keyScope;
 
 	@BeforeClass
 	public static void beforeClass() throws IOException {
@@ -165,7 +179,8 @@ public class StreamOperatorSnapshotRestoreTest extends TestLogger {
 				op,
 				(KeySelector<Integer, Integer>) value -> value,
 				TypeInformation.of(Integer.class),
-				mockEnvironment);
+				mockEnvironment,
+				keyScope);
 
 		testHarness.setStateBackend(stateBackend);
 		testHarness.open();

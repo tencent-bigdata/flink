@@ -21,6 +21,7 @@ package org.apache.flink.streaming.api.transformations;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.functions.KeySelector;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.streaming.api.operators.ChainingStrategy;
 import org.apache.flink.streaming.api.operators.TwoInputStreamOperator;
 
@@ -51,6 +52,8 @@ public class TwoInputTransformation<IN1, IN2, OUT> extends StreamTransformation<
 	private KeySelector<IN2, ?> stateKeySelector2;
 
 	private TypeInformation<?> stateKeyType;
+
+	private KeyScope stateKeyScope;
 
 	/**
 	 * Creates a new {@code TwoInputTransformation} from the given inputs and operator.
@@ -148,6 +151,14 @@ public class TwoInputTransformation<IN1, IN2, OUT> extends StreamTransformation<
 
 	public TypeInformation<?> getStateKeyType() {
 		return stateKeyType;
+	}
+
+	public KeyScope getStateKeyScope() {
+		return stateKeyScope;
+	}
+
+	public void setStateKeyScope(KeyScope stateKeyScope) {
+		this.stateKeyScope = stateKeyScope;
 	}
 
 	@Override

@@ -24,6 +24,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.base.IntSerializer;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.KeyedOneInputStreamOperatorTestHarness;
@@ -49,13 +50,23 @@ public class StreamGroupedReduceTest {
 
 	@Test
 	public void testGroupedReduce() throws Exception {
+		testGroupedReduceInternal(KeyScope.GLOBAL);
+	}
+
+	@Test
+	public void testGroupedReduceForLocalKeyBy() throws Exception {
+		testGroupedReduceInternal(KeyScope.LOCAL);
+	}
+
+	private void testGroupedReduceInternal(KeyScope keyScope) throws Exception {
 
 		KeySelector<Integer, Integer> keySelector = new IntegerKeySelector();
 
 		StreamGroupedReduce<Integer> operator = new StreamGroupedReduce<>(new MyReducer(), IntSerializer.INSTANCE);
 
 		OneInputStreamOperatorTestHarness<Integer, Integer> testHarness =
-				new KeyedOneInputStreamOperatorTestHarness<>(operator, keySelector, BasicTypeInfo.INT_TYPE_INFO);
+				new KeyedOneInputStreamOperatorTestHarness<>(
+					operator, keySelector, BasicTypeInfo.INT_TYPE_INFO, keyScope);
 
 		long initialTime = 0L;
 		ConcurrentLinkedQueue<Object> expectedOutput = new ConcurrentLinkedQueue<>();

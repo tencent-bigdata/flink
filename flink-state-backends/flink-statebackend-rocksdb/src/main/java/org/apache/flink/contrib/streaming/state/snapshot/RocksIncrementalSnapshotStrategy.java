@@ -36,6 +36,7 @@ import org.apache.flink.runtime.state.DirectoryStateHandle;
 import org.apache.flink.runtime.state.IncrementalKeyedStateHandle;
 import org.apache.flink.runtime.state.IncrementalLocalKeyedStateHandle;
 import org.apache.flink.runtime.state.KeyGroupRange;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.KeyedBackendSerializationProxy;
 import org.apache.flink.runtime.state.KeyedStateHandle;
 import org.apache.flink.runtime.state.LocalRecoveryConfig;
@@ -49,6 +50,7 @@ import org.apache.flink.runtime.state.StateObject;
 import org.apache.flink.runtime.state.StateUtil;
 import org.apache.flink.runtime.state.StreamStateHandle;
 import org.apache.flink.runtime.state.metainfo.StateMetaInfoSnapshot;
+import org.apache.flink.runtime.util.KeyedStateHandleUtil;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.FileUtils;
 import org.apache.flink.util.IOUtils;
@@ -110,6 +112,7 @@ public class RocksIncrementalSnapshotStrategy<K> extends RocksDBSnapshotStrategy
 		@Nonnull RocksDB db,
 		@Nonnull ResourceGuard rocksDBResourceGuard,
 		@Nonnull TypeSerializer<K> keySerializer,
+		@Nonnull KeyScope keyScope,
 		@Nonnull LinkedHashMap<String, Tuple2<ColumnFamilyHandle, RegisteredStateMetaInfoBase>> kvStateInformation,
 		@Nonnull KeyGroupRange keyGroupRange,
 		@Nonnegative int keyGroupPrefixBytes,
@@ -125,6 +128,7 @@ public class RocksIncrementalSnapshotStrategy<K> extends RocksDBSnapshotStrategy
 			db,
 			rocksDBResourceGuard,
 			keySerializer,
+			keyScope,
 			kvStateInformation,
 			keyGroupRange,
 			keyGroupPrefixBytes,
@@ -320,13 +324,14 @@ public class RocksIncrementalSnapshotStrategy<K> extends RocksDBSnapshotStrategy
 				}
 
 				final IncrementalKeyedStateHandle jmIncrementalKeyedStateHandle =
-					new IncrementalKeyedStateHandle(
+					KeyedStateHandleUtil.newIncrementalKeyedStateHandle(
 						backendUID,
 						keyGroupRange,
 						checkpointId,
 						sstFiles,
 						miscFiles,
-						metaStateHandle.getJobManagerOwnedSnapshot());
+						metaStateHandle.getJobManagerOwnedSnapshot(),
+						keyScope);
 
 				final DirectoryStateHandle directoryStateHandle = localBackupDirectory.completeSnapshotAndGetHandle();
 				final SnapshotResult<KeyedStateHandle> snapshotResult;

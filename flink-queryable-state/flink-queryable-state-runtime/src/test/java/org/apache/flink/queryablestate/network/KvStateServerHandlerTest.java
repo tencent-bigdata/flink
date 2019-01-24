@@ -755,7 +755,7 @@ public class KvStateServerHandlerTest extends TestLogger {
 		}
 	}
 
-	private AbstractKeyedStateBackend<Integer> createKeyedStateBackend(KvStateRegistry registry, int numKeyGroups, AbstractStateBackend abstractBackend, DummyEnvironment dummyEnv) throws java.io.IOException {
+	private AbstractKeyedStateBackend<Integer> createKeyedStateBackend(KvStateRegistry registry, int numKeyGroups, AbstractStateBackend abstractBackend, DummyEnvironment dummyEnv) throws Exception {
 		return abstractBackend.createKeyedStateBackend(
 			dummyEnv,
 			dummyEnv.getJobID(),

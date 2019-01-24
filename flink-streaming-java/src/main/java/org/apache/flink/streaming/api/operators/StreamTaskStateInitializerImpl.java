@@ -34,6 +34,7 @@ import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.state.KeyGroupRangeAssignment;
 import org.apache.flink.runtime.state.KeyGroupStatePartitionStreamProvider;
 import org.apache.flink.runtime.state.KeyGroupsStateHandle;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.KeyedStateHandle;
 import org.apache.flink.runtime.state.OperatorStateBackend;
 import org.apache.flink.runtime.state.OperatorStateHandle;
@@ -107,6 +108,7 @@ public class StreamTaskStateInitializerImpl implements StreamTaskStateInitialize
 		@Nonnull String operatorClassName,
 		@Nonnull KeyContext keyContext,
 		@Nullable TypeSerializer<?> keySerializer,
+		@Nullable KeyScope keyScope,
 		@Nonnull CloseableRegistry streamTaskCloseableRegistry,
 		@Nonnull MetricGroup metricGroup) throws Exception {
 
@@ -134,6 +136,7 @@ public class StreamTaskStateInitializerImpl implements StreamTaskStateInitialize
 			// -------------- Keyed State Backend --------------
 			keyedStatedBackend = keyedStatedBackend(
 				keySerializer,
+				keyScope,
 				operatorIdentifierText,
 				prioritizedOperatorSubtaskStates,
 				streamTaskCloseableRegistry,
@@ -248,6 +251,7 @@ public class StreamTaskStateInitializerImpl implements StreamTaskStateInitialize
 
 	protected <K> AbstractKeyedStateBackend<K> keyedStatedBackend(
 		TypeSerializer<K> keySerializer,
+		KeyScope keyScope,
 		String operatorIdentifierText,
 		PrioritizedOperatorSubtaskState prioritizedOperatorSubtaskStates,
 		CloseableRegistry backendCloseableRegistry,
@@ -257,14 +261,22 @@ public class StreamTaskStateInitializerImpl implements StreamTaskStateInitialize
 			return null;
 		}
 
+		Preconditions.checkArgument(keyScope != null, "Key scope should not be null");
+
 		String logDescription = "keyed state backend for " + operatorIdentifierText;
 
 		TaskInfo taskInfo = environment.getTaskInfo();
 
-		final KeyGroupRange keyGroupRange = KeyGroupRangeAssignment.computeKeyGroupRangeForOperatorIndex(
-			taskInfo.getMaxNumberOfParallelSubtasks(),
-			taskInfo.getNumberOfParallelSubtasks(),
-			taskInfo.getIndexOfThisSubtask());
+		final KeyGroupRange keyGroupRange = keyScope.isLocal() ?
+
+			KeyGroupRangeAssignment.computeKeyGroupRangeForLocalKeyedOperator(
+				taskInfo.getMaxNumberOfParallelSubtasks(),
+				taskInfo.getNumberOfParallelSubtasks()) :
+
+			KeyGroupRangeAssignment.computeKeyGroupRangeForOperatorIndex(
+				taskInfo.getMaxNumberOfParallelSubtasks(),
+				taskInfo.getNumberOfParallelSubtasks(),
+				taskInfo.getIndexOfThisSubtask());
 
 		BackendRestorerProcedure<AbstractKeyedStateBackend<K>, KeyedStateHandle> backendRestorer =
 			new BackendRestorerProcedure<>(
@@ -277,7 +289,8 @@ public class StreamTaskStateInitializerImpl implements StreamTaskStateInitialize
 					keyGroupRange,
 					environment.getTaskKvStateRegistry(),
 					TtlTimeProvider.DEFAULT,
-					metricGroup),
+					metricGroup,
+					keyScope),
 				backendCloseableRegistry,
 				logDescription);
 

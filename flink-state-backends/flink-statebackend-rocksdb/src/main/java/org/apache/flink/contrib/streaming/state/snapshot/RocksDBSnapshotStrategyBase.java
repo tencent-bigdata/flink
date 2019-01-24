@@ -27,6 +27,7 @@ import org.apache.flink.runtime.state.CheckpointListener;
 import org.apache.flink.runtime.state.CheckpointStreamFactory;
 import org.apache.flink.runtime.state.DoneFuture;
 import org.apache.flink.runtime.state.KeyGroupRange;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.KeyedStateHandle;
 import org.apache.flink.runtime.state.LocalRecoveryConfig;
 import org.apache.flink.runtime.state.RegisteredStateMetaInfoBase;
@@ -76,6 +77,8 @@ public abstract class RocksDBSnapshotStrategyBase<K>
 	@Nonnull
 	protected final KeyGroupRange keyGroupRange;
 
+	protected final KeyScope keyScope;
+
 	/** Number of bytes in the key-group prefix. */
 	@Nonnegative
 	protected final int keyGroupPrefixBytes;
@@ -93,6 +96,7 @@ public abstract class RocksDBSnapshotStrategyBase<K>
 		@Nonnull RocksDB db,
 		@Nonnull ResourceGuard rocksDBResourceGuard,
 		@Nonnull TypeSerializer<K> keySerializer,
+		@Nonnull KeyScope keyScope,
 		@Nonnull LinkedHashMap<String, Tuple2<ColumnFamilyHandle, RegisteredStateMetaInfoBase>> kvStateInformation,
 		@Nonnull KeyGroupRange keyGroupRange,
 		@Nonnegative int keyGroupPrefixBytes,
@@ -103,6 +107,7 @@ public abstract class RocksDBSnapshotStrategyBase<K>
 		this.db = db;
 		this.rocksDBResourceGuard = rocksDBResourceGuard;
 		this.keySerializer = keySerializer;
+		this.keyScope = keyScope;
 		this.kvStateInformation = kvStateInformation;
 		this.keyGroupRange = keyGroupRange;
 		this.keyGroupPrefixBytes = keyGroupPrefixBytes;

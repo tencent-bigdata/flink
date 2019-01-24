@@ -49,6 +49,7 @@ import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.state.KeyGroupRangeOffsets;
 import org.apache.flink.runtime.state.KeyGroupedInternalPriorityQueue;
 import org.apache.flink.runtime.state.KeyGroupsStateHandle;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.Keyed;
 import org.apache.flink.runtime.state.KeyedBackendSerializationProxy;
 import org.apache.flink.runtime.state.KeyedStateFunction;
@@ -160,8 +161,26 @@ public class HeapKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 			HeapPriorityQueueSetFactory priorityQueueSetFactory,
 			TtlTimeProvider ttlTimeProvider) {
 
+		this(kvStateRegistry, keySerializer, userCodeClassLoader,
+			numberOfKeyGroups, keyGroupRange, asynchronousSnapshots, executionConfig,
+			localRecoveryConfig, priorityQueueSetFactory, ttlTimeProvider, KeyScope.GLOBAL);
+	}
+
+	public HeapKeyedStateBackend(
+			TaskKvStateRegistry kvStateRegistry,
+			TypeSerializer<K> keySerializer,
+			ClassLoader userCodeClassLoader,
+			int numberOfKeyGroups,
+			KeyGroupRange keyGroupRange,
+			boolean asynchronousSnapshots,
+			ExecutionConfig executionConfig,
+			LocalRecoveryConfig localRecoveryConfig,
+			HeapPriorityQueueSetFactory priorityQueueSetFactory,
+			TtlTimeProvider ttlTimeProvider,
+			KeyScope keyScope) {
+
 		super(kvStateRegistry, keySerializer, userCodeClassLoader,
-			numberOfKeyGroups, keyGroupRange, executionConfig, ttlTimeProvider);
+			numberOfKeyGroups, keyGroupRange, executionConfig, ttlTimeProvider, keyScope);
 
 		this.registeredKVStates = new HashMap<>();
 		this.registeredPQStates = new HashMap<>();
@@ -805,7 +824,7 @@ public class HeapKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 							KeyGroupRangeOffsets kgOffs = new KeyGroupRangeOffsets(keyGroupRange, keyGroupRangeOffsets);
 							SnapshotResult<StreamStateHandle> result =
 								streamWithResultProvider.closeAndFinalizeCheckpointStreamResult();
-							return CheckpointStreamWithResultProvider.toKeyedStateHandleSnapshotResult(result, kgOffs);
+							return CheckpointStreamWithResultProvider.toKeyedStateHandleSnapshotResult(result, kgOffs, keyScope);
 						} else {
 							throw new IOException("Stream already unregistered.");
 						}

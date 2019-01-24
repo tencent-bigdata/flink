@@ -34,6 +34,7 @@ import org.apache.flink.runtime.state.CompletedCheckpointStorageLocation;
 import org.apache.flink.runtime.state.ConfigurableStateBackend;
 import org.apache.flink.runtime.state.DefaultOperatorStateBackend;
 import org.apache.flink.runtime.state.KeyGroupRange;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.LocalRecoveryConfig;
 import org.apache.flink.runtime.state.OperatorStateBackend;
 import org.apache.flink.runtime.state.StateBackend;
@@ -421,7 +422,8 @@ public class RocksDBStateBackend extends AbstractStateBackend implements Configu
 			KeyGroupRange keyGroupRange,
 			TaskKvStateRegistry kvStateRegistry,
 			TtlTimeProvider ttlTimeProvider,
-			MetricGroup metricGroup) throws IOException {
+			MetricGroup metricGroup,
+			KeyScope keyScope) throws IOException {
 
 		// first, make sure that the RocksDB JNI library is loaded
 		// we do this explicitly here to have better error handling
@@ -456,7 +458,8 @@ public class RocksDBStateBackend extends AbstractStateBackend implements Configu
 				priorityQueueStateType,
 				ttlTimeProvider,
 				getMemoryWatcherOptions(),
-				metricGroup);
+				metricGroup,
+				keyScope);
 	}
 
 	@Override

@@ -32,6 +32,7 @@ import org.apache.flink.runtime.state.CheckpointStorage;
 import org.apache.flink.runtime.state.ConfigurableStateBackend;
 import org.apache.flink.runtime.state.DefaultOperatorStateBackend;
 import org.apache.flink.runtime.state.KeyGroupRange;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.OperatorStateBackend;
 import org.apache.flink.runtime.state.TaskStateManager;
 import org.apache.flink.runtime.state.filesystem.AbstractFileStateBackend;
@@ -311,7 +312,8 @@ public class MemoryStateBackend extends AbstractFileStateBackend implements Conf
 			KeyGroupRange keyGroupRange,
 			TaskKvStateRegistry kvStateRegistry,
 			TtlTimeProvider ttlTimeProvider,
-			MetricGroup metricGroup) {
+			MetricGroup metricGroup,
+			KeyScope keyScope) {
 
 		TaskStateManager taskStateManager = env.getTaskStateManager();
 		HeapPriorityQueueSetFactory priorityQueueSetFactory =
@@ -326,7 +328,8 @@ public class MemoryStateBackend extends AbstractFileStateBackend implements Conf
 				env.getExecutionConfig(),
 				taskStateManager.createLocalRecoveryConfig(),
 				priorityQueueSetFactory,
-				ttlTimeProvider);
+				ttlTimeProvider,
+				keyScope);
 	}
 
 	// ------------------------------------------------------------------------
