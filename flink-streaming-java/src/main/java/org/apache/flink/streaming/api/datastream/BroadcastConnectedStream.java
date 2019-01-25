@@ -24,6 +24,7 @@ import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.Utils;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.co.BroadcastProcessFunction;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
@@ -232,9 +233,16 @@ public class BroadcastConnectedStream<IN1, IN2> {
 
 		if (inputStream1 instanceof KeyedStream) {
 			KeyedStream<IN1, ?> keyedInput1 = (KeyedStream<IN1, ?>) inputStream1;
+
+			if (keyedInput1.getKeyScope().isLocal()) {
+				throw new UnsupportedOperationException(
+					"The input KeyedStream should not be local keyed.");
+			}
+
 			TypeInformation<?> keyType1 = keyedInput1.getKeyType();
 			transform.setStateKeySelectors(keyedInput1.getKeySelector(), null);
 			transform.setStateKeyType(keyType1);
+			transform.setStateKeyScope(KeyScope.GLOBAL);
 		}
 
 		@SuppressWarnings({ "unchecked", "rawtypes" })

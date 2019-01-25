@@ -260,6 +260,15 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 		return keyType;
 	}
 
+	/**
+	 * Gets the key scope of this keyed stream.
+	 * @return The key scope
+	 */
+	@Internal
+	public KeyScope getKeyScope() {
+		return keyScope;
+	}
+
 	@Override
 	protected DataStream<T> setConnectionType(StreamPartitioner<T> partitioner) {
 		throw new UnsupportedOperationException("Cannot override partitioning for KeyedStream.");

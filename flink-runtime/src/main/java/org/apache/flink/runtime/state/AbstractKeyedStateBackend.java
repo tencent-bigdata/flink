@@ -116,7 +116,6 @@ public abstract class AbstractKeyedStateBackend<K> implements
 		this.executionConfig = executionConfig;
 		this.keyGroupCompressionDecorator = determineStreamCompression(executionConfig);
 		this.ttlTimeProvider = Preconditions.checkNotNull(ttlTimeProvider);
-
 		this.keyScope = keyScope;
 	}
 

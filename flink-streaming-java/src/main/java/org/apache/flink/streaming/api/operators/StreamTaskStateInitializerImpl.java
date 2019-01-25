@@ -261,18 +261,17 @@ public class StreamTaskStateInitializerImpl implements StreamTaskStateInitialize
 			return null;
 		}
 
-		final KeyScope nonNullKeyScope = keyScope == null ? KeyScope.GLOBAL : keyScope;
+		Preconditions.checkArgument(keyScope != null, "Key scope should not be null");
 
 		String logDescription = "keyed state backend for " + operatorIdentifierText;
 
 		TaskInfo taskInfo = environment.getTaskInfo();
 
-		final KeyGroupRange keyGroupRange = nonNullKeyScope.isLocal() ?
+		final KeyGroupRange keyGroupRange = keyScope.isLocal() ?
 
 			KeyGroupRangeAssignment.computeKeyGroupRangeForLocalKeyedOperator(
 				taskInfo.getMaxNumberOfParallelSubtasks(),
-				taskInfo.getNumberOfParallelSubtasks(),
-				taskInfo.getIndexOfThisSubtask()) :
+				taskInfo.getNumberOfParallelSubtasks()) :
 
 			KeyGroupRangeAssignment.computeKeyGroupRangeForOperatorIndex(
 				taskInfo.getMaxNumberOfParallelSubtasks(),
@@ -291,7 +290,7 @@ public class StreamTaskStateInitializerImpl implements StreamTaskStateInitialize
 					environment.getTaskKvStateRegistry(),
 					TtlTimeProvider.DEFAULT,
 					metricGroup,
-					nonNullKeyScope),
+					keyScope),
 				backendCloseableRegistry,
 				logDescription);
 

@@ -21,6 +21,7 @@ package org.apache.flink.streaming.util;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.ClosureCleaner;
 import org.apache.flink.api.java.functions.KeySelector;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.KeyedStateBackend;
 import org.apache.flink.runtime.state.heap.HeapKeyedStateBackend;
 import org.apache.flink.streaming.api.operators.AbstractStreamOperator;
@@ -48,6 +49,7 @@ public class KeyedTwoInputStreamOperatorTestHarness<K, IN1, IN2, OUT>
 		config.setStatePartitioner(0, keySelector1);
 		config.setStatePartitioner(1, keySelector2);
 		config.setStateKeySerializer(keyType.createSerializer(executionConfig));
+		config.setStateKeyScope(KeyScope.GLOBAL);
 	}
 
 	public KeyedTwoInputStreamOperatorTestHarness(

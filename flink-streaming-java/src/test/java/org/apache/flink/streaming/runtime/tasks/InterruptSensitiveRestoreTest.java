@@ -59,6 +59,7 @@ import org.apache.flink.runtime.state.FunctionSnapshotContext;
 import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.state.KeyGroupRangeOffsets;
 import org.apache.flink.runtime.state.KeyGroupsStateHandle;
+import org.apache.flink.runtime.state.KeyScope;
 import org.apache.flink.runtime.state.KeyedStateHandle;
 import org.apache.flink.runtime.state.OperatorStateHandle;
 import org.apache.flink.runtime.state.OperatorStreamStateHandle;
@@ -143,6 +144,7 @@ public class InterruptSensitiveRestoreTest {
 			case KEYED_MANAGED:
 			case KEYED_RAW:
 				cfg.setStateKeySerializer(IntSerializer.INSTANCE);
+				cfg.setStateKeyScope(KeyScope.GLOBAL);
 				cfg.setStreamOperator(new StreamSource<>(new TestSource(mode)));
 				break;
 			default:

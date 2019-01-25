@@ -488,11 +488,13 @@ public class StreamGraph extends StreamingPlan {
 		node.setStateKeyScope(keyScope);
 	}
 
-	public void setTwoInputStateKey(Integer vertexID, KeySelector<?, ?> keySelector1, KeySelector<?, ?> keySelector2, TypeSerializer<?> keySerializer) {
+	public void setTwoInputStateKey(Integer vertexID, KeySelector<?, ?> keySelector1, KeySelector<?, ?> keySelector2,
+			TypeSerializer<?> keySerializer, KeyScope keyScope) {
 		StreamNode node = getStreamNode(vertexID);
 		node.setStatePartitioner1(keySelector1);
 		node.setStatePartitioner2(keySelector2);
 		node.setStateKeySerializer(keySerializer);
+		node.setStateKeyScope(keyScope);
 	}
 
 	public void setBufferTimeout(Integer vertexID, long bufferTimeout) {

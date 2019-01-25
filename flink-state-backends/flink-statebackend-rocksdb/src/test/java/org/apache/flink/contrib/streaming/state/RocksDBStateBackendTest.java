@@ -174,7 +174,7 @@ public class RocksDBStateBackendTest extends StateBackendTestBase<RocksDBStateBa
 
 		KeyGroupRange keyGroupRange = keyScope.isLocal() ?
 			KeyGroupRangeAssignment.computeKeyGroupRangeForLocalKeyedOperator(
-				MAX_PARALLELISM, numSubTasks, subTaskIndex) :
+				MAX_PARALLELISM, numSubTasks) :
 			KeyGroupRangeAssignment.computeKeyGroupRangeForOperatorIndex(
 				MAX_PARALLELISM, numSubTasks, subTaskIndex);
 
