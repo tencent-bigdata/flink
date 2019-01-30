@@ -28,6 +28,7 @@ import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.state.KeyGroupRangeAssignment;
 import org.apache.flink.runtime.state.KeyGroupsStateHandle;
 import org.apache.flink.runtime.state.KeyedStateHandle;
+import org.apache.flink.runtime.state.LocalKeyedStateHandle;
 import org.apache.flink.runtime.state.OperatorStateHandle;
 import org.apache.flink.util.Preconditions;
 
@@ -271,6 +272,8 @@ public class StateAssignmentOperation {
 
 		for (int operatorIndex = 0; operatorIndex < newOperatorIDs.size(); operatorIndex++) {
 			OperatorState operatorState = oldOperatorStates.get(operatorIndex);
+			List<KeyedStateHandle>[] reDistributedLocalKeyedStates =
+				reDistributeLocalKeyedStates(operatorState, newParallelism);
 			int oldParallelism = operatorState.getParallelism();
 			for (int subTaskIndex = 0; subTaskIndex < newParallelism; subTaskIndex++) {
 				OperatorInstanceID instanceID = OperatorInstanceID.of(subTaskIndex, newOperatorIDs.get(operatorIndex));
@@ -279,7 +282,8 @@ public class StateAssignmentOperation {
 					newKeyGroupPartitions,
 					subTaskIndex,
 					newParallelism,
-					oldParallelism);
+					oldParallelism,
+					reDistributedLocalKeyedStates);
 				newManagedKeyedState.put(instanceID, subKeyedStates.f0);
 				newRawKeyedState.put(instanceID, subKeyedStates.f1);
 			}
@@ -292,7 +296,8 @@ public class StateAssignmentOperation {
 			List<KeyGroupRange> keyGroupPartitions,
 			int subTaskIndex,
 			int newParallelism,
-			int oldParallelism) {
+			int oldParallelism,
+			List<KeyedStateHandle>[] reDistributedLocalKeyedStates) {
 
 		List<KeyedStateHandle> subManagedKeyedState;
 		List<KeyedStateHandle> subRawKeyedState;
@@ -306,7 +311,9 @@ public class StateAssignmentOperation {
 				subRawKeyedState = Collections.emptyList();
 			}
 		} else {
-			subManagedKeyedState = getManagedKeyedStateHandles(operatorState, keyGroupPartitions.get(subTaskIndex));
+			subManagedKeyedState = reDistributedLocalKeyedStates.length > 0 ?
+				reDistributedLocalKeyedStates[subTaskIndex] :
+				getManagedKeyedStateHandles(operatorState, keyGroupPartitions.get(subTaskIndex));
 			subRawKeyedState = getRawKeyedStateHandles(operatorState, keyGroupPartitions.get(subTaskIndex));
 		}
 
@@ -423,6 +430,90 @@ public class StateAssignmentOperation {
 		}
 
 		return subtaskKeyedStateHandles;
+	}
+
+	public static List<KeyedStateHandle>[] reDistributeLocalKeyedStates(
+			OperatorState operatorState,
+			int newParallelism) {
+		if (!hasLocalKeyedState(operatorState)) {
+			return new List[0];
+		}
+
+		List<KeyedStateHandle>[] reDistributed = new List[newParallelism];
+
+		List<LocalKeyedStateHandle> allLocalKeyedStateHandles = new ArrayList<>();
+		final int oldParallelism = operatorState.getParallelism();
+		for (int i = 0; i < oldParallelism; i++) {
+			if (operatorState.getState(i) != null) {
+				for (KeyedStateHandle keyedStateHandle : operatorState.getState(i).getManagedKeyedState()) {
+					Preconditions.checkArgument(keyedStateHandle instanceof LocalKeyedStateHandle,
+						"Unexpected state handle type, " +
+							"expected: " + LocalKeyedStateHandle.class +
+							", but found: " + keyedStateHandle.getClass());
+					allLocalKeyedStateHandles.add((LocalKeyedStateHandle) keyedStateHandle);
+				}
+			}
+		}
+
+		if (!allLocalKeyedStateHandles.isEmpty()) {
+			final int numKeyGroupsPerHandle =
+				allLocalKeyedStateHandles.get(0).getKeyGroupRange().getNumberOfKeyGroups();
+			final int totalNumOfKeyGroups = numKeyGroupsPerHandle * allLocalKeyedStateHandles.size();
+
+			final int numKeyGroupsPerSubTask = totalNumOfKeyGroups / newParallelism;
+
+			for (int subTaskId = 0, firstKGIdxInAllHandles = 0; subTaskId < newParallelism; subTaskId++) {
+				reDistributed[subTaskId] = new ArrayList<>(numKeyGroupsPerSubTask);
+				boolean lastSubTask = subTaskId == newParallelism - 1;
+
+				int lastKGIdxInAllHandles = lastSubTask ?
+					totalNumOfKeyGroups - 1 :
+					firstKGIdxInAllHandles + numKeyGroupsPerSubTask - 1;
+
+				int firstHandleIdx = firstKGIdxInAllHandles / numKeyGroupsPerHandle;
+				int lastHandleIdx = lastKGIdxInAllHandles / numKeyGroupsPerHandle;
+
+				int firstKGIdxInHandle = firstKGIdxInAllHandles % numKeyGroupsPerHandle;
+				int lastKGIdxInHandle = lastKGIdxInAllHandles % numKeyGroupsPerHandle;
+
+				if (firstHandleIdx == lastHandleIdx) {
+					// only one state handle
+					KeyGroupRange kgRange = new KeyGroupRange(firstKGIdxInHandle, lastKGIdxInHandle);
+					reDistributed[subTaskId].add(
+						allLocalKeyedStateHandles.get(firstHandleIdx).getIntersection(kgRange));
+				} else {
+					// multi state handles
+					for (int handleIdx = firstHandleIdx; handleIdx <= lastHandleIdx; handleIdx++) {
+						boolean firstHandle = handleIdx == firstHandleIdx;
+						boolean lastHandle = handleIdx == lastHandleIdx;
+						if (firstHandle) {
+							KeyGroupRange kgRange = new KeyGroupRange(firstKGIdxInHandle,
+								allLocalKeyedStateHandles.get(handleIdx).getKeyGroupRange().getEndKeyGroup());
+							reDistributed[subTaskId].add(
+								allLocalKeyedStateHandles.get(handleIdx).getIntersection(kgRange));
+						} else if (lastHandle) {
+							KeyGroupRange kgRange = new KeyGroupRange(0, lastKGIdxInHandle);
+							reDistributed[subTaskId].add(
+								allLocalKeyedStateHandles.get(handleIdx).getIntersection(kgRange));
+						} else {
+							reDistributed[subTaskId].add(allLocalKeyedStateHandles.get(handleIdx));
+						}
+					}
+
+				}
+
+				firstKGIdxInAllHandles += numKeyGroupsPerSubTask;
+			}
+		}
+
+		return reDistributed;
+	}
+
+	private static boolean hasLocalKeyedState(OperatorState operatorState) {
+		return operatorState != null && operatorState.getState(0) != null
+			&& operatorState.getState(0).getManagedKeyedState().hasState()
+			&& operatorState.getState(0).getManagedKeyedState().asList().get(0)
+				instanceof LocalKeyedStateHandle;
 	}
 
 	/**

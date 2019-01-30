@@ -20,6 +20,7 @@ package org.apache.flink.runtime.checkpoint;
 
 import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.state.KeyedStateHandle;
+import org.apache.flink.runtime.state.LocalKeyedStateHandle;
 import org.apache.flink.runtime.state.OperatorStateHandle;
 import org.apache.flink.runtime.state.OperatorStreamStateHandle;
 import org.apache.flink.runtime.state.SharedStateRegistry;
@@ -59,6 +60,13 @@ public class StateHandleDummyUtil {
 	 */
 	public static KeyedStateHandle createNewKeyedStateHandle(KeyGroupRange keyGroupRange) {
 		return new DummyKeyedStateHandle(keyGroupRange);
+	}
+
+	/**
+	 * Creates a new test {@link LocalKeyedStateHandle} for the given key-group.
+	 */
+	public static LocalKeyedStateHandle createNewLocalKeyedStateHandle(KeyGroupRange keyGroupRange) {
+		return new DummyLocalKeyedStateHandle(keyGroupRange);
 	}
 
 	/**
@@ -136,4 +144,42 @@ public class StateHandleDummyUtil {
 			return 0L;
 		}
 	}
+
+	/**
+	 * LocalKeyedStateHandle that only holds a key-group information.
+	 */
+	private static class DummyLocalKeyedStateHandle implements LocalKeyedStateHandle {
+
+		private static final long serialVersionUID = 1L;
+
+		private final KeyGroupRange keyGroupRange;
+
+		private DummyLocalKeyedStateHandle(KeyGroupRange keyGroupRange) {
+			this.keyGroupRange = keyGroupRange;
+		}
+
+		@Override
+		public KeyGroupRange getKeyGroupRange() {
+			return keyGroupRange;
+		}
+
+		@Override
+		public LocalKeyedStateHandle getIntersection(KeyGroupRange keyGroupRange) {
+			return new DummyLocalKeyedStateHandle(this.keyGroupRange.getIntersection(keyGroupRange));
+		}
+
+		@Override
+		public void registerSharedStates(SharedStateRegistry stateRegistry) {
+		}
+
+		@Override
+		public void discardState() throws Exception {
+		}
+
+		@Override
+		public long getStateSize() {
+			return 0L;
+		}
+	}
+
 }
