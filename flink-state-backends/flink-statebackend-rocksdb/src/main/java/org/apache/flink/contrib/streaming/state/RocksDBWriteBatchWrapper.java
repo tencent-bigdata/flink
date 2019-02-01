@@ -79,6 +79,18 @@ public class RocksDBWriteBatchWrapper implements AutoCloseable {
 		}
 	}
 
+	public void merge(
+		@Nonnull ColumnFamilyHandle handle,
+		@Nonnull byte[] key,
+		@Nonnull byte[] value) throws RocksDBException {
+
+		batch.merge(handle, key, value);
+
+		if (batch.count() == capacity) {
+			flush();
+		}
+	}
+
 	public void remove(
 		@Nonnull ColumnFamilyHandle handle,
 		@Nonnull byte[] key) throws RocksDBException {

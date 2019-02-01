@@ -18,16 +18,19 @@
 
 package org.apache.flink.runtime.state.heap;
 
+import org.apache.flink.api.common.state.StateDescriptor;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.core.memory.DataInputView;
 import org.apache.flink.runtime.state.KeyGroupPartitioner;
 import org.apache.flink.runtime.state.StateSnapshotKeyGroupReader;
+import org.apache.flink.util.Preconditions;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * This class provides a static factory method to create different implementations of {@link StateSnapshotKeyGroupReader}
@@ -73,7 +76,29 @@ class StateTableByKeyGroupReaders {
 			buffer.f1 = keySerializer.deserialize(in);
 			buffer.f2 = stateSerializer.deserialize(in);
 			return buffer;
-		}, (element, keyGroupId1) -> stateTable.put(element.f1, keyGroupId1, element.f0, element.f2));
+		}, (element, keyGroupId1) -> {
+			S state = stateTable.get(element.f1, element.f0);
+			if (state == null) {
+				stateTable.put(element.f1, keyGroupId1, element.f0, element.f2);
+			} else {
+				StateDescriptor.Type stateType = stateTable.getMetaInfo().getStateType();
+				if (StateDescriptor.Type.LIST.equals(stateType)) {
+					Preconditions.checkState(state instanceof List,
+						"Unexpected state type encountered, expected: {}, but found: {}",
+						List.class, state.getClass());
+					Preconditions.checkState(element.f2 instanceof List,
+						"Unexpected state type encountered, expected: {}, but found: {}",
+						List.class, element.f2.getClass());
+					((List) state).addAll((List) element.f2);
+				} else {
+					throw new IllegalStateException(
+						"Unexpected state type encountered when merging states from snapshot. " +
+						"stateName: " + stateTable.getMetaInfo().getName() + ", " +
+						"stateType: " + stateType + ". " +
+						"Currently we only support LIST type.");
+				}
+			}
+		});
 	}
 
 	static final class StateTableByKeyGroupReaderV1<K, N, S> implements StateSnapshotKeyGroupReader {

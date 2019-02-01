@@ -1240,6 +1240,80 @@ public abstract class StateBackendTestBase<B extends AbstractStateBackend> exten
 		}
 	}
 
+	@Test
+	public void testMergingPriorityQueueStates() throws Exception {
+
+		final int MAX_PARALLELISM = 10;
+		KeyGroupRange fullRange = new KeyGroupRange(0, MAX_PARALLELISM - 1);
+
+		CheckpointStreamFactory streamFactory = createStreamFactory();
+		SharedStateRegistry sharedStateRegistry = new SharedStateRegistry();
+		final AbstractKeyedStateBackend<Integer> backend1 = createKeyedBackend(
+			IntSerializer.INSTANCE,
+			MAX_PARALLELISM,
+			fullRange,
+			new DummyEnvironment());
+
+		final AbstractKeyedStateBackend<Integer> backend2 = createKeyedBackend(
+			IntSerializer.INSTANCE,
+			MAX_PARALLELISM,
+			fullRange,
+			new DummyEnvironment());
+
+		final String stateName = "test";
+		TypeSerializer<InternalPriorityQueueTestBase.TestElement> serializer =
+			InternalPriorityQueueTestBase.TestElementSerializer.INSTANCE;
+
+		KeyGroupedInternalPriorityQueue<InternalPriorityQueueTestBase.TestElement> priorityQueue1 =
+			backend1.create(stateName, serializer);
+
+		priorityQueue1.add(new InternalPriorityQueueTestBase.TestElement(42L, 7L));
+		priorityQueue1.add(new InternalPriorityQueueTestBase.TestElement(42L, 0L));
+
+		KeyGroupedInternalPriorityQueue<InternalPriorityQueueTestBase.TestElement> priorityQueue2 =
+			backend2.create(stateName, serializer);
+
+		priorityQueue2.add(new InternalPriorityQueueTestBase.TestElement(42L, 5L));
+
+		KeyedStateHandle snapshot1 = runSnapshot(
+			backend1.snapshot(0, 0, streamFactory,
+				CheckpointOptions.forCheckpointWithDefaultLocation()),
+			sharedStateRegistry);
+		KeyedStateHandle snapshot2 = runSnapshot(
+			backend2.snapshot(0, 0, streamFactory,
+				CheckpointOptions.forCheckpointWithDefaultLocation()),
+			sharedStateRegistry);
+
+		backend1.dispose();
+		backend2.dispose();
+
+		List<KeyedStateHandle> reDistributedStates = new ArrayList<>();
+		reDistributedStates.add(snapshot1);
+		reDistributedStates.add(snapshot2);
+
+		final AbstractKeyedStateBackend<Integer> restoredBackend = restoreKeyedBackend(
+			IntSerializer.INSTANCE,
+			MAX_PARALLELISM,
+			fullRange,
+			reDistributedStates,
+			new DummyEnvironment());
+
+		KeyGroupedInternalPriorityQueue<InternalPriorityQueueTestBase.TestElement> restoredPQ =
+			restoredBackend.create(stateName, serializer);
+
+		assertEquals(3, restoredPQ.size());
+
+		InternalPriorityQueueTestBase.TestElement element = restoredPQ.poll();
+		assertEquals(0, element.getPriority());
+		assertEquals(42L, (long) element.getKey());
+
+		element = restoredPQ.poll();
+		assertEquals(5, element.getPriority());
+		assertEquals(42L, (long) element.getKey());
+
+		restoredBackend.dispose();
+	}
+
 	public static class ModifiedTestElementSerializer extends InternalPriorityQueueTestBase.TestElementSerializer {
 
 		@Override
@@ -3241,6 +3315,78 @@ public abstract class StateBackendTestBase<B extends AbstractStateBackend> exten
 
 		firstHalfBackend.dispose();
 		secondHalfBackend.dispose();
+	}
+
+	@Test
+	public void testMergingStatesFromSnapshots() throws Exception {
+		final int MAX_PARALLELISM = 10;
+		KeyGroupRange fullRange = new KeyGroupRange(0, MAX_PARALLELISM - 1);
+
+		CheckpointStreamFactory streamFactory = createStreamFactory();
+		SharedStateRegistry sharedStateRegistry = new SharedStateRegistry();
+		final AbstractKeyedStateBackend<Integer> backend1 = createKeyedBackend(
+			IntSerializer.INSTANCE,
+			MAX_PARALLELISM,
+			fullRange,
+			new DummyEnvironment());
+
+		final AbstractKeyedStateBackend<Integer> backend2 = createKeyedBackend(
+			IntSerializer.INSTANCE,
+			MAX_PARALLELISM,
+			fullRange,
+			new DummyEnvironment());
+
+		ListStateDescriptor<String> stateDescriptor = new ListStateDescriptor<>("id", String.class);
+
+		ListState<String> stateInBackend1 = backend1.getPartitionedState(
+			VoidNamespace.INSTANCE, VoidNamespaceSerializer.INSTANCE, stateDescriptor);
+		ListState<String> stateInBackend2 = backend2.getPartitionedState(
+			VoidNamespace.INSTANCE, VoidNamespaceSerializer.INSTANCE, stateDescriptor);
+		int stateKey = 7;
+
+		backend1.setCurrentKey(stateKey);
+		stateInBackend1.add("ShouldBeInFirstHalf");
+
+		backend2.setCurrentKey(stateKey);
+		stateInBackend2.add("ShouldBeInSecondHalf");
+
+		KeyedStateHandle snapshot1 = runSnapshot(
+			backend1.snapshot(0, 0, streamFactory,
+			CheckpointOptions.forCheckpointWithDefaultLocation()),
+			sharedStateRegistry);
+		KeyedStateHandle snapshot2 = runSnapshot(
+			backend2.snapshot(0, 0, streamFactory,
+			CheckpointOptions.forCheckpointWithDefaultLocation()),
+			sharedStateRegistry);
+
+		backend1.dispose();
+		backend2.dispose();
+
+		List<KeyedStateHandle> reDistributedStates = new ArrayList<>();
+		reDistributedStates.add(snapshot1);
+		reDistributedStates.add(snapshot2);
+
+		final AbstractKeyedStateBackend<Integer> restoredBackend = restoreKeyedBackend(
+			IntSerializer.INSTANCE,
+			MAX_PARALLELISM,
+			fullRange,
+			reDistributedStates,
+			new DummyEnvironment());
+
+		ListState<String> restoredState = restoredBackend.getPartitionedState(
+			VoidNamespace.INSTANCE, VoidNamespaceSerializer.INSTANCE, stateDescriptor);
+
+		restoredBackend.setCurrentKey(stateKey);
+		List<String> valueList = new ArrayList<>();
+		for (String value : restoredState.get()) {
+			valueList.add(value);
+		}
+
+		assertEquals(2, valueList.size());
+		assertTrue(valueList.get(0).equals("ShouldBeInFirstHalf"));
+		assertTrue(valueList.get(1).equals("ShouldBeInSecondHalf"));
+
+		restoredBackend.dispose();
 	}
 
 	@Test
