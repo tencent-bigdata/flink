@@ -20,6 +20,10 @@ package org.apache.flink.contrib.streaming.state;
 
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.api.common.state.AggregatingState;
+import org.apache.flink.api.common.state.AggregatingStateDescriptor;
+import org.apache.flink.api.common.state.ReducingState;
+import org.apache.flink.api.common.state.ReducingStateDescriptor;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.common.typeutils.base.IntSerializer;
@@ -31,6 +35,7 @@ import org.apache.flink.runtime.execution.Environment;
 import org.apache.flink.runtime.operators.testutils.DummyEnvironment;
 import org.apache.flink.runtime.query.TaskKvStateRegistry;
 import org.apache.flink.runtime.state.AbstractKeyedStateBackend;
+import org.apache.flink.runtime.state.CheckpointStreamFactory;
 import org.apache.flink.runtime.state.IncrementalKeyedStateHandle;
 import org.apache.flink.runtime.state.KeyGroupRange;
 import org.apache.flink.runtime.state.KeyGroupRangeAssignment;
@@ -560,6 +565,141 @@ public class RocksDBStateBackendTest extends StateBackendTestBase<RocksDBStateBa
 				backend.dispose();
 			}
 		}
+	}
+
+	@Test
+	public void testMergingReducingStatesFromSnapshots() throws Exception {
+		final int maxParallelism = 10;
+		KeyGroupRange fullRange = new KeyGroupRange(0, maxParallelism - 1);
+
+		CheckpointStreamFactory streamFactory = createStreamFactory();
+		SharedStateRegistry sharedStateRegistry = new SharedStateRegistry();
+		final AbstractKeyedStateBackend<Integer> backend1 = createKeyedBackend(
+			IntSerializer.INSTANCE,
+			maxParallelism,
+			fullRange,
+			new DummyEnvironment());
+
+		final AbstractKeyedStateBackend<Integer> backend2 = createKeyedBackend(
+			IntSerializer.INSTANCE,
+			maxParallelism,
+			fullRange,
+			new DummyEnvironment());
+
+		ReducingStateDescriptor<String> stateDescriptor = new ReducingStateDescriptor<>(
+			"id", (a, b) -> a + "," + b, String.class);
+
+		ReducingState<String> stateInBackend1 = backend1.getPartitionedState(
+			VoidNamespace.INSTANCE, VoidNamespaceSerializer.INSTANCE, stateDescriptor);
+		ReducingState<String> stateInBackend2 = backend2.getPartitionedState(
+			VoidNamespace.INSTANCE, VoidNamespaceSerializer.INSTANCE, stateDescriptor);
+		int stateKey = 7;
+
+		backend1.setCurrentKey(stateKey);
+		stateInBackend1.add("ShouldBeInFirstHalf");
+
+		backend2.setCurrentKey(stateKey);
+		stateInBackend2.add("ShouldBeInSecondHalf");
+
+		KeyedStateHandle snapshot1 = runSnapshot(
+			backend1.snapshot(0, 0, streamFactory,
+				CheckpointOptions.forCheckpointWithDefaultLocation()),
+			sharedStateRegistry);
+		KeyedStateHandle snapshot2 = runSnapshot(
+			backend2.snapshot(0, 0, streamFactory,
+				CheckpointOptions.forCheckpointWithDefaultLocation()),
+			sharedStateRegistry);
+
+		backend1.dispose();
+		backend2.dispose();
+
+		List<KeyedStateHandle> reDistributedStates = new ArrayList<>();
+		reDistributedStates.add(snapshot1);
+		reDistributedStates.add(snapshot2);
+
+		final AbstractKeyedStateBackend<Integer> restoredBackend = restoreKeyedBackend(
+			IntSerializer.INSTANCE,
+			maxParallelism,
+			fullRange,
+			reDistributedStates,
+			new DummyEnvironment());
+
+		ReducingState<String> restoredState = restoredBackend.getPartitionedState(
+			VoidNamespace.INSTANCE, VoidNamespaceSerializer.INSTANCE, stateDescriptor);
+
+		restoredBackend.setCurrentKey(stateKey);
+
+		assertEquals("ShouldBeInFirstHalf,ShouldBeInSecondHalf", restoredState.get());
+
+		restoredBackend.dispose();
+	}
+
+	@Test
+	public void testMergingAggregatingStatesFromSnapshots() throws Exception {
+		final int maxParallelism = 10;
+		KeyGroupRange fullRange = new KeyGroupRange(0, maxParallelism - 1);
+
+		CheckpointStreamFactory streamFactory = createStreamFactory();
+		SharedStateRegistry sharedStateRegistry = new SharedStateRegistry();
+		final AbstractKeyedStateBackend<Integer> backend1 = createKeyedBackend(
+			IntSerializer.INSTANCE,
+			maxParallelism,
+			fullRange,
+			new DummyEnvironment());
+
+		final AbstractKeyedStateBackend<Integer> backend2 = createKeyedBackend(
+			IntSerializer.INSTANCE,
+			maxParallelism,
+			fullRange,
+			new DummyEnvironment());
+
+		final AggregatingStateDescriptor<Long, Long, Long> stateDescriptor =
+			new AggregatingStateDescriptor<>("my-state", new ImmutableAggregatingAddingFunction(), Long.class);
+
+		AggregatingState<Long, Long> stateInBackend1 = backend1.getPartitionedState(
+			VoidNamespace.INSTANCE, VoidNamespaceSerializer.INSTANCE, stateDescriptor);
+		AggregatingState<Long, Long> stateInBackend2 = backend2.getPartitionedState(
+			VoidNamespace.INSTANCE, VoidNamespaceSerializer.INSTANCE, stateDescriptor);
+		int stateKey = 7;
+
+		backend1.setCurrentKey(stateKey);
+		stateInBackend1.add(10L);
+		stateInBackend1.add(11L);
+
+		backend2.setCurrentKey(stateKey);
+		stateInBackend2.add(12L);
+
+		KeyedStateHandle snapshot1 = runSnapshot(
+			backend1.snapshot(0, 0, streamFactory,
+				CheckpointOptions.forCheckpointWithDefaultLocation()),
+			sharedStateRegistry);
+		KeyedStateHandle snapshot2 = runSnapshot(
+			backend2.snapshot(0, 0, streamFactory,
+				CheckpointOptions.forCheckpointWithDefaultLocation()),
+			sharedStateRegistry);
+
+		backend1.dispose();
+		backend2.dispose();
+
+		List<KeyedStateHandle> reDistributedStates = new ArrayList<>();
+		reDistributedStates.add(snapshot1);
+		reDistributedStates.add(snapshot2);
+
+		final AbstractKeyedStateBackend<Integer> restoredBackend = restoreKeyedBackend(
+			IntSerializer.INSTANCE,
+			maxParallelism,
+			fullRange,
+			reDistributedStates,
+			new DummyEnvironment());
+
+		AggregatingState<Long, Long> restoredState = restoredBackend.getPartitionedState(
+			VoidNamespace.INSTANCE, VoidNamespaceSerializer.INSTANCE, stateDescriptor);
+
+		restoredBackend.setCurrentKey(stateKey);
+
+		assertEquals(33L, restoredState.get().longValue());
+
+		restoredBackend.dispose();
 	}
 
 	private void checkRemove(IncrementalKeyedStateHandle remove, SharedStateRegistry registry) throws Exception {

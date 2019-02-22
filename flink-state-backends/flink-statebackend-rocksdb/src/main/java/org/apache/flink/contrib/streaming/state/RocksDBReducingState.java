@@ -30,8 +30,11 @@ import org.apache.flink.runtime.state.internal.InternalReducingState;
 import org.apache.flink.util.FlinkRuntimeException;
 
 import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.RocksDBException;
 
+import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * {@link ReducingState} implementation that stores state in RocksDB.
@@ -46,6 +49,8 @@ class RocksDBReducingState<K, N, V>
 
 	/** User-specified reduce function. */
 	private final ReduceFunction<V> reduceFunction;
+
+	private boolean firstGet = true;
 
 	/**
 	 * Creates a new {@code RocksDBReducingState}.
@@ -160,6 +165,47 @@ class RocksDBReducingState<K, N, V>
 		catch (Exception e) {
 			throw new FlinkRuntimeException("Error while merging state in RocksDB", e);
 		}
+	}
+
+	@Override
+	public V getInternal(byte[] key) {
+		try {
+			byte[] valueBytes = backend.db.get(columnFamily, key);
+			if (valueBytes == null) {
+				return null;
+			}
+			// When restore from local keyed snapshots, we may encountered more than one value
+			// in case of rescaling.
+			if (firstGet) {
+				firstGet = false;
+				List<V> list = deserializeList(valueBytes);
+				return combiningValuesIfNeed(list);
+			}
+			dataInputView.setBuffer(valueBytes);
+			return valueSerializer.deserialize(dataInputView);
+		} catch (IOException | RocksDBException e) {
+			throw new FlinkRuntimeException("Error while retrieving data from RocksDB", e);
+		}
+	}
+
+	private V combiningValuesIfNeed(List<V> list) {
+		if (list == null || list.isEmpty()) {
+			return null;
+		}
+		V result = list.get(0);
+		if (list.size() > 1) {
+			for (int i = 1; i < list.size(); i++) {
+				V other = list.get(i);
+				if (result != null || other != null) {
+					try {
+						result = reduceFunction.reduce(result, other);
+					} catch (Exception e) {
+						throw new FlinkRuntimeException("Error while combining values", e);
+					}
+				}
+			}
+		}
+		return result;
 	}
 
 	@SuppressWarnings("unchecked")

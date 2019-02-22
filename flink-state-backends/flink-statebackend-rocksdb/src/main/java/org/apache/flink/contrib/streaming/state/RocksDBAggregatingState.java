@@ -30,8 +30,11 @@ import org.apache.flink.runtime.state.internal.InternalAggregatingState;
 import org.apache.flink.util.FlinkRuntimeException;
 
 import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.RocksDBException;
 
+import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * An {@link AggregatingState} implementation that stores state in RocksDB.
@@ -48,6 +51,8 @@ class RocksDBAggregatingState<K, N, T, ACC, R>
 
 	/** User-specified aggregation function. */
 	private final AggregateFunction<T, ACC, R> aggFunction;
+
+	private boolean firstGet = true;
 
 	/**
 	 * Creates a new {@code RocksDBAggregatingState}.
@@ -166,6 +171,43 @@ class RocksDBAggregatingState<K, N, T, ACC, R>
 		catch (Exception e) {
 			throw new FlinkRuntimeException("Error while merging state in RocksDB", e);
 		}
+	}
+
+	@Override
+	public ACC getInternal(byte[] key) {
+		try {
+			byte[] valueBytes = backend.db.get(columnFamily, key);
+			if (valueBytes == null) {
+				return null;
+			}
+			// When restore from local keyed snapshots, we may encountered more than one accumulator
+			// in case of rescaling.
+			if (firstGet) {
+				firstGet = false;
+				List<ACC> list = deserializeList(valueBytes);
+				return mergeAccumulatorIfNeed(list);
+			}
+			dataInputView.setBuffer(valueBytes);
+			return valueSerializer.deserialize(dataInputView);
+		} catch (IOException | RocksDBException e) {
+			throw new FlinkRuntimeException("Error while retrieving data from RocksDB", e);
+		}
+	}
+
+	private ACC mergeAccumulatorIfNeed(List<ACC> list) {
+		if (list == null || list.isEmpty()) {
+			return null;
+		}
+		ACC result = list.get(0);
+		if (list.size() > 1) {
+			for (int i = 1; i < list.size(); i++) {
+				ACC other = list.get(i);
+				if (result != null || other != null) {
+					result = aggFunction.merge(result, other);
+				}
+			}
+		}
+		return result;
 	}
 
 	@SuppressWarnings("unchecked")

@@ -20,6 +20,7 @@ package org.apache.flink.contrib.streaming.state;
 
 import org.apache.flink.api.common.state.State;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
+import org.apache.flink.core.memory.DataInputDeserializer;
 import org.apache.flink.runtime.state.internal.InternalAppendingState;
 import org.apache.flink.util.FlinkRuntimeException;
 
@@ -27,6 +28,8 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 abstract class AbstractRocksDBAppendingState <K, N, IN, SV, OUT, S extends State>
 	extends AbstractRocksDBState<K, N, SV, S>
@@ -82,4 +85,35 @@ abstract class AbstractRocksDBAppendingState <K, N, IN, SV, OUT, S extends State
 			throw new FlinkRuntimeException("Error while adding value to RocksDB", e);
 		}
 	}
+
+	protected List<SV> deserializeList(byte[] valueBytes) {
+		if (valueBytes == null) {
+			return null;
+		}
+
+		dataInputView.setBuffer(valueBytes);
+
+		List<SV> result = new ArrayList<>();
+		SV next;
+		while ((next = deserializeNextElement(dataInputView, valueSerializer)) != null) {
+			result.add(next);
+		}
+		return result;
+	}
+
+	protected SV deserializeNextElement(DataInputDeserializer in, TypeSerializer<SV> elementSerializer) {
+		try {
+			if (in.available() > 0) {
+				SV element = elementSerializer.deserialize(in);
+				if (in.available() > 0) {
+					in.readByte();
+				}
+				return element;
+			}
+		} catch (IOException e) {
+			throw new FlinkRuntimeException("Unexpected list element deserialization failure");
+		}
+		return null;
+	}
+
 }

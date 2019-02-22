@@ -1241,7 +1241,7 @@ public abstract class StateBackendTestBase<B extends AbstractStateBackend> exten
 	}
 
 	@Test
-	public void testMergingPriorityQueueStates() throws Exception {
+	public void testMergingPriorityQueueStatesFromSnapshots() throws Exception {
 
 		final int MAX_PARALLELISM = 10;
 		KeyGroupRange fullRange = new KeyGroupRange(0, MAX_PARALLELISM - 1);
@@ -3318,7 +3318,7 @@ public abstract class StateBackendTestBase<B extends AbstractStateBackend> exten
 	}
 
 	@Test
-	public void testMergingStatesFromSnapshots() throws Exception {
+	public void testMergingListStatesFromSnapshots() throws Exception {
 		final int MAX_PARALLELISM = 10;
 		KeyGroupRange fullRange = new KeyGroupRange(0, MAX_PARALLELISM - 1);
 
@@ -3383,8 +3383,8 @@ public abstract class StateBackendTestBase<B extends AbstractStateBackend> exten
 		}
 
 		assertEquals(2, valueList.size());
-		assertTrue(valueList.get(0).equals("ShouldBeInFirstHalf"));
-		assertTrue(valueList.get(1).equals("ShouldBeInSecondHalf"));
+		assertEquals("ShouldBeInFirstHalf", valueList.get(0));
+		assertEquals("ShouldBeInSecondHalf", valueList.get(1));
 
 		restoredBackend.dispose();
 	}
@@ -4927,7 +4927,7 @@ public abstract class StateBackendTestBase<B extends AbstractStateBackend> exten
 	}
 
 	@SuppressWarnings("serial")
-	private static class ImmutableAggregatingAddingFunction implements AggregateFunction<Long, Long, Long> {
+	public static class ImmutableAggregatingAddingFunction implements AggregateFunction<Long, Long, Long> {
 
 		@Override
 		public Long createAccumulator() {

@@ -163,6 +163,12 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 			Tuple2.of(FoldingStateDescriptor.class, (StateFactory) RocksDBFoldingState::create)
 		).collect(Collectors.toMap(t -> t.f0, t -> t.f1));
 
+	private static final List<StateDescriptor.Type> supportedStateTypesForMerging = Arrays.asList(
+		StateDescriptor.Type.LIST,
+		StateDescriptor.Type.REDUCING,
+		StateDescriptor.Type.AGGREGATING
+	);
+
 	private interface StateFactory {
 		<K, N, SV, S extends State, IS extends S> IS createState(
 			StateDescriptor<S, SV> stateDesc,
@@ -869,13 +875,13 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 					stateMetaInfo.getBackendStateType())) {
 				StateDescriptor.Type stateType = StateDescriptor.Type.valueOf(
 					stateMetaInfo.getOption(StateMetaInfoSnapshot.CommonOptionsKeys.KEYED_STATE_TYPE));
-				if (StateDescriptor.Type.LIST.equals(stateType)) {
+				if (supportedStateTypesForMerging.contains(stateType)) {
 					writeBatchWrapper.merge(handle, key, value);
 				} else {
 					throw new IllegalStateException(
 						"Unexpected state type encountered when merging states from snapshot. " +
 						"stateName: " + cfName + ", stateType: " + stateType + ". " +
-						"Currently we only support LIST type.");
+						"Only " + supportedStateTypesForMerging + " are supported.");
 				}
 			} else {
 				writeBatchWrapper.put(handle, key, value);
@@ -1088,13 +1094,13 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 											stateMetaInfo.getBackendStateType())) {
 										StateDescriptor.Type stateType = StateDescriptor.Type.valueOf(
 											stateMetaInfo.getOption(StateMetaInfoSnapshot.CommonOptionsKeys.KEYED_STATE_TYPE));
-										if (StateDescriptor.Type.LIST.equals(stateType)) {
+										if (supportedStateTypesForMerging.contains(stateType)) {
 											writeBatchWrapper.merge(targetColumnFamilyHandle, key, iterator.value());
 										} else {
 											throw new IllegalStateException(
 												"Unexpected state type encountered when merging states from snapshot. " +
 												"stateName: " + stateName + ", stateType: " + stateType + ". " +
-												"Currently we only support LIST type.");
+												"Only " + supportedStateTypesForMerging + " are supported.");
 										}
 									} else {
 										writeBatchWrapper.put(targetColumnFamilyHandle, key, iterator.value());
