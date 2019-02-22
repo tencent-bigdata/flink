@@ -696,8 +696,9 @@ public class RocksDBStateBackendTest extends StateBackendTestBase<RocksDBStateBa
 			VoidNamespace.INSTANCE, VoidNamespaceSerializer.INSTANCE, stateDescriptor);
 
 		restoredBackend.setCurrentKey(stateKey);
+		restoredState.add(22L);
 
-		assertEquals(33L, restoredState.get().longValue());
+		assertEquals(55L, restoredState.get().longValue());
 
 		restoredBackend.dispose();
 	}

@@ -180,7 +180,7 @@ class RocksDBAggregatingState<K, N, T, ACC, R>
 			if (valueBytes == null) {
 				return null;
 			}
-			// When restore from local keyed snapshots, we may encountered more than one accumulator
+			// When restoring from local keyed snapshots, we may encounter more than one accumulator
 			// in case of rescaling.
 			if (firstGet) {
 				firstGet = false;
