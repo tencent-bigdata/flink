@@ -41,8 +41,8 @@ public class RocksDBOptions {
 	 */
 	public static final ConfigOption<String> TIMER_SERVICE_FACTORY = ConfigOptions
 		.key("state.backend.rocksdb.timer-service.factory")
-		.defaultValue(HEAP.name())
+		.defaultValue(ROCKSDB.name())
 		.withDescription(String.format("This determines the factory for timer service state implementation. Options " +
-			"are either %s (heap-based, default) or %s for an implementation based on RocksDB .",
+			"are either %s (heap-based) or %s (default) for an implementation based on RocksDB .",
 			HEAP.name(), ROCKSDB.name()));
 }
